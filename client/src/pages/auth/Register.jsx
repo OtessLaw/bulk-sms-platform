@@ -18,7 +18,7 @@ export default function Register() {
     setLoading(true);
     try {
       await register({ name, email, phone, password });
-      toast.success('Account created! +250 free SMS credits added to your wallet.');
+      toast.success('Account created! +10 free SMS credits added to your wallet.');
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
@@ -37,7 +37,7 @@ export default function Register() {
           <h1 className="text-2xl font-extrabold bg-gradient-to-r from-[#FFFFFF] via-[#E7D3A4] to-[#D4AF6A] bg-clip-text text-transparent">
             Create Account
           </h1>
-          <p className="text-xs text-[#AEB4BC]">Get instant 250 free SMS credits upon signup</p>
+          <p className="text-xs text-[#AEB4BC]">Get instant 10 free SMS credits upon signup</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">

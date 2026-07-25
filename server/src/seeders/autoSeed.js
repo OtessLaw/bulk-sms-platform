@@ -35,8 +35,8 @@ const autoSeed = async () => {
 
       await Wallet.create({
         userId: demoUser._id,
-        balance: 250.0,
-        smsCredit: 1250,
+        balance: 0.0,
+        smsCredit: 10,
       });
 
       console.log('[AutoSeed] ✅ Default accounts seeded in live MongoDB Atlas database!');

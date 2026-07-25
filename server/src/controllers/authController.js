@@ -22,11 +22,11 @@ exports.register = async (req, res, next) => {
       role: 'Regular User',
     });
 
-    // Create Initial Wallet with 100 GHS bonus balance & 250 free SMS units
+    // Create Initial Wallet with 10 free SMS units
     const wallet = await Wallet.create({
       userId: user._id,
-      balance: 100.0,
-      smsCredit: 250,
+      balance: 0.0,
+      smsCredit: 10,
     });
 
     const token = generateAccessToken({ id: user._id, role: user.role });
