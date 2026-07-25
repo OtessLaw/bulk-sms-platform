@@ -4,9 +4,17 @@ import API from '../services/api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [wallet, setWallet] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(() => {
+    const cached = localStorage.getItem('cachedUser');
+    return cached ? JSON.parse(cached) : null;
+  });
+
+  const [wallet, setWallet] = useState(() => {
+    const cached = localStorage.getItem('cachedWallet');
+    return cached ? JSON.parse(cached) : null;
+  });
+
+  const [loading, setLoading] = useState(!user);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonatorAdmin, setImpersonatorAdmin] = useState(null);
 
@@ -28,9 +36,14 @@ export const AuthProvider = ({ children }) => {
         setWallet(res.data.data.wallet);
         setIsImpersonating(res.data.data.isImpersonating || false);
         setImpersonatorAdmin(res.data.data.impersonatorAdmin || null);
+
+        localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
+        localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       }
     } catch (err) {
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('cachedUser');
+      localStorage.removeItem('cachedWallet');
       setUser(null);
       setWallet(null);
     } finally {
@@ -42,6 +55,8 @@ export const AuthProvider = ({ children }) => {
     const res = await API.post('/auth/login', { email, password });
     if (res.data.success) {
       localStorage.setItem('accessToken', res.data.data.token);
+      localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
+      localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       setUser(res.data.data.user);
       setWallet(res.data.data.wallet);
       setIsImpersonating(false);
@@ -53,6 +68,8 @@ export const AuthProvider = ({ children }) => {
     const res = await API.post('/auth/register', formData);
     if (res.data.success) {
       localStorage.setItem('accessToken', res.data.data.token);
+      localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
+      localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       setUser(res.data.data.user);
       setWallet(res.data.data.wallet);
       return res.data;
@@ -61,6 +78,8 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('accessToken');
+    localStorage.removeItem('cachedUser');
+    localStorage.removeItem('cachedWallet');
     localStorage.removeItem('adminBackupToken');
     setUser(null);
     setWallet(null);
@@ -90,6 +109,7 @@ export const AuthProvider = ({ children }) => {
       const res = await API.get('/wallet');
       if (res.data.success) {
         setWallet(res.data.data.wallet);
+        localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       }
     } catch (err) {
       console.error('Failed to refresh wallet', err);
