@@ -16,7 +16,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      toast.success('Welcome back to Bulk SMS Enterprise!');
+      toast.success('Welcome back to FasReach!');
       navigate('/dashboard');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid email or password');
@@ -52,7 +52,7 @@ export default function Login() {
             <Sparkles className="w-6 h-6 text-black" />
           </div>
           <h1 className="text-2xl font-extrabold bg-gradient-to-r from-[#FFFFFF] via-[#E7D3A4] to-[#D4AF6A] bg-clip-text text-transparent">
-            BULKSMS SAAS
+            FasReach
           </h1>
           <p className="text-xs text-[#AEB4BC]">Enterprise Reseller Gateway Platform</p>
         </div>

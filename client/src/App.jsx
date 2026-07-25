@@ -38,7 +38,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#1E232B] flex items-center justify-center text-[#D4AF6A] font-semibold text-sm">
-        Loading Bulk SMS Enterprise...
+        Loading FasReach Platform...
       </div>
     );
   }

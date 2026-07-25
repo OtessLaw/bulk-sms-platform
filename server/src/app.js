@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'Bulk SMS Enterprise SaaS API Gateway Server Running',
+    message: 'FasReach Enterprise Bulk SMS API Gateway Server Running',
     version: '1.0.0',
     status: 'Healthy',
   });

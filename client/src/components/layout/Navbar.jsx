@@ -23,7 +23,7 @@ export default function Navbar() {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#D4AF6A] to-[#B88E3E] flex items-center justify-center">
             <Sparkles className="w-4 h-4 text-black" />
           </div>
-          <span className="font-extrabold text-sm text-white tracking-wider">BULKSMS SAAS</span>
+          <span className="font-extrabold text-base text-white tracking-wider">FasReach</span>
         </div>
       )}
 

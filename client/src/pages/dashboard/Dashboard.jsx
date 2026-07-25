@@ -32,7 +32,7 @@ export default function Dashboard() {
           <span className="text-xs text-[#D4AF6A] font-semibold tracking-wider uppercase flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-[#D4AF6A]" /> Welcome Back, {user?.name}
           </span>
-          <h1 className="text-2xl font-extrabold text-white">Bulk SMS SaaS Gateway Overview</h1>
+          <h1 className="text-2xl font-extrabold text-white">FasReach Bulk SMS Overview</h1>
           <p className="text-xs text-[#AEB4BC]">Monitor your SMS broadcasts, wallet balance, and API throughput in real time.</p>
         </div>
 
