@@ -1,0 +1,123 @@
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import API from '../services/api';
+
+const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [wallet, setWallet] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [impersonatorAdmin, setImpersonatorAdmin] = useState(null);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const res = await API.get('/auth/me');
+      if (res.data.success) {
+        setUser(res.data.data.user);
+        setWallet(res.data.data.wallet);
+        setIsImpersonating(res.data.data.isImpersonating || false);
+        setImpersonatorAdmin(res.data.data.impersonatorAdmin || null);
+      }
+    } catch (err) {
+      localStorage.removeItem('accessToken');
+      setUser(null);
+      setWallet(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (email, password) => {
+    const res = await API.post('/auth/login', { email, password });
+    if (res.data.success) {
+      localStorage.setItem('accessToken', res.data.data.token);
+      setUser(res.data.data.user);
+      setWallet(res.data.data.wallet);
+      setIsImpersonating(false);
+      return res.data;
+    }
+  };
+
+  const register = async (formData) => {
+    const res = await API.post('/auth/register', formData);
+    if (res.data.success) {
+      localStorage.setItem('accessToken', res.data.data.token);
+      setUser(res.data.data.user);
+      setWallet(res.data.data.wallet);
+      return res.data;
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('adminBackupToken');
+    setUser(null);
+    setWallet(null);
+    setIsImpersonating(false);
+    setImpersonatorAdmin(null);
+    window.location.href = '/login';
+  };
+
+  const impersonate = (impersonationToken) => {
+    const currentToken = localStorage.getItem('accessToken');
+    localStorage.setItem('adminBackupToken', currentToken);
+    localStorage.setItem('accessToken', impersonationToken);
+    window.location.href = '/dashboard';
+  };
+
+  const stopImpersonating = () => {
+    const backupToken = localStorage.getItem('adminBackupToken');
+    if (backupToken) {
+      localStorage.setItem('accessToken', backupToken);
+      localStorage.removeItem('adminBackupToken');
+      window.location.href = '/admin/users';
+    }
+  };
+
+  const refreshWallet = async () => {
+    try {
+      const res = await API.get('/wallet');
+      if (res.data.success) {
+        setWallet(res.data.data.wallet);
+      }
+    } catch (err) {
+      console.error('Failed to refresh wallet', err);
+    }
+  };
+
+  const isAdmin = user && ['Super Admin', 'Admin'].includes(user.role);
+
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        wallet,
+        loading,
+        isAdmin,
+        isImpersonating,
+        impersonatorAdmin,
+        login,
+        register,
+        logout,
+        impersonate,
+        stopImpersonating,
+        refreshWallet,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
