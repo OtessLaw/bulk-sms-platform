@@ -15,9 +15,10 @@ import {
   Settings,
   HelpCircle,
   ShieldAlert,
+  X,
 } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen, onCloseMobile }) {
   const { isAdmin } = useAuth();
 
   const userLinks = [
@@ -46,48 +47,43 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className="w-64 bg-[#1E232B] border-r border-[rgba(212,175,106,0.15)] flex flex-col justify-between shrink-0 min-h-[calc(100vh-4rem)]">
-      <div className="p-4 space-y-6">
-        {/* User Navigation Section */}
-        <div className="space-y-1">
-          <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#AEB4BC] mb-2">Main Menu</p>
-          {userLinks.map((link) => {
-            const Icon = link.icon;
-            return (
-              <NavLink
-                key={link.path}
-                to={link.path}
-                className={({ isActive }) =>
-                  `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                    isActive
-                      ? 'bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black shadow-lg font-bold'
-                      : 'text-[#AEB4BC] hover:bg-[#2A3038] hover:text-white'
-                  }`
-                }
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{link.name}</span>
-              </NavLink>
-            );
-          })}
-        </div>
+    <>
+      {/* Mobile Backdrop Overlay */}
+      {mobileOpen && (
+        <div
+          onClick={onCloseMobile}
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity"
+        />
+      )}
 
-        {/* Super Admin Navigation Section */}
-        {isAdmin && (
-          <div className="space-y-1 pt-4 border-t border-[rgba(212,175,106,0.15)]">
-            <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#D4AF6A] mb-2 flex items-center gap-1">
-              <ShieldAlert className="w-3 h-3 text-[#D4AF6A]" /> Super Admin Control
-            </p>
-            {adminLinks.map((link) => {
+      <aside
+        className={`fixed lg:static top-0 left-0 bottom-0 z-50 w-64 bg-[#1E232B] border-r border-[rgba(212,175,106,0.15)] flex flex-col justify-between shrink-0 min-h-screen lg:min-h-[calc(100vh-4rem)] transition-transform duration-300 ease-in-out ${
+          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="p-4 space-y-6 overflow-y-auto max-h-screen lg:max-h-none">
+          {/* Mobile Header Close Button */}
+          <div className="flex items-center justify-between lg:hidden pb-3 border-b border-[rgba(212,175,106,0.15)]">
+            <span className="font-extrabold text-white text-sm">FasReach Menu</span>
+            <button onClick={onCloseMobile} className="p-1 text-[#AEB4BC] hover:text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* User Navigation Section */}
+          <div className="space-y-1">
+            <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#AEB4BC] mb-2">Main Menu</p>
+            {userLinks.map((link) => {
               const Icon = link.icon;
               return (
                 <NavLink
                   key={link.path}
                   to={link.path}
+                  onClick={onCloseMobile}
                   className={({ isActive }) =>
                     `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
                       isActive
-                        ? 'bg-[#D4AF6A] text-black shadow-lg font-bold'
+                        ? 'bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black shadow-lg font-bold'
                         : 'text-[#AEB4BC] hover:bg-[#2A3038] hover:text-white'
                     }`
                   }
@@ -98,8 +94,37 @@ export default function Sidebar() {
               );
             })}
           </div>
-        )}
-      </div>
-    </aside>
+
+          {/* Super Admin Navigation Section */}
+          {isAdmin && (
+            <div className="space-y-1 pt-4 border-t border-[rgba(212,175,106,0.15)]">
+              <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#D4AF6A] mb-2 flex items-center gap-1">
+                <ShieldAlert className="w-3 h-3 text-[#D4AF6A]" /> Super Admin Control
+              </p>
+              {adminLinks.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <NavLink
+                    key={link.path}
+                    to={link.path}
+                    onClick={onCloseMobile}
+                    className={({ isActive }) =>
+                      `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-[#D4AF6A] text-black shadow-lg font-bold'
+                          : 'text-[#AEB4BC] hover:bg-[#2A3038] hover:text-white'
+                      }`
+                    }
+                  >
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span>{link.name}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
