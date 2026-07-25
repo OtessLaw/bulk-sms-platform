@@ -12,10 +12,10 @@ const apiLimiter = rateLimit({
   },
 });
 
-// 2. Strict Auth Rate Limiter (Max 10 login/register attempts per 15 minutes)
+// 2. Strict Auth Rate Limiter (Max 20 login/register attempts per 15 minutes)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10,
+  max: 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
