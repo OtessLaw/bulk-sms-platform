@@ -1,10 +1,16 @@
 const axios = require('axios');
+const SystemSetting = require('../models/SystemSetting');
 
 exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
-  const arkeselApiKey = process.env.ARKESEL_API_KEY || 'mock_arkesel_key';
+  // Check database settings first, then environment variables
+  let arkeselApiKey = process.env.ARKESEL_API_KEY;
+  const dbArkeselKey = await SystemSetting.findOne({ key: 'ARKESEL_API_KEY' });
+  if (dbArkeselKey && dbArkeselKey.value) {
+    arkeselApiKey = dbArkeselKey.value;
+  }
 
-  if (!process.env.ARKESEL_API_KEY || arkeselApiKey === 'mock_arkesel_key') {
-    console.log(`[Arkesel Gateway Mock] Sent to ${recipientPhone} via ${senderId}: "${content}"`);
+  if (!arkeselApiKey || arkeselApiKey === 'mock_arkesel_key') {
+    console.log(`[Arkesel Gateway Mock] Dispatched to ${recipientPhone} via ${senderId}: "${content}"`);
     return {
       success: true,
       provider: 'Arkesel (Primary)',
@@ -17,7 +23,7 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
     const res = await axios.post(
       'https://sms.arkesel.com/api/v2/sms/send',
       {
-        sender: senderId,
+        sender: senderId || 'FASREACH',
         recipients: [recipientPhone],
         message: content,
       },
@@ -35,7 +41,7 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
       status: 'Sent',
     };
   } catch (err) {
-    console.warn('[Arkesel Gateway Warning] Primary Gateway failed. Routing to Backup Hubtel Gateway...', err.message);
+    console.warn('[Arkesel Gateway Notice] Primary Gateway failed. Failover to Hubtel Backup Gateway...', err.message);
     return {
       success: true,
       provider: 'Hubtel (Failover Backup)',

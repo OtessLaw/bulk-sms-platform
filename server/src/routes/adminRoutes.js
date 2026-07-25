@@ -9,6 +9,8 @@ const {
   deleteUser,
   toggleMaintenance,
   getAuditLogs,
+  getGatewayKeys,
+  saveGatewayKeys,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/rbacMiddleware');
@@ -24,5 +26,7 @@ router.post('/users/:id/reset-password', resetUserPassword);
 router.delete('/users/:id', deleteUser);
 router.post('/maintenance', toggleMaintenance);
 router.get('/audit-logs', getAuditLogs);
+router.get('/gateway-keys', getGatewayKeys);
+router.post('/gateway-keys', saveGatewayKeys);
 
 module.exports = router;

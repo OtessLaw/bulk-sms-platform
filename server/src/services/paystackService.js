@@ -1,9 +1,18 @@
 const axios = require('axios');
+const SystemSetting = require('../models/SystemSetting');
 
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || 'sk_test_mock_paystack_secret_key';
+const getPaystackSecretKey = async () => {
+  const dbKey = await SystemSetting.findOne({ key: 'PAYSTACK_SECRET_KEY' });
+  if (dbKey && dbKey.value) {
+    return dbKey.value;
+  }
+  return process.env.PAYSTACK_SECRET_KEY || 'sk_test_mock_paystack_secret_key';
+};
 
 exports.initializePayment = async ({ email, amount, reference, callbackUrl, metadata }) => {
-  if (!process.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET.startsWith('sk_test_mock')) {
+  const PAYSTACK_SECRET = await getPaystackSecretKey();
+
+  if (!PAYSTACK_SECRET || PAYSTACK_SECRET.startsWith('sk_test_mock')) {
     console.log(`[Paystack Mock] Initializing payment ref: ${reference} for ${amount} GHS`);
     return {
       status: true,
@@ -39,7 +48,9 @@ exports.initializePayment = async ({ email, amount, reference, callbackUrl, meta
 };
 
 exports.verifyPayment = async (reference) => {
-  if (!process.env.PAYSTACK_SECRET_KEY || PAYSTACK_SECRET.startsWith('sk_test_mock')) {
+  const PAYSTACK_SECRET = await getPaystackSecretKey();
+
+  if (!PAYSTACK_SECRET || PAYSTACK_SECRET.startsWith('sk_test_mock')) {
     console.log(`[Paystack Mock] Verifying payment ref: ${reference}`);
     return {
       status: true,

@@ -203,6 +203,68 @@ exports.toggleMaintenance = async (req, res, next) => {
   }
 };
 
+// @desc    Get API Gateway Credentials
+// @route   GET /api/admin/gateway-keys
+exports.getGatewayKeys = async (req, res, next) => {
+  try {
+    const keys = await SystemSetting.find({
+      key: { $in: ['ARKESEL_API_KEY', 'PAYSTACK_SECRET_KEY', 'PAYSTACK_PUBLIC_KEY', 'HUBTEL_CLIENT_ID', 'HUBTEL_CLIENT_SECRET'] },
+    });
+
+    const keyMap = {};
+    keys.forEach((k) => {
+      keyMap[k.key] = k.value;
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        ARKESEL_API_KEY: keyMap.ARKESEL_API_KEY || process.env.ARKESEL_API_KEY || '',
+        PAYSTACK_SECRET_KEY: keyMap.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY || '',
+        PAYSTACK_PUBLIC_KEY: keyMap.PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || '',
+        HUBTEL_CLIENT_ID: keyMap.HUBTEL_CLIENT_ID || process.env.HUBTEL_CLIENT_ID || '',
+        HUBTEL_CLIENT_SECRET: keyMap.HUBTEL_CLIENT_SECRET || process.env.HUBTEL_CLIENT_SECRET || '',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Save API Gateway Credentials
+// @route   POST /api/admin/gateway-keys
+exports.saveGatewayKeys = async (req, res, next) => {
+  try {
+    const { ARKESEL_API_KEY, PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, HUBTEL_CLIENT_ID, HUBTEL_CLIENT_SECRET } = req.body;
+
+    const updates = [
+      { key: 'ARKESEL_API_KEY', value: ARKESEL_API_KEY || '' },
+      { key: 'PAYSTACK_SECRET_KEY', value: PAYSTACK_SECRET_KEY || '' },
+      { key: 'PAYSTACK_PUBLIC_KEY', value: PAYSTACK_PUBLIC_KEY || '' },
+      { key: 'HUBTEL_CLIENT_ID', value: HUBTEL_CLIENT_ID || '' },
+      { key: 'HUBTEL_CLIENT_SECRET', value: HUBTEL_CLIENT_SECRET || '' },
+    ];
+
+    for (const item of updates) {
+      await SystemSetting.findOneAndUpdate(
+        { key: item.key },
+        { key: item.key, value: item.value },
+        { upsert: true, new: true }
+      );
+    }
+
+    await AuditLog.create({
+      userId: req.user._id,
+      action: 'ADMIN_GATEWAY_KEYS_UPDATED',
+      details: 'Super Admin updated gateway API keys (Arkesel / Paystack / Hubtel)',
+    });
+
+    res.status(200).json({ success: true, message: 'Gateway API credentials updated successfully!' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get Security Audit Logs
 // @route   GET /api/admin/audit-logs
 exports.getAuditLogs = async (req, res, next) => {
