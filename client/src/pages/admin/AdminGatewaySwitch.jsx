@@ -47,10 +47,10 @@ export default function AdminGatewaySwitch() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Cpu className="w-6 h-6 text-[#D4AF6A]" /> Gateway & Payment API Credentials
+        <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 break-words">
+          <Cpu className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Gateway & Payment API Credentials
         </h1>
         <p className="text-xs text-[#AEB4BC]">Connect your live Arkesel, Paystack, and Hubtel API keys directly to FasReach</p>
       </div>
@@ -58,12 +58,12 @@ export default function AdminGatewaySwitch() {
       {/* Gateway API Credentials Form */}
       <form onSubmit={handleSave} className="space-y-6">
         {/* 1. Arkesel SMS Gateway Settings */}
-        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.25)] rounded-3xl p-6 shadow-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3">
+        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.25)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3 gap-2">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-[#D4AF6A]" /> 1. Arkesel SMS Gateway API
+              <ShieldCheck className="w-4 h-4 text-[#D4AF6A] shrink-0" /> 1. Arkesel SMS Gateway API
             </h3>
-            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase self-start sm:self-auto">
               Primary SMS Gateway
             </span>
           </div>
@@ -78,7 +78,7 @@ export default function AdminGatewaySwitch() {
                 value={keys.ARKESEL_API_KEY}
                 onChange={(e) => setKeys({ ...keys, ARKESEL_API_KEY: e.target.value })}
                 placeholder="Paste your Arkesel API key here..."
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-4 py-2.5 text-xs text-white font-mono"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-4 pr-10 py-2.5 text-xs text-white font-mono"
               />
               <button
                 type="button"
@@ -93,12 +93,12 @@ export default function AdminGatewaySwitch() {
         </div>
 
         {/* 2. Paystack Payment Gateway Settings */}
-        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.25)] rounded-3xl p-6 shadow-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3">
+        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.25)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3 gap-2">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <CreditCard className="w-4 h-4 text-[#D4AF6A]" /> 2. Paystack Payment Gateway API
+              <CreditCard className="w-4 h-4 text-[#D4AF6A] shrink-0" /> 2. Paystack Payment Gateway API
             </h3>
-            <span className="bg-[#D4AF6A]/10 text-[#D4AF6A] border border-[#D4AF6A]/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+            <span className="bg-[#D4AF6A]/10 text-[#D4AF6A] border border-[#D4AF6A]/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase self-start sm:self-auto">
               Mobile Money & Card Top-Ups
             </span>
           </div>
@@ -133,12 +133,12 @@ export default function AdminGatewaySwitch() {
         </div>
 
         {/* 3. Hubtel Failover Gateway */}
-        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.25)] rounded-3xl p-6 shadow-2xl space-y-4">
-          <div className="flex items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3">
+        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.25)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3 gap-2">
             <h3 className="text-sm font-bold text-white flex items-center gap-2">
-              <Key className="w-4 h-4 text-[#D4AF6A]" /> 3. Hubtel Gateway API (Optional Failover)
+              <Key className="w-4 h-4 text-[#D4AF6A] shrink-0" /> 3. Hubtel Gateway API (Optional Failover)
             </h3>
-            <span className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase">
+            <span className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-2 py-0.5 rounded text-[10px] font-bold uppercase self-start sm:self-auto">
               Backup Failover Gateway
             </span>
           </div>
@@ -175,7 +175,7 @@ export default function AdminGatewaySwitch() {
         <button
           type="submit"
           disabled={loading}
-          className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-sm px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg disabled:opacity-50"
+          className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs sm:text-sm px-6 py-3 rounded-xl flex items-center space-x-2 shadow-lg disabled:opacity-50"
         >
           <Save className="w-4 h-4" />
           <span>{loading ? 'Saving API Credentials...' : 'Save API Gateway Credentials'}</span>

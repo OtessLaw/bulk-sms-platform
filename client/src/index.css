@@ -3,11 +3,18 @@
 @tailwind utilities;
 
 @layer base {
-  body {
+  html, body {
     background-color: #1E232B;
     color: #FFFFFF;
     font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
+}
+
+/* Global Text Overflow Prevention */
+* {
+  box-sizing: border-box;
 }
 
 /* Custom Glassmorphic scrollbar */

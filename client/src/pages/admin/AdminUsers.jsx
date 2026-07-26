@@ -86,15 +86,15 @@ export default function AdminUsers() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Users className="w-6 h-6 text-[#D4AF6A]" /> User Directory & Account Control
+        <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 break-words">
+          <Users className="w-6 h-6 text-[#D4AF6A] shrink-0" /> User Directory & Account Control
         </h1>
         <p className="text-xs text-[#AEB4BC]">View all accounts, reset passwords, adjust wallets, or login as any user</p>
       </div>
 
-      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4">
+      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -110,23 +110,23 @@ export default function AdminUsers() {
             <tbody className="divide-y divide-[rgba(212,175,106,0.1)] text-white">
               {users.map((u) => (
                 <tr key={u._id} className="hover:bg-[#1E232B]/40">
-                  <td className="py-3.5 px-3">
-                    <p className="font-bold text-white">{u.name}</p>
-                    <p className="text-[11px] text-[#AEB4BC]">{u.email}</p>
+                  <td className="py-3.5 px-3 max-w-[160px] sm:max-w-xs min-w-0">
+                    <p className="font-bold text-white truncate">{u.name}</p>
+                    <p className="text-[11px] text-[#AEB4BC] break-all truncate">{u.email}</p>
                   </td>
                   <td className="py-3.5 px-3">
-                    <span className="bg-[#D4AF6A]/10 text-[#D4AF6A] border border-[#D4AF6A]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold">
+                    <span className="bg-[#D4AF6A]/10 text-[#D4AF6A] border border-[#D4AF6A]/30 px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap">
                       {u.role}
                     </span>
                   </td>
-                  <td className="py-3.5 px-3 font-bold text-white">GHS {u.wallet?.balance?.toFixed(2) || '0.00'}</td>
-                  <td className="py-3.5 px-3 text-[#E7D3A4] font-mono">{u.wallet?.smsCredit?.toLocaleString() || '0'} Units</td>
+                  <td className="py-3.5 px-3 font-bold text-white whitespace-nowrap">GHS {u.wallet?.balance?.toFixed(2) || '0.00'}</td>
+                  <td className="py-3.5 px-3 text-[#E7D3A4] font-mono whitespace-nowrap">{u.wallet?.smsCredit?.toLocaleString() || '0'} Units</td>
                   <td className="py-3.5 px-3">
-                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                    <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase whitespace-nowrap">
                       {u.status}
                     </span>
                   </td>
-                  <td className="py-3.5 px-3 text-right space-x-1">
+                  <td className="py-3.5 px-3 text-right whitespace-nowrap space-x-1">
                     <button
                       onClick={() => handleImpersonate(u._id)}
                       title="Login as User"
@@ -175,7 +175,7 @@ export default function AdminUsers() {
       {showWalletModal && selectedUser && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Adjust Wallet for {selectedUser.name}</h3>
+            <h3 className="text-base font-bold text-white truncate">Adjust Wallet for {selectedUser.name}</h3>
             <form onSubmit={handleAdjustWallet} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Action</label>
