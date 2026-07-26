@@ -11,6 +11,7 @@ const {
   getAuditLogs,
   getGatewayKeys,
   saveGatewayKeys,
+  resetDemoBalances,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/rbacMiddleware');
@@ -28,5 +29,6 @@ router.post('/maintenance', toggleMaintenance);
 router.get('/audit-logs', getAuditLogs);
 router.get('/gateway-keys', getGatewayKeys);
 router.post('/gateway-keys', saveGatewayKeys);
+router.post('/reset-demo-balances', resetDemoBalances);
 
 module.exports = router;

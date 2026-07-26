@@ -265,6 +265,29 @@ exports.saveGatewayKeys = async (req, res, next) => {
   }
 };
 
+// @desc    Reset Demo Accounts & Clean Up Old Balances in Atlas
+// @route   POST /api/admin/reset-demo-balances
+exports.resetDemoBalances = async (req, res, next) => {
+  try {
+    const superAdmin = await User.findOne({ email: 'admin@bulksms.com' });
+    if (superAdmin) {
+      await Wallet.findOneAndUpdate({ userId: superAdmin._id }, { balance: 0.0, smsCredit: 0 });
+    }
+
+    const demoUser = await User.findOne({ email: 'user@bulksms.com' });
+    if (demoUser) {
+      await Wallet.findOneAndUpdate({ userId: demoUser._id }, { balance: 0.0, smsCredit: 10 });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Demo accounts reset to clean zero cash balances in MongoDB Atlas!',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get Security Audit Logs
 // @route   GET /api/admin/audit-logs
 exports.getAuditLogs = async (req, res, next) => {

@@ -3,9 +3,9 @@ const Wallet = require('../models/Wallet');
 
 const autoSeed = async () => {
   try {
-    const adminCount = await User.countDocuments({ email: 'admin@bulksms.com' });
-    if (adminCount === 0) {
-      console.log('[AutoSeed] Creating default initial Super Admin and Regular User accounts in MongoDB Atlas...');
+    const adminUser = await User.findOne({ email: 'admin@bulksms.com' });
+    if (!adminUser) {
+      console.log('[AutoSeed] Creating clean initial Super Admin and Demo User accounts in MongoDB Atlas...');
 
       // 1. Super Admin
       const superAdmin = await User.create({
@@ -19,8 +19,8 @@ const autoSeed = async () => {
 
       await Wallet.create({
         userId: superAdmin._id,
-        balance: 10000.0,
-        smsCredit: 250000,
+        balance: 0.0,
+        smsCredit: 0,
       });
 
       // 2. Demo User
@@ -39,7 +39,7 @@ const autoSeed = async () => {
         smsCredit: 10,
       });
 
-      console.log('[AutoSeed] ✅ Default accounts seeded in live MongoDB Atlas database!');
+      console.log('[AutoSeed] ✅ Clean accounts created in live MongoDB Atlas database!');
     }
   } catch (err) {
     console.error('[AutoSeed Error]', err.message);
