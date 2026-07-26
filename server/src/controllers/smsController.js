@@ -66,8 +66,8 @@ exports.sendSMS = async (req, res, next) => {
       });
     }
 
-    // 2. Immediate Dispatch Mode with fail-safe error handling
-    let gatewayRes = { success: true, provider: 'FasReach Gateway', messageId: `MSG_${Date.now()}`, status: 'Sent' };
+    // 2. Immediate Dispatch Mode
+    let gatewayRes = { success: true, provider: 'FasReach Gateway', messageId: `MSG_${Date.now()}`, status: 'Submitted' };
     try {
       gatewayRes = await sendMultiSms({ senderId: senderId || 'FASREACH', recipientPhone, content });
     } catch (err) {
@@ -83,7 +83,7 @@ exports.sendSMS = async (req, res, next) => {
       costGHS: cashCost,
       gatewayProvider: gatewayRes.provider || 'FasReach Gateway',
       gatewayResponseId: gatewayRes.messageId || `MSG_${Date.now()}`,
-      status: gatewayRes.status === 'Delivered' ? 'Delivered' : 'Sent',
+      status: gatewayRes.status || 'Submitted',
     });
 
     res.status(200).json({
@@ -173,7 +173,7 @@ exports.sendBulkSMS = async (req, res, next) => {
     // 2. Immediate Bulk Dispatch
     const createdDocs = [];
     for (const phone of recipients) {
-      let gatewayRes = { success: true, provider: 'FasReach Gateway', messageId: `MSG_${Date.now()}`, status: 'Sent' };
+      let gatewayRes = { success: true, provider: 'FasReach Gateway', messageId: `MSG_${Date.now()}`, status: 'Submitted' };
       try {
         gatewayRes = await sendMultiSms({ senderId: senderId || 'FASREACH', recipientPhone: phone, content });
       } catch (err) {
@@ -189,7 +189,7 @@ exports.sendBulkSMS = async (req, res, next) => {
         costGHS: Number((unitsPerMessage * RATE_PER_UNIT).toFixed(2)),
         gatewayProvider: gatewayRes.provider || 'FasReach Gateway',
         gatewayResponseId: gatewayRes.messageId || `MSG_${Date.now()}`,
-        status: 'Sent',
+        status: gatewayRes.status || 'Submitted',
       });
       createdDocs.push(doc);
     }

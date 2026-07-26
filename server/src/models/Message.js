@@ -13,8 +13,8 @@ const MessageSchema = new mongoose.Schema(
     scheduledFor: { type: Date, default: null, index: true },
     status: {
       type: String,
-      enum: ['Pending', 'Submitted', 'Delivered', 'Failed', 'Scheduled'],
-      default: 'Pending',
+      enum: ['Pending', 'Submitted', 'Sent', 'Delivered', 'Failed', 'Scheduled'],
+      default: 'Submitted',
       index: true,
     },
   },
