@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, ShieldAlert, Sparkles, Menu } from 'lucide-react';
+import { LogOut, ShieldAlert, Menu } from 'lucide-react';
 
 export default function Navbar({ onToggleMobileMenu }) {
   const { user, wallet, isImpersonating, stopImpersonating, logout } = useAuth();
@@ -17,10 +17,8 @@ export default function Navbar({ onToggleMobileMenu }) {
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#D4AF6A] to-[#B88E3E] flex items-center justify-center shadow-md">
-            <Sparkles className="w-4 h-4 text-black" />
-          </div>
+        <div className="flex items-center space-x-2.5">
+          <img src="/logo.jpg" alt="FasReach" className="w-8 h-8 rounded-xl object-cover border border-[#D4AF6A]/40 shadow-md" />
           <span className="font-extrabold text-base md:text-lg text-white tracking-wider">FasReach</span>
         </div>
       </div>

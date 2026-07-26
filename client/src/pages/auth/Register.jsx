@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Sparkles, User, Mail, Phone, Lock, ArrowRight } from 'lucide-react';
+import { Lock, Mail, User, Phone, ArrowRight, Gift } from 'lucide-react';
 
 export default function Register() {
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+  });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
@@ -16,87 +18,90 @@ export default function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      await register({ name, email, phone, password });
-      toast.success('Account created! +10 free SMS credits added to your wallet.');
+      await register(formData);
+      toast.success('Account created! 10 Free SMS credits bonus added!');
       navigate('/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed');
+      toast.error(err.response?.data?.message || 'Registration failed.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#1E232B] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="w-full max-w-md bg-[#2A3038]/80 backdrop-blur-xl border border-[rgba(212,175,106,0.3)] rounded-3xl p-8 shadow-2xl space-y-6">
+    <div className="min-h-screen bg-[#1E232B] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-[#D4AF6A]/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[#B88E3E]/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md bg-[#2A3038]/80 backdrop-blur-xl border border-[rgba(212,175,106,0.25)] rounded-3xl p-8 shadow-2xl space-y-6 relative z-10">
         <div className="text-center space-y-2">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#D4AF6A] to-[#B88E3E] flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(212,175,106,0.4)]">
-            <Sparkles className="w-6 h-6 text-black" />
+          <img src="/logo.jpg" alt="FasReach Logo" className="w-16 h-16 rounded-2xl mx-auto object-cover border-2 border-[#D4AF6A]/50 shadow-2xl" />
+          <h1 className="text-2xl font-extrabold text-white tracking-wider">Create FasReach Account</h1>
+          <div className="bg-[#D4AF6A]/10 border border-[#D4AF6A]/30 rounded-xl p-2 flex items-center justify-center space-x-2 text-xs text-[#D4AF6A] font-bold">
+            <Gift className="w-4 h-4" />
+            <span>Includes 10 FREE SMS Credits Bonus</span>
           </div>
-          <h1 className="text-2xl font-extrabold bg-gradient-to-r from-[#FFFFFF] via-[#E7D3A4] to-[#D4AF6A] bg-clip-text text-transparent">
-            Create Account
-          </h1>
-          <p className="text-xs text-[#AEB4BC]">Get instant 10 free SMS credits upon signup</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider mb-1">Full Name</label>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Full Name / Organization</label>
             <div className="relative">
-              <User className="w-4 h-4 text-[#AEB4BC] absolute left-3.5 top-3.5" />
+              <User className="w-4 h-4 text-[#D4AF6A] absolute left-3.5 top-3" />
               <input
                 type="text"
                 required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="John Doe"
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider mb-1">Email</label>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Email Address</label>
             <div className="relative">
-              <Mail className="w-4 h-4 text-[#AEB4BC] absolute left-3.5 top-3.5" />
+              <Mail className="w-4 h-4 text-[#D4AF6A] absolute left-3.5 top-3" />
               <input
                 type="email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="john@example.com"
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="name@company.com"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider mb-1">Phone Number</label>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Phone Number</label>
             <div className="relative">
-              <Phone className="w-4 h-4 text-[#AEB4BC] absolute left-3.5 top-3.5" />
+              <Phone className="w-4 h-4 text-[#D4AF6A] absolute left-3.5 top-3" />
               <input
-                type="text"
+                type="tel"
                 required
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="+233240001122"
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                placeholder="0241112233"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider mb-1">Password</label>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Password</label>
             <div className="relative">
-              <Lock className="w-4 h-4 text-[#AEB4BC] absolute left-3.5 top-3.5" />
+              <Lock className="w-4 h-4 text-[#D4AF6A] absolute left-3.5 top-3" />
               <input
                 type="password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 placeholder="••••••••"
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               />
             </div>
           </div>
@@ -104,19 +109,19 @@ export default function Register() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-bold py-3 rounded-xl flex items-center justify-center space-x-2 transition-all shadow-[0_0_20px_rgba(212,175,106,0.3)] disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-extrabold text-xs py-3 rounded-xl flex items-center justify-center space-x-2 shadow-xl disabled:opacity-50"
           >
-            <span>{loading ? 'Creating Account...' : 'Register Account'}</span>
+            <span>{loading ? 'Creating Account...' : 'Get Started Free'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
 
-        <p className="text-center text-xs text-[#AEB4BC]">
+        <div className="text-center text-xs text-[#AEB4BC] pt-2 border-t border-[rgba(212,175,106,0.1)]">
           Already have an account?{' '}
-          <Link to="/login" className="text-[#D4AF6A] font-semibold hover:underline">
+          <Link to="/login" className="text-[#D4AF6A] font-bold hover:underline">
             Sign In
           </Link>
-        </p>
+        </div>
       </div>
     </div>
   );

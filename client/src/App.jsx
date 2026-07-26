@@ -60,7 +60,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return (
       <div className="min-h-screen bg-[#1E232B] flex items-center justify-center text-white p-4">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-10 h-10 border-4 border-[#D4AF6A] border-t-transparent rounded-full animate-spin"></div>
+          <img src="/logo.jpg" alt="FasReach" className="w-14 h-14 rounded-2xl object-cover border-2 border-[#D4AF6A]/50 animate-pulse shadow-2xl" />
+          <div className="w-8 h-8 border-4 border-[#D4AF6A] border-t-transparent rounded-full animate-spin"></div>
           <p className="text-xs font-semibold text-[#D4AF6A]">FasReach Platform Loading...</p>
         </div>
       </div>
