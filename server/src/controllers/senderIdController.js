@@ -1,6 +1,7 @@
 const SenderId = require('../models/SenderId');
+const { registerArkeselSenderId } = require('../services/multiSmsService');
 
-// @desc    Get User or All Sender IDs (Admin gets all)
+// @desc    Get User or All Sender IDs
 // @route   GET /api/sender-ids
 exports.getSenderIds = async (req, res, next) => {
   try {
@@ -17,7 +18,7 @@ exports.getSenderIds = async (req, res, next) => {
   }
 };
 
-// @desc    Submit Sender ID Application
+// @desc    Submit & Auto-Register Sender ID with Arkesel (No Admin Approval Required)
 // @route   POST /api/sender-ids/request
 exports.requestSenderId = async (req, res, next) => {
   try {
@@ -28,20 +29,33 @@ exports.requestSenderId = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Sender ID header must be 1 to 11 characters long' });
     }
 
-    const existing = await SenderId.findOne({ senderId: cleanHeader, status: 'Approved' });
+    // Check if user already registered this Sender ID
+    let existing = await SenderId.findOne({ userId: req.user._id, senderId: cleanHeader });
     if (existing) {
-      return res.status(400).json({ success: false, message: `Sender ID '${cleanHeader}' is already registered` });
+      return res.status(200).json({
+        success: true,
+        message: `Sender ID '${cleanHeader}' is already active on your account!`,
+        data: existing,
+      });
     }
 
+    // Auto-Register Sender ID directly with Arkesel API
+    const arkeselRes = await registerArkeselSenderId({ senderId: cleanHeader, purpose });
+
+    // Create Sender ID as Approved immediately
     const doc = await SenderId.create({
       userId: req.user._id,
       senderId: cleanHeader,
       purpose,
       sampleMessage,
-      status: 'Pending',
+      status: 'Approved', // Auto-Approved! No admin wait required.
     });
 
-    res.status(201).json({ success: true, message: 'Sender ID application submitted for approval', data: doc });
+    res.status(201).json({
+      success: true,
+      message: `Sender ID '${cleanHeader}' registered and approved instantly! You can now use it to send SMS.`,
+      data: doc,
+    });
   } catch (error) {
     next(error);
   }
@@ -59,7 +73,7 @@ exports.approveSenderId = async (req, res, next) => {
     doc.status = 'Approved';
     await doc.save();
 
-    res.status(200).json({ success: true, message: `Sender ID '${doc.senderId}' approved! User can now use it in SMS composer.`, data: doc });
+    res.status(200).json({ success: true, message: `Sender ID '${doc.senderId}' approved!`, data: doc });
   } catch (error) {
     next(error);
   }
