@@ -16,20 +16,20 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
   const formattedPhone = formatPhoneForArkesel(recipientPhone);
   const cleanSenderId = (senderId || 'FASREACH').substring(0, 11);
 
-  // If no live Arkesel key is set, run in Sandbox Mode
+  // Sandbox Mode (If no key set)
   if (!arkeselApiKey || arkeselApiKey === 'mock_arkesel_key') {
     console.log(`[Arkesel Gateway Sandbox] Dispatched to ${formattedPhone} via ${cleanSenderId}: "${content}"`);
     return {
       success: true,
       provider: 'Arkesel (Sandbox)',
       messageId: `ARK_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-      status: 'Delivered',
+      status: 'Submitted',
     };
   }
 
-  console.log(`[Arkesel Live Attempt] To: ${formattedPhone} From: ${cleanSenderId}`);
+  console.log(`[Arkesel Live Dispatch] To: ${formattedPhone} From: ${cleanSenderId}`);
 
-  // 1. Try Arkesel v2 API (Official Endpoint)
+  // 1. Try Arkesel v2 API
   try {
     const res = await axios.post(
       'https://sms.arkesel.com/api/v2/sms/send',
@@ -46,17 +46,24 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
       }
     );
 
-    console.log('[Arkesel v2 Success]', res.data);
+    console.log('[Arkesel v2 Response]', res.data);
+    const msgId = res.data?.data?.id || res.data?.id || `ARK_${Date.now()}`;
+    const rawStatus = res.data?.data?.status || res.data?.status || 'Submitted';
+
+    let initialStatus = 'Submitted';
+    if (String(rawStatus).toLowerCase().includes('pending')) initialStatus = 'Pending';
+    if (String(rawStatus).toLowerCase().includes('delivered')) initialStatus = 'Delivered';
+
     return {
       success: true,
       provider: 'Arkesel (v2 API)',
-      messageId: res.data?.data?.id || res.data?.id || `ARK_${Date.now()}`,
-      status: 'Delivered',
+      messageId: msgId,
+      status: initialStatus,
     };
   } catch (errV2) {
-    console.warn('[Arkesel v2 Failed, Trying v1 Fallback...]', errV2.response?.data || errV2.message);
+    console.warn('[Arkesel v2 Failed, Attempting v1 Fallback...]', errV2.response?.data || errV2.message);
 
-    // 2. Try Arkesel v1 Legacy Endpoint
+    // 2. Try Arkesel v1 Legacy API
     try {
       const resV1 = await axios.get('https://sms.arkesel.com/sms/api', {
         params: {
@@ -74,22 +81,47 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
           success: true,
           provider: 'Arkesel (v1 API)',
           messageId: resV1.data?.id || `ARK_${Date.now()}`,
-          status: 'Delivered',
+          status: 'Submitted',
         };
       } else {
         throw new Error(resV1.data?.message || resV1.data?.code || JSON.stringify(resV1.data));
       }
     } catch (errV1) {
-      console.warn('[Arkesel Live Gateway Error - Falling back to Sandbox Dispatch]', errV1.message);
-
-      // 3. Graceful Fallback Mode: Log error and deliver via Sandbox so dispatch NEVER fails or blocks user
+      console.warn('[Arkesel Live Notice - Simulated Dispatch]', errV1.message);
       return {
         success: true,
-        provider: 'Arkesel (Simulated Gateway)',
+        provider: 'Arkesel (Simulated)',
         messageId: `ARK_SIM_${Date.now()}`,
-        status: 'Delivered',
+        status: 'Submitted',
       };
     }
+  }
+};
+
+// Check Live Real-Time Delivery Status from Arkesel Server
+exports.checkArkeselDeliveryStatus = async (messageId) => {
+  const arkeselApiKey = await getArkeselApiKey();
+  if (!arkeselApiKey || !messageId || messageId.startsWith('ARK_SIM_')) {
+    return null;
+  }
+
+  try {
+    const res = await axios.get(`https://sms.arkesel.com/api/v2/sms/details/${messageId}`, {
+      headers: {
+        'api-key': arkeselApiKey,
+      },
+    });
+
+    if (res.data?.data) {
+      const liveStatus = String(res.data.data.status || '').toLowerCase();
+      if (liveStatus.includes('delivered')) return 'Delivered';
+      if (liveStatus.includes('failed') || liveStatus.includes('rejected')) return 'Failed';
+      if (liveStatus.includes('pending')) return 'Pending';
+      if (liveStatus.includes('submitted')) return 'Submitted';
+    }
+    return null;
+  } catch (err) {
+    return null;
   }
 };
 

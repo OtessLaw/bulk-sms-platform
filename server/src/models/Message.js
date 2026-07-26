@@ -9,9 +9,14 @@ const MessageSchema = new mongoose.Schema(
     smsUnits: { type: Number, default: 1 },
     costGHS: { type: Number, default: 0.04 },
     gatewayProvider: { type: String, default: 'Arkesel' },
-    gatewayResponseId: { type: String, default: '' },
+    gatewayResponseId: { type: String, default: '', index: true },
     scheduledFor: { type: Date, default: null, index: true },
-    status: { type: String, enum: ['Sent', 'Delivered', 'Failed', 'Pending', 'Scheduled'], default: 'Sent', index: true },
+    status: {
+      type: String,
+      enum: ['Pending', 'Submitted', 'Delivered', 'Failed', 'Scheduled'],
+      default: 'Pending',
+      index: true,
+    },
   },
   { timestamps: true }
 );
