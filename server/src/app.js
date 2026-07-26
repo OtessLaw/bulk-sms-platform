@@ -14,6 +14,7 @@ const contactRoutes = require('./routes/contactRoutes');
 const senderIdRoutes = require('./routes/senderIdRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const teamRoutes = require('./routes/teamRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -77,6 +78,7 @@ app.use('/api/contacts', contactRoutes);
 app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/team', teamRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
