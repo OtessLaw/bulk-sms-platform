@@ -36,8 +36,8 @@ exports.initializeFunding = async (req, res, next) => {
     const { amount, redirectUrl } = req.body;
     const user = req.user;
 
-    if (!amount || amount < 20) {
-      return res.status(400).json({ success: false, message: 'Minimum deposit amount is 20 GHS' });
+    if (!amount || amount < 1) {
+      return res.status(400).json({ success: false, message: 'Minimum deposit amount is 1 GHS' });
     }
 
     const reference = `WLT_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;

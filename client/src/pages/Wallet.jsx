@@ -53,8 +53,8 @@ export default function WalletPage() {
 
   const handleFund = async (e) => {
     e.preventDefault();
-    if (amount < 5) {
-      toast.error('Minimum deposit amount is 5 GHS');
+    if (amount < 1) {
+      toast.error('Minimum deposit amount is 1 GHS');
       return;
     }
 
@@ -105,7 +105,7 @@ export default function WalletPage() {
               <span className="absolute left-3.5 top-2.5 text-xs text-[#D4AF6A] font-bold">GHS</span>
               <input
                 type="number"
-                min="5"
+                min="1"
                 required
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
