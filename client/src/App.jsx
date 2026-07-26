@@ -33,29 +33,33 @@ import AdminStaff from './pages/admin/AdminStaff';
 import AdminSystemSettings from './pages/admin/AdminSystemSettings';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 
-// Helper component inside Router context
-function ScrollToTopHelper() {
-  const location = useLocation();
+// Fail-safe Scroll Reset Component
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
   useEffect(() => {
-    window.scrollTo(0, 0);
-    const mainElement = document.querySelector('main');
-    if (mainElement) {
-      mainElement.scrollTop = 0;
+    try {
+      window.scrollTo(0, 0);
+      const mainEl = document.querySelector('main');
+      if (mainEl) mainEl.scrollTop = 0;
+    } catch (e) {
+      // Ignore scroll errors
     }
-  }, [location.pathname]);
+  }, [pathname]);
+
   return null;
 }
 
-// Protected Route Component
+// Protected Route Component with Fail-Safe Loading
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { user, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#1E232B] flex items-center justify-center text-white">
+      <div className="min-h-screen bg-[#1E232B] flex items-center justify-center text-white p-4">
         <div className="flex flex-col items-center space-y-4">
-          <div className="w-12 h-12 border-4 border-[#D4AF6A] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm font-semibold text-[#D4AF6A]">FasReach Platform Loading...</p>
+          <div className="w-10 h-10 border-4 border-[#D4AF6A] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-xs font-semibold text-[#D4AF6A]">FasReach Platform Loading...</p>
         </div>
       </div>
     );
@@ -76,7 +80,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <ScrollToTopHelper />
+        <ScrollToTop />
         <Toaster
           position="top-right"
           toastOptions={{

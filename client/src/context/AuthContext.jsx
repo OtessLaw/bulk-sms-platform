@@ -33,6 +33,8 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     const token = localStorage.getItem('accessToken');
     if (!token) {
+      setUser(null);
+      setWallet(null);
       setLoading(false);
       return;
     }
@@ -49,7 +51,15 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       }
     } catch (err) {
-      console.warn('Auth check error:', err.message);
+      console.warn('Auth check notice:', err.message);
+      // If 401 Unauthorized, clear stale token
+      if (err.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('cachedUser');
+        localStorage.removeItem('cachedWallet');
+        setUser(null);
+        setWallet(null);
+      }
     } finally {
       setLoading(false);
     }
