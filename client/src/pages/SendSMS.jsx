@@ -52,7 +52,7 @@ export default function SendSMS() {
         scheduledFor: isScheduleEnabled ? formData.scheduledFor : null,
       };
 
-      const res = await API.post('/api/sms/send', payload);
+      const res = await API.post('/sms/send', payload);
       if (res.data.success) {
         toast.success(res.data.message || 'SMS dispatched successfully!');
         setFormData({ senderId: 'FASREACH', recipientPhone: '', content: '', scheduledFor: '' });
@@ -60,7 +60,7 @@ export default function SendSMS() {
         await refreshWallet();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Dispatch failed');
+      toast.error(err.response?.data?.message || err.message || 'Dispatch failed');
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function SendSMS() {
     }
     setGeneratingAi(true);
     try {
-      const res = await API.post('/api/sms/ai-templates', { category: 'Marketing', keywords: [aiPrompt] });
+      const res = await API.post('/sms/ai-templates', { category: 'Marketing', keywords: [aiPrompt] });
       if (res.data.success && res.data.data?.length > 0) {
         setFormData({ ...formData, content: res.data.data[0].content });
         toast.success('AI Template generated!');
