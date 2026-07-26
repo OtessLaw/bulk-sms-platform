@@ -98,7 +98,7 @@ exports.impersonateUser = async (req, res, next) => {
 // @route   POST /api/admin/wallet/adjust
 exports.adjustUserWallet = async (req, res, next) => {
   try {
-    const { userId, amount, smsUnits, action } = req.body; // action: 'credit' or 'debit'
+    const { userId, amount, smsUnits, action } = req.body;
 
     const wallet = await Wallet.findOne({ userId });
     if (!wallet) {
@@ -231,18 +231,18 @@ exports.getGatewayKeys = async (req, res, next) => {
   }
 };
 
-// @desc    Save API Gateway Credentials
+// @desc    Save API Gateway Credentials (with automatic .trim() for clean keys)
 // @route   POST /api/admin/gateway-keys
 exports.saveGatewayKeys = async (req, res, next) => {
   try {
     const { ARKESEL_API_KEY, PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, HUBTEL_CLIENT_ID, HUBTEL_CLIENT_SECRET } = req.body;
 
     const updates = [
-      { key: 'ARKESEL_API_KEY', value: ARKESEL_API_KEY || '' },
-      { key: 'PAYSTACK_SECRET_KEY', value: PAYSTACK_SECRET_KEY || '' },
-      { key: 'PAYSTACK_PUBLIC_KEY', value: PAYSTACK_PUBLIC_KEY || '' },
-      { key: 'HUBTEL_CLIENT_ID', value: HUBTEL_CLIENT_ID || '' },
-      { key: 'HUBTEL_CLIENT_SECRET', value: HUBTEL_CLIENT_SECRET || '' },
+      { key: 'ARKESEL_API_KEY', value: ARKESEL_API_KEY ? String(ARKESEL_API_KEY).trim() : '' },
+      { key: 'PAYSTACK_SECRET_KEY', value: PAYSTACK_SECRET_KEY ? String(PAYSTACK_SECRET_KEY).trim() : '' },
+      { key: 'PAYSTACK_PUBLIC_KEY', value: PAYSTACK_PUBLIC_KEY ? String(PAYSTACK_PUBLIC_KEY).trim() : '' },
+      { key: 'HUBTEL_CLIENT_ID', value: HUBTEL_CLIENT_ID ? String(HUBTEL_CLIENT_ID).trim() : '' },
+      { key: 'HUBTEL_CLIENT_SECRET', value: HUBTEL_CLIENT_SECRET ? String(HUBTEL_CLIENT_SECRET).trim() : '' },
     ];
 
     for (const item of updates) {
@@ -259,7 +259,7 @@ exports.saveGatewayKeys = async (req, res, next) => {
       details: 'Super Admin updated gateway API keys (Arkesel / Paystack / Hubtel)',
     });
 
-    res.status(200).json({ success: true, message: 'Gateway API credentials updated successfully!' });
+    res.status(200).json({ success: true, message: 'Gateway API credentials saved & trimmed successfully!' });
   } catch (error) {
     next(error);
   }
