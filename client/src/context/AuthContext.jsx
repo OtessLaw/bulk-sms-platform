@@ -5,16 +5,24 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const cached = localStorage.getItem('cachedUser');
-    return cached ? JSON.parse(cached) : null;
+    try {
+      const cached = localStorage.getItem('cachedUser');
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
   const [wallet, setWallet] = useState(() => {
-    const cached = localStorage.getItem('cachedWallet');
-    return cached ? JSON.parse(cached) : null;
+    try {
+      const cached = localStorage.getItem('cachedWallet');
+      return cached ? JSON.parse(cached) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
-  const [loading, setLoading] = useState(!user);
+  const [loading, setLoading] = useState(false);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonatorAdmin, setImpersonatorAdmin] = useState(null);
 
@@ -31,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
     try {
       const res = await API.get('/auth/me');
-      if (res.data.success) {
+      if (res.data?.success) {
         setUser(res.data.data.user);
         setWallet(res.data.data.wallet);
         setIsImpersonating(res.data.data.isImpersonating || false);
@@ -41,11 +49,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       }
     } catch (err) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('cachedUser');
-      localStorage.removeItem('cachedWallet');
-      setUser(null);
-      setWallet(null);
+      console.warn('Auth check error:', err.message);
     } finally {
       setLoading(false);
     }
@@ -53,7 +57,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const res = await API.post('/auth/login', { email, password });
-    if (res.data.success) {
+    if (res.data?.success) {
       localStorage.setItem('accessToken', res.data.data.token);
       localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
       localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
@@ -66,7 +70,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (formData) => {
     const res = await API.post('/auth/register', formData);
-    if (res.data.success) {
+    if (res.data?.success) {
       localStorage.setItem('accessToken', res.data.data.token);
       localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
       localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
@@ -107,7 +111,7 @@ export const AuthProvider = ({ children }) => {
   const refreshWallet = async () => {
     try {
       const res = await API.get('/wallet');
-      if (res.data.success) {
+      if (res.data?.success) {
         setWallet(res.data.data.wallet);
         localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
       }

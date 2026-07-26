@@ -33,18 +33,16 @@ import AdminStaff from './pages/admin/AdminStaff';
 import AdminSystemSettings from './pages/admin/AdminSystemSettings';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 
-// Scroll To Top on Route Change Component
-function ScrollToTop() {
-  const { pathname } = useLocation();
-
+// Helper component inside Router context
+function ScrollToTopHelper() {
+  const location = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
     const mainElement = document.querySelector('main');
     if (mainElement) {
       mainElement.scrollTop = 0;
     }
-  }, [pathname]);
-
+  }, [location.pathname]);
   return null;
 }
 
@@ -78,7 +76,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <ScrollToTop />
+        <ScrollToTopHelper />
         <Toaster
           position="top-right"
           toastOptions={{
