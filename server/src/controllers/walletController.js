@@ -9,12 +9,12 @@ exports.getWallet = async (req, res, next) => {
   try {
     let wallet = await Wallet.findOne({ userId: req.user._id });
     if (!wallet) {
-      wallet = await Wallet.create({ userId: req.user._id, balance: 100, smsCredit: 250 });
+      wallet = await Wallet.create({ userId: req.user._id, balance: 0.0, smsCredit: 10 });
     }
 
     const transactions = await Transaction.find({ userId: req.user._id })
       .sort({ createdAt: -1 })
-      .limit(20);
+      .limit(25);
 
     res.status(200).json({
       success: true,
@@ -29,37 +29,37 @@ exports.getWallet = async (req, res, next) => {
   }
 };
 
-// @desc    Initialize Paystack Funding
+// @desc    Initialize Paystack Cash Deposit
 // @route   POST /api/wallet/fund
 exports.initializeFunding = async (req, res, next) => {
   try {
     const { amount, redirectUrl } = req.body;
     const user = req.user;
+    const depositAmount = Number(amount);
 
-    if (!amount || amount < 1) {
+    if (!depositAmount || depositAmount < 1) {
       return res.status(400).json({ success: false, message: 'Minimum deposit amount is 1 GHS' });
     }
 
     const reference = `WLT_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
-    const unitsToAdd = Math.floor(amount / RATE_PER_UNIT);
 
     await Transaction.create({
       userId: user._id,
       reference,
-      amount,
+      amount: depositAmount,
       type: 'Deposit',
       channel: 'Paystack',
       status: 'Pending',
-      unitsAdded: unitsToAdd,
-      description: `Wallet Funding via Paystack (${unitsToAdd} SMS Units)`,
+      unitsAdded: 0, // Cash deposit - money stays in Cash Balance!
+      description: `Cash Wallet Funding via Paystack (GHS ${depositAmount.toFixed(2)})`,
     });
 
     const paymentRes = await PaystackService.initializePayment({
       email: user.email,
-      amount,
+      amount: depositAmount,
       reference,
-      callbackUrl: redirectUrl || 'http://localhost:5173/wallet?funding=success',
-      metadata: { userId: user._id, unitsToAdd },
+      callbackUrl: redirectUrl || 'http://localhost:5173/wallet',
+      metadata: { userId: user._id, depositAmount },
     });
 
     res.status(200).json({
@@ -71,7 +71,7 @@ exports.initializeFunding = async (req, res, next) => {
   }
 };
 
-// @desc    Verify Paystack Payment
+// @desc    Verify Paystack Payment & Credit Cash Balance
 // @route   POST /api/wallet/verify
 exports.verifyFunding = async (req, res, next) => {
   try {
@@ -95,14 +95,13 @@ exports.verifyFunding = async (req, res, next) => {
       await transaction.save();
 
       const wallet = await Wallet.findOne({ userId });
-      const addedUnits = transaction.unitsAdded || Math.floor(transaction.amount / RATE_PER_UNIT);
-      wallet.balance += transaction.amount;
-      wallet.smsCredit += addedUnits;
+      // Add 100% of the money into user's cash balance
+      wallet.balance = Number((wallet.balance + transaction.amount).toFixed(2));
       await wallet.save();
 
       return res.status(200).json({
         success: true,
-        message: 'Wallet credited successfully',
+        message: `Wallet credited GHS ${transaction.amount.toFixed(2)} cash balance!`,
         data: { wallet, transaction },
       });
     } else {
@@ -110,6 +109,53 @@ exports.verifyFunding = async (req, res, next) => {
       await transaction.save();
       return res.status(400).json({ success: false, message: 'Payment verification failed' });
     }
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Buy SMS Credits using Cash Balance
+// @route   POST /api/wallet/buy-credits
+exports.buyCreditsFromBalance = async (req, res, next) => {
+  try {
+    const { amount } = req.body;
+    const cashAmount = Number(amount);
+    const userId = req.user._id;
+
+    if (!cashAmount || cashAmount < 1) {
+      return res.status(400).json({ success: false, message: 'Minimum purchase is 1 GHS' });
+    }
+
+    const wallet = await Wallet.findOne({ userId });
+    if (!wallet || wallet.balance < cashAmount) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient cash balance. Available: GHS ${wallet?.balance?.toFixed(2) || '0.00'}.`,
+      });
+    }
+
+    const smsUnitsToAdd = Math.floor(cashAmount / RATE_PER_UNIT);
+
+    // Deduct cash and credit SMS units
+    wallet.balance = Number((wallet.balance - cashAmount).toFixed(2));
+    wallet.smsCredit += smsUnitsToAdd;
+    await wallet.save();
+
+    await Transaction.create({
+      userId,
+      reference: `PUR_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      amount: cashAmount,
+      type: 'SMS Purchase',
+      status: 'Successful',
+      unitsAdded: smsUnitsToAdd,
+      description: `Converted GHS ${cashAmount.toFixed(2)} cash balance into ${smsUnitsToAdd} SMS units`,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Purchased ${smsUnitsToAdd} SMS units for GHS ${cashAmount.toFixed(2)}!`,
+      data: wallet,
+    });
   } catch (error) {
     next(error);
   }

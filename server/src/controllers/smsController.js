@@ -4,7 +4,7 @@ const { sendMultiSms } = require('../services/multiSmsService');
 const { generateTemplates } = require('../services/aiTemplateService');
 const { calculateSmsUnits, RATE_PER_UNIT } = require('../utils/costCalculator');
 
-// @desc    Send Single SMS
+// @desc    Send Single SMS (Supports SMS Credits OR Direct Cash Balance Deduction)
 // @route   POST /api/sms/send
 exports.sendSMS = async (req, res, next) => {
   try {
@@ -16,30 +16,44 @@ exports.sendSMS = async (req, res, next) => {
     }
 
     const unitsNeeded = calculateSmsUnits(content);
+    const cashCost = Number((unitsNeeded * RATE_PER_UNIT).toFixed(2));
     const wallet = await Wallet.findOne({ userId });
 
-    if (!wallet || wallet.smsCredit < unitsNeeded) {
+    if (!wallet) {
+      return res.status(400).json({ success: false, message: 'Wallet not found' });
+    }
+
+    let paymentType = '';
+
+    // 1. Check if user has active SMS Credits
+    if (wallet.smsCredit >= unitsNeeded) {
+      wallet.smsCredit -= unitsNeeded;
+      paymentType = 'SMS Credits';
+    }
+    // 2. Else check if user has enough Cash Balance (Pay-As-You-Go)
+    else if (wallet.balance >= cashCost) {
+      wallet.balance = Number((wallet.balance - cashCost).toFixed(2));
+      paymentType = 'Cash Balance';
+    } else {
       return res.status(400).json({
         success: false,
-        message: `Insufficient SMS credits. Required: ${unitsNeeded} units. Available: ${wallet?.smsCredit || 0} units. Please top up your wallet.`,
+        message: `Insufficient funds/credits. Required: ${unitsNeeded} SMS units or GHS ${cashCost.toFixed(2)}. Available: ${wallet.smsCredit} credits & GHS ${wallet.balance.toFixed(2)} cash balance.`,
       });
     }
 
     // Send SMS via Gateway
-    const gatewayRes = await sendMultiSms({ senderId: senderId || 'BULKSMS', recipientPhone, content });
+    const gatewayRes = await sendMultiSms({ senderId: senderId || 'FASREACH', recipientPhone, content });
 
-    // Deduct credits
-    wallet.smsCredit -= unitsNeeded;
     await wallet.save();
 
     // Log Message
     const messageDoc = await Message.create({
       userId,
-      senderId: senderId || 'BULKSMS',
+      senderId: senderId || 'FASREACH',
       recipientPhone,
       content,
       smsUnits: unitsNeeded,
-      costGHS: (unitsNeeded * RATE_PER_UNIT).toFixed(2),
+      costGHS: cashCost,
       gatewayProvider: gatewayRes.provider,
       gatewayResponseId: gatewayRes.messageId,
       status: gatewayRes.status === 'Delivered' ? 'Delivered' : 'Sent',
@@ -47,10 +61,11 @@ exports.sendSMS = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: 'SMS dispatched successfully via Gateway',
+      message: `SMS dispatched successfully! (Deducted via ${paymentType})`,
       data: {
         messageDoc,
         remainingCredits: wallet.smsCredit,
+        remainingBalance: wallet.balance,
       },
     });
   } catch (error) {
@@ -58,7 +73,7 @@ exports.sendSMS = async (req, res, next) => {
   }
 };
 
-// @desc    Send Bulk SMS Campaign
+// @desc    Send Bulk SMS Campaign (Supports Credits OR Cash Balance)
 // @route   POST /api/sms/bulk
 exports.sendBulkSMS = async (req, res, next) => {
   try {
@@ -72,27 +87,40 @@ exports.sendBulkSMS = async (req, res, next) => {
     const unitsPerMessage = calculateSmsUnits(content);
     const totalRecipients = recipients.length;
     const totalUnitsNeeded = unitsPerMessage * totalRecipients;
+    const totalCashCost = Number((totalUnitsNeeded * RATE_PER_UNIT).toFixed(2));
 
     const wallet = await Wallet.findOne({ userId });
 
-    if (!wallet || wallet.smsCredit < totalUnitsNeeded) {
+    if (!wallet) {
+      return res.status(400).json({ success: false, message: 'Wallet not found' });
+    }
+
+    let paymentType = '';
+
+    if (wallet.smsCredit >= totalUnitsNeeded) {
+      wallet.smsCredit -= totalUnitsNeeded;
+      paymentType = 'SMS Credits';
+    } else if (wallet.balance >= totalCashCost) {
+      wallet.balance = Number((wallet.balance - totalCashCost).toFixed(2));
+      paymentType = 'Cash Balance';
+    } else {
       return res.status(400).json({
         success: false,
-        message: `Insufficient credits for bulk broadcast. Required: ${totalUnitsNeeded} units. Available: ${wallet?.smsCredit || 0} units.`,
+        message: `Insufficient funds for bulk broadcast. Required: ${totalUnitsNeeded} SMS units or GHS ${totalCashCost.toFixed(2)}.`,
       });
     }
 
     // Dispatch messages
     const createdDocs = [];
     for (const phone of recipients) {
-      const gatewayRes = await sendMultiSms({ senderId: senderId || 'BULKSMS', recipientPhone: phone, content });
+      const gatewayRes = await sendMultiSms({ senderId: senderId || 'FASREACH', recipientPhone: phone, content });
       const doc = await Message.create({
         userId,
-        senderId: senderId || 'BULKSMS',
+        senderId: senderId || 'FASREACH',
         recipientPhone: phone,
         content,
         smsUnits: unitsPerMessage,
-        costGHS: (unitsPerMessage * RATE_PER_UNIT).toFixed(2),
+        costGHS: Number((unitsPerMessage * RATE_PER_UNIT).toFixed(2)),
         gatewayProvider: gatewayRes.provider,
         gatewayResponseId: gatewayRes.messageId,
         status: 'Sent',
@@ -100,17 +128,15 @@ exports.sendBulkSMS = async (req, res, next) => {
       createdDocs.push(doc);
     }
 
-    // Deduct total credits
-    wallet.smsCredit -= totalUnitsNeeded;
     await wallet.save();
 
     res.status(200).json({
       success: true,
-      message: `Bulk SMS broadcast of ${totalRecipients} messages dispatched!`,
+      message: `Bulk SMS broadcast of ${totalRecipients} messages dispatched! (Deducted via ${paymentType})`,
       data: {
         totalDispatched: totalRecipients,
-        unitsDeducted: totalUnitsNeeded,
         remainingCredits: wallet.smsCredit,
+        remainingBalance: wallet.balance,
       },
     });
   } catch (error) {
