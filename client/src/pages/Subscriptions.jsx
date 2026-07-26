@@ -18,7 +18,8 @@ export default function Subscriptions() {
     try {
       const res = await API.get('/subscriptions');
       if (res.data.success) {
-        setPlans(res.data.data.plans);
+        // Exclude free plan completely
+        setPlans(res.data.data.plans.filter((p) => p.priceMonthly > 0));
         setActiveSub(res.data.data.activeSubscription);
       }
     } catch (err) {
@@ -26,7 +27,7 @@ export default function Subscriptions() {
     }
   };
 
-  const handleSubscribe = async (planId) => {
+  const handleSubscribe = async (planId, planName) => {
     try {
       const res = await API.post('/subscriptions/subscribe', { planId, billingCycle: 'monthly' });
       if (res.data.success) {
@@ -57,7 +58,7 @@ export default function Subscriptions() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Subscription Tier Plans</h1>
-        <p className="text-xs text-[#AEB4BC]">Upgrade your account tier for discounted SMS rates and bulk credits</p>
+        <p className="text-xs text-[#AEB4BC]">Upgrade your account tier for discounted SMS rates and bulk credit packages</p>
       </div>
 
       <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-3">
@@ -74,23 +75,39 @@ export default function Subscriptions() {
             className="bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-4 py-2 text-xs text-white uppercase font-mono"
           />
           <button type="submit" className="bg-[#D4AF6A] text-black font-bold text-xs px-4 py-2 rounded-xl">
-            Redeem
+            Redeem Coupon
           </button>
         </form>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {plans.map((p) => (
-          <div key={p._id} className="bg-[#2A3038]/70 border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4 flex flex-col justify-between">
+          <div
+            key={p._id}
+            className="bg-[#2A3038]/70 border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4 flex flex-col justify-between"
+          >
             <div>
               <h3 className="text-lg font-bold text-white">{p.name}</h3>
-              <div className="text-2xl font-extrabold text-[#D4AF6A] mt-2">GHS {p.priceMonthly} / mo</div>
-              <p className="text-xs text-[#E7D3A4] mt-1">{p.smsCreditsIncluded.toLocaleString()} SMS Units included</p>
+              <div className="text-2xl font-extrabold text-[#D4AF6A] mt-2">
+                GHS {p.priceMonthly} <span className="text-xs font-normal text-[#AEB4BC]">/ mo</span>
+              </div>
+              <p className="text-xs text-[#E7D3A4] mt-1 font-semibold">{p.smsCreditsIncluded.toLocaleString()} SMS Units included</p>
+
+              {p.features && p.features.length > 0 && (
+                <ul className="mt-4 space-y-2 text-xs text-[#AEB4BC]">
+                  {p.features.map((f, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <button
-              onClick={() => handleSubscribe(p._id)}
-              className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold py-2.5 rounded-xl text-xs"
+              onClick={() => handleSubscribe(p._id, p.name)}
+              className="w-full font-bold py-2.5 rounded-xl text-xs shadow-lg transition-all bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black hover:opacity-90"
             >
               Subscribe Plan
             </button>

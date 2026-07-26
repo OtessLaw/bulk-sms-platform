@@ -4,23 +4,14 @@ const Coupon = require('../models/Coupon');
 const Invoice = require('../models/Invoice');
 const Wallet = require('../models/Wallet');
 
-// @desc    Get Subscription Plans & Active User Subscription
+// @desc    Get Subscription Plans & Active User Subscription (Excludes Free Plan)
 // @route   GET /api/subscriptions
 exports.getSubscriptions = async (req, res, next) => {
   try {
-    let plans = await Plan.find().sort({ priceMonthly: 1 });
+    let plans = await Plan.find({ priceMonthly: { $gt: 0 } }).sort({ priceMonthly: 1 });
+
     if (plans.length === 0) {
       plans = await Plan.create([
-        {
-          name: 'Free Trial',
-          slug: 'free-trial',
-          priceMonthly: 0,
-          priceYearly: 0,
-          smsCreditsIncluded: 100,
-          maxContacts: 500,
-          maxSenderIds: 1,
-          features: ['Basic SMS Dispatch', '1 Custom Sender ID', 'Standard Speed'],
-        },
         {
           name: 'Starter Business',
           slug: 'starter-business',
@@ -75,6 +66,7 @@ exports.subscribePlan = async (req, res, next) => {
     const cost = isYearly ? plan.priceYearly : plan.priceMonthly;
 
     const wallet = await Wallet.findOne({ userId: req.user._id });
+
     if (wallet.balance < cost) {
       return res.status(400).json({
         success: false,
@@ -82,7 +74,6 @@ exports.subscribePlan = async (req, res, next) => {
       });
     }
 
-    // Deduct cost and credit bonus SMS units
     wallet.balance -= cost;
     wallet.smsCredit += plan.smsCreditsIncluded;
     await wallet.save();
@@ -119,7 +110,7 @@ exports.subscribePlan = async (req, res, next) => {
 
     res.status(200).json({
       success: true,
-      message: `Subscribed successfully to ${plan.name}! ${plan.smsCreditsIncluded} SMS units credited.`,
+      message: `Subscribed successfully to ${plan.name}! +${plan.smsCreditsIncluded} SMS units credited.`,
       data: { subscription, invoice, wallet },
     });
   } catch (error) {
