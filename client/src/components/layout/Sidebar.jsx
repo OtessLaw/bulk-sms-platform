@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -20,6 +20,21 @@ import {
 
 export default function Sidebar({ mobileOpen, onCloseMobile }) {
   const { isAdmin } = useAuth();
+
+  // Lock body scroll on mobile when menu drawer is open to prevent background scrolling
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [mobileOpen]);
 
   const userLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -48,23 +63,28 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
 
   return (
     <>
-      {/* Mobile Backdrop Overlay */}
+      {/* Mobile Backdrop Overlay with touch lock */}
       {mobileOpen && (
         <div
           onClick={onCloseMobile}
+          onTouchMove={(e) => e.preventDefault()}
           className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 lg:hidden transition-opacity"
         />
       )}
 
       <aside
-        className={`fixed lg:static top-0 left-0 bottom-0 z-50 w-64 bg-[#1E232B] border-r border-[rgba(212,175,106,0.15)] flex flex-col justify-between shrink-0 min-h-screen lg:min-h-[calc(100vh-4rem)] transition-transform duration-300 ease-in-out ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        style={{ overscrollBehavior: 'contain' }}
+        className={`fixed lg:static top-0 left-0 bottom-0 z-50 w-64 bg-[#1E232B] border-r border-[rgba(212,175,106,0.15)] flex flex-col justify-between shrink-0 h-full lg:min-h-[calc(100vh-4rem)] transition-transform duration-300 ease-in-out ${
+          mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full lg:translate-x-0'
         }`}
       >
-        <div className="p-4 space-y-6 overflow-y-auto max-h-screen lg:max-h-none">
+        <div className="p-4 space-y-6 overflow-y-auto h-full max-h-screen lg:max-h-none touch-pan-y">
           {/* Mobile Header Close Button */}
           <div className="flex items-center justify-between lg:hidden pb-3 border-b border-[rgba(212,175,106,0.15)]">
-            <span className="font-extrabold text-white text-sm">FasReach Menu</span>
+            <div className="flex items-center space-x-2">
+              <img src="/logo.jpg" alt="FasReach" className="w-6 h-6 rounded-lg object-cover border border-[#D4AF6A]/40" />
+              <span className="font-extrabold text-white text-xs">FasReach Menu</span>
+            </div>
             <button onClick={onCloseMobile} className="p-1 text-[#AEB4BC] hover:text-white">
               <X className="w-5 h-5" />
             </button>
