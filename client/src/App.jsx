@@ -33,15 +33,17 @@ import AdminStaff from './pages/admin/AdminStaff';
 import AdminSystemSettings from './pages/admin/AdminSystemSettings';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
 
-// Fail-safe Scroll Reset Component
+// Scroll To Top on Route Change Component
 function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
     try {
       window.scrollTo(0, 0);
-      const mainEl = document.querySelector('main');
-      if (mainEl) mainEl.scrollTop = 0;
+      const mainElement = document.querySelector('main');
+      if (mainElement) {
+        mainElement.scrollTop = 0;
+      }
     } catch (e) {
       // Ignore scroll errors
     }
@@ -50,7 +52,7 @@ function ScrollToTop() {
   return null;
 }
 
-// Protected Route Component with Fail-Safe Loading
+// Protected Route Component
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { user, loading, isAdmin } = useAuth();
 
@@ -78,8 +80,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Router>
+    <Router>
+      <AuthProvider>
         <ScrollToTop />
         <Toaster
           position="top-right"
@@ -255,7 +257,7 @@ export default function App() {
           {/* Catch-all Fallback Route */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </Router>
-    </AuthProvider>
+      </AuthProvider>
+    </Router>
   );
 }
