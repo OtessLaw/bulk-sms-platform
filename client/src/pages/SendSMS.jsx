@@ -2,24 +2,21 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Send, Smartphone, Bot } from 'lucide-react';
+import { Send, Clock, Sparkles, Smartphone, Users, HelpCircle, Calendar } from 'lucide-react';
 
 export default function SendSMS() {
   const { wallet, refreshWallet } = useAuth();
-  const [activeTab, setActiveTab] = useState('single');
   const [senderIds, setSenderIds] = useState([]);
-  const [selectedSenderId, setSelectedSenderId] = useState('BULKSMS');
-  const [recipient, setRecipient] = useState('');
-  const [bulkRecipients, setBulkRecipients] = useState('');
-  const [content, setContent] = useState('');
-  const [campaignTitle, setCampaignTitle] = useState('');
+  const [formData, setFormData] = useState({
+    senderId: 'FASREACH',
+    recipientPhone: '',
+    content: '',
+    scheduledFor: '',
+  });
+  const [isScheduleEnabled, setIsScheduleEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const [showAIModal, setShowAIModal] = useState(false);
-  const [aiCategory, setAiCategory] = useState('Marketing');
-  const [aiKeywords, setAiKeywords] = useState('Weekend Sale');
-  const [aiSuggestions, setAiSuggestions] = useState([]);
-  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [generatingAi, setGeneratingAi] = useState(false);
 
   useEffect(() => {
     fetchSenderIds();
@@ -32,312 +29,212 @@ export default function SendSMS() {
         setSenderIds(res.data.data.filter((s) => s.status === 'Approved'));
       }
     } catch (err) {
-      console.error('Error fetching Sender IDs', err);
+      console.error('Failed to load sender IDs', err);
     }
   };
-
-  const handleGenerateAI = async (e) => {
-    e.preventDefault();
-    setAiLoading(true);
-    try {
-      const res = await API.post('/sms/ai-templates', { category: aiCategory, keywords: aiKeywords });
-      if (res.data.success) {
-        setAiSuggestions(res.data.data);
-      }
-    } catch (err) {
-      toast.error('Failed to generate AI templates');
-    } finally {
-      setAiLoading(false);
-    }
-  };
-
-  const isUnicode = !/^[\n\r a-zA-Z0-9!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?£¥èéùìòÇØøÅåΔΦΓΛΩΠΨΣΘΞÆæßÉäöñüàäÖÑÜ§à]*$/.test(content);
-  const charCount = content.length;
-  let unitsPerMsg = 1;
-  if (isUnicode) {
-    unitsPerMsg = charCount <= 70 ? 1 : Math.ceil(charCount / 67);
-  } else {
-    unitsPerMsg = charCount <= 160 ? 1 : Math.ceil(charCount / 153);
-  }
-
-  const recipientList = activeTab === 'single'
-    ? (recipient ? [recipient] : [])
-    : bulkRecipients.split(/[\n,]+/).map((r) => r.trim()).filter((r) => r.length > 0);
-
-  const totalRecipients = recipientList.length;
-  const totalUnits = totalRecipients * unitsPerMsg;
-  const totalCost = (totalUnits * 0.04).toFixed(2);
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!content) {
-      toast.error('SMS message content cannot be empty');
+    if (!formData.recipientPhone || !formData.content) {
+      toast.error('Recipient phone and message content are required');
       return;
     }
 
-    if (totalRecipients === 0) {
-      toast.error('Please enter at least one recipient phone number');
-      return;
-    }
-
-    if ((wallet?.smsCredit || 0) < totalUnits) {
-      toast.error(`Insufficient credits. Required: ${totalUnits} units. Please top up.`);
+    if (isScheduleEnabled && !formData.scheduledFor) {
+      toast.error('Please select a future date and time for scheduling');
       return;
     }
 
     setLoading(true);
     try {
-      let res;
-      if (activeTab === 'single') {
-        res = await API.post('/sms/send', {
-          senderId: selectedSenderId,
-          recipientPhone: recipient,
-          content,
-        });
-      } else {
-        res = await API.post('/sms/bulk', {
-          senderId: selectedSenderId,
-          recipients: recipientList,
-          content,
-          campaignTitle: campaignTitle || 'Bulk SMS Dispatch',
-        });
-      }
+      const payload = {
+        ...formData,
+        scheduledFor: isScheduleEnabled ? formData.scheduledFor : null,
+      };
 
+      const res = await API.post('/api/sms/send', payload);
       if (res.data.success) {
-        toast.success(res.data.message || 'SMS sent successfully!');
-        setContent('');
-        setRecipient('');
-        setBulkRecipients('');
-        setCampaignTitle('');
+        toast.success(res.data.message || 'SMS dispatched successfully!');
+        setFormData({ senderId: 'FASREACH', recipientPhone: '', content: '', scheduledFor: '' });
+        setIsScheduleEnabled(false);
         await refreshWallet();
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to dispatch SMS');
+      toast.error(err.response?.data?.message || 'Dispatch failed');
     } finally {
       setLoading(false);
     }
   };
 
-  const insertTag = (tag) => {
-    setContent((prev) => `${prev}${tag}`);
+  const handleGenerateAi = async () => {
+    if (!aiPrompt) {
+      toast.error('Please enter a brief topic or prompt for AI');
+      return;
+    }
+    setGeneratingAi(true);
+    try {
+      const res = await API.post('/api/sms/ai-templates', { category: 'Marketing', keywords: [aiPrompt] });
+      if (res.data.success && res.data.data?.length > 0) {
+        setFormData({ ...formData, content: res.data.data[0].content });
+        toast.success('AI Template generated!');
+      }
+    } catch (err) {
+      toast.error('AI Generation failed');
+    } finally {
+      setGeneratingAi(false);
+    }
   };
+
+  const smsUnits = Math.ceil(formData.content.length / 160) || 1;
+  const totalCost = (smsUnits * 0.04).toFixed(2);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Send SMS Gateway</h1>
-          <p className="text-xs text-[#AEB4BC]">Compose and broadcast instant or scheduled SMS messages with AI templates</p>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowAIModal(true)}
-            className="bg-[#2A3038] border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-semibold text-xs px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md"
-          >
-            <Bot className="w-4 h-4" />
-            <span>AI Template Generator</span>
-          </button>
-
-          <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.2)] p-1 rounded-2xl flex space-x-1">
-            <button
-              onClick={() => setActiveTab('single')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold ${
-                activeTab === 'single' ? 'bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black' : 'text-[#AEB4BC]'
-              }`}
-            >
-              Single SMS
-            </button>
-            <button
-              onClick={() => setActiveTab('bulk')}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold ${
-                activeTab === 'bulk' ? 'bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black' : 'text-[#AEB4BC]'
-              }`}
-            >
-              Bulk SMS Campaign
-            </button>
-          </div>
-        </div>
+      <div>
+        <h1 className="text-2xl font-bold text-white">Send Single & Scheduled SMS</h1>
+        <p className="text-xs text-[#AEB4BC]">Compose immediate or scheduled SMS broadcasts with AI templates</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-5">
-          <form onSubmit={handleSend} className="space-y-5">
+        {/* SMS Composer Form */}
+        <div className="lg:col-span-2 bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 shadow-2xl space-y-4">
+          <form onSubmit={handleSend} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider mb-2">
-                Select Sender ID
-              </label>
+              <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Sender ID Header</label>
               <select
-                value={selectedSenderId}
-                onChange={(e) => setSelectedSenderId(e.target.value)}
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
+                value={formData.senderId}
+                onChange={(e) => setFormData({ ...formData, senderId: e.target.value })}
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               >
-                <option value="BULKSMS">BULKSMS (Default System ID)</option>
+                <option value="FASREACH">FASREACH (Default Platform Header)</option>
                 {senderIds.map((s) => (
                   <option key={s._id} value={s.senderId}>
-                    {s.senderId} (Approved Custom ID)
+                    {s.senderId}
                   </option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider mb-2">
-                {activeTab === 'single' ? 'Recipient Phone Number' : 'Recipients (Comma or line separated)'}
-              </label>
-              {activeTab === 'single' ? (
-                <input
-                  type="text"
-                  required
-                  value={recipient}
-                  onChange={(e) => setRecipient(e.target.value)}
-                  placeholder="+233240001122"
-                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
-                />
-              ) : (
-                <textarea
-                  rows="4"
-                  required
-                  value={bulkRecipients}
-                  onChange={(e) => setBulkRecipients(e.target.value)}
-                  placeholder="+233240001122, +233544556677, +233277889900"
-                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl p-4 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
-                />
-              )}
+              <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Recipient Phone Number</label>
+              <input
+                type="text"
+                required
+                value={formData.recipientPhone}
+                onChange={(e) => setFormData({ ...formData, recipientPhone: e.target.value })}
+                placeholder="e.g. 0241112233 or +233241112233"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <span className="text-xs text-[#AEB4BC]">Insert Tag:</span>
-              <button
-                type="button"
-                onClick={() => insertTag(' {first_name} ')}
-                className="bg-[#1E232B] border border-[rgba(212,175,106,0.2)] text-[11px] text-[#D4AF6A] px-2.5 py-1 rounded-lg font-mono"
-              >
-                {'{first_name}'}
-              </button>
-              <button
-                type="button"
-                onClick={() => insertTag(' {company} ')}
-                className="bg-[#1E232B] border border-[rgba(212,175,106,0.2)] text-[11px] text-[#D4AF6A] px-2.5 py-1 rounded-lg font-mono"
-              >
-                {'{company}'}
-              </button>
+            {/* AI Generator Helper Box */}
+            <div className="bg-[#1E232B]/60 border border-[rgba(212,175,106,0.15)] rounded-2xl p-3 space-y-2">
+              <span className="text-[11px] font-bold text-[#D4AF6A] flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5" /> AI Template Generator
+              </span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  placeholder="e.g. 20% Discount Sale announcement"
+                  className="flex-1 bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={handleGenerateAi}
+                  disabled={generatingAi}
+                  className="bg-[#D4AF6A] text-black font-bold text-[11px] px-3 py-1.5 rounded-xl shrink-0"
+                >
+                  {generatingAi ? 'Generating...' : 'Generate'}
+                </button>
+              </div>
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold text-[#AEB4BC] uppercase tracking-wider">
-                  SMS Message Body
-                </label>
-                <div className="text-xs text-[#AEB4BC]">
-                  <span className="text-[#D4AF6A] font-bold">{charCount}</span> chars •{' '}
-                  <span className="text-white font-bold">{unitsPerMsg}</span> SMS parts
-                </div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-xs font-semibold text-[#AEB4BC]">SMS Message Content</label>
+                <span className="text-[10px] text-[#D4AF6A] font-mono">
+                  {formData.content.length} chars ({smsUnits} unit)
+                </span>
               </div>
               <textarea
-                rows="5"
+                rows="4"
                 required
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="Type your message here..."
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl p-4 text-sm text-white focus:outline-none focus:border-[#D4AF6A]"
+                value={formData.content}
+                onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                placeholder="Type your SMS message here..."
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               />
+            </div>
+
+            {/* SMS Scheduling Toggle & DateTime Picker */}
+            <div className="bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-[#D4AF6A]" /> Schedule for Later Dispatch
+                </span>
+                <input
+                  type="checkbox"
+                  checked={isScheduleEnabled}
+                  onChange={(e) => setIsScheduleEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-[#D4AF6A] cursor-pointer"
+                />
+              </div>
+
+              {isScheduleEnabled && (
+                <div className="pt-2 border-t border-[rgba(212,175,106,0.15)] space-y-1">
+                  <label className="block text-[11px] font-semibold text-[#AEB4BC]">Select Future Dispatch Date & Time</label>
+                  <input
+                    type="datetime-local"
+                    required={isScheduleEnabled}
+                    value={formData.scheduledFor}
+                    onChange={(e) => setFormData({ ...formData, scheduledFor: e.target.value })}
+                    className="w-full bg-[#2A3038] border border-[rgba(212,175,106,0.3)] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-[#D4AF6A]"
+                  />
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-bold py-3.5 rounded-xl flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50"
+              className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs py-3 rounded-xl flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50"
             >
-              <Send className="w-4 h-4" />
-              <span>{loading ? 'Dispatching SMS Gateway...' : 'Send Message Now'}</span>
+              {isScheduleEnabled ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+              <span>{loading ? 'Processing...' : isScheduleEnabled ? 'Schedule SMS Broadcast' : 'Send SMS Instantly'}</span>
             </button>
           </form>
         </div>
 
-        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center">
-          <h3 className="text-xs font-bold text-[#AEB4BC] uppercase tracking-wider mb-4 flex items-center gap-1.5">
-            <Smartphone className="w-4 h-4 text-[#D4AF6A]" /> Live Delivery Preview
-          </h3>
+        {/* Live Device Simulator Preview */}
+        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 shadow-2xl space-y-4 flex flex-col items-center">
+          <span className="text-xs font-bold text-[#D4AF6A] flex items-center gap-1">
+            <Smartphone className="w-4 h-4" /> Live Mobile Simulator
+          </span>
 
-          <div className="w-64 h-[440px] bg-[#1E232B] border-4 border-[#2A3038] rounded-[40px] shadow-2xl p-4 flex flex-col justify-between relative overflow-hidden">
-            <div className="w-24 h-4 bg-[#2A3038] rounded-b-xl mx-auto mb-4"></div>
-            <div className="flex-1 overflow-y-auto space-y-3 px-1">
-              <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.25)] rounded-2xl rounded-tl-none p-3 shadow-lg">
-                <p className="text-xs text-white leading-relaxed break-words">
-                  {content || 'Your message preview will render live here as you type into the composer...'}
-                </p>
-              </div>
+          <div className="w-64 h-[380px] bg-black border-4 border-[#3A404A] rounded-[36px] p-3 flex flex-col justify-between shadow-2xl relative">
+            <div className="w-20 h-4 bg-[#3A404A] rounded-full mx-auto mb-2" />
+
+            <div className="flex-1 bg-[#1A1D24] rounded-2xl p-3 flex flex-col space-y-2 overflow-y-auto">
+              <div className="text-[10px] text-center text-[#AEB4BC] font-mono">{formData.senderId || 'FASREACH'}</div>
+              {formData.content ? (
+                <div className="bg-[#D4AF6A] text-black p-2.5 rounded-2xl text-[11px] font-sans leading-snug self-end max-w-[85%] shadow-md">
+                  {formData.content}
+                </div>
+              ) : (
+                <div className="text-[10px] text-[#AEB4BC] italic text-center my-auto">
+                  Type a message on the left to see live mobile preview...
+                </div>
+              )}
             </div>
-            <div className="w-20 h-1 bg-[#AEB4BC]/30 rounded-full mx-auto mt-2"></div>
+
+            <div className="mt-2 text-center text-[10px] text-[#AEB4BC]">
+              Cost: <span className="text-[#D4AF6A] font-bold">GHS {totalCost}</span> ({smsUnits} unit)
+            </div>
           </div>
         </div>
       </div>
-
-      {showAIModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Bot className="w-5 h-5 text-[#D4AF6A]" /> AI SMS Template Generator
-              </h3>
-              <button onClick={() => setShowAIModal(false)} className="text-xs text-[#AEB4BC]">✕</button>
-            </div>
-
-            <form onSubmit={handleGenerateAI} className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-[#AEB4BC] mb-1">Category</label>
-                  <select
-                    value={aiCategory}
-                    onChange={(e) => setAiCategory(e.target.value)}
-                    className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white"
-                  >
-                    <option value="Marketing">Marketing</option>
-                    <option value="Transactional">Transactional</option>
-                    <option value="OTP">OTP Verification</option>
-                    <option value="Event">Event Invite</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-[#AEB4BC] mb-1">Keywords</label>
-                  <input
-                    type="text"
-                    value={aiKeywords}
-                    onChange={(e) => setAiKeywords(e.target.value)}
-                    placeholder="Weekend Discount"
-                    className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={aiLoading}
-                className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold py-2 rounded-xl text-xs"
-              >
-                {aiLoading ? 'Generating AI Suggestions...' : 'Generate Templates'}
-              </button>
-            </form>
-
-            <div className="space-y-2 max-h-56 overflow-y-auto">
-              {aiSuggestions.map((tpl, idx) => (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setContent(tpl);
-                    setShowAIModal(false);
-                    toast.success('Template loaded into composer!');
-                  }}
-                  className="p-3 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] hover:border-[#D4AF6A] rounded-xl text-xs text-white cursor-pointer transition-all"
-                >
-                  <p>{tpl}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

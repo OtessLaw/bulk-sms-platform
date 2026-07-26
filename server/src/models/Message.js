@@ -10,7 +10,8 @@ const MessageSchema = new mongoose.Schema(
     costGHS: { type: Number, default: 0.04 },
     gatewayProvider: { type: String, default: 'Arkesel' },
     gatewayResponseId: { type: String, default: '' },
-    status: { type: String, enum: ['Sent', 'Delivered', 'Failed', 'Pending'], default: 'Sent', index: true },
+    scheduledFor: { type: Date, default: null, index: true },
+    status: { type: String, enum: ['Sent', 'Delivered', 'Failed', 'Pending', 'Scheduled'], default: 'Sent', index: true },
   },
   { timestamps: true }
 );
