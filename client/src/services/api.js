@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://bulk-sms-platform.onrender.com/api',
 });
 
 // Request interceptor to attach JWT token
@@ -20,7 +20,8 @@ API.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
         localStorage.removeItem('accessToken');
-        localStorage.removeItem('user');
+        localStorage.removeItem('cachedUser');
+        localStorage.removeItem('cachedWallet');
         window.location.href = '/login';
       }
     }
