@@ -12,6 +12,9 @@ const {
   getGatewayKeys,
   saveGatewayKeys,
   resetDemoBalances,
+  getCoupons,
+  createCoupon,
+  deleteCoupon,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/rbacMiddleware');
@@ -30,5 +33,8 @@ router.get('/audit-logs', getAuditLogs);
 router.get('/gateway-keys', getGatewayKeys);
 router.post('/gateway-keys', saveGatewayKeys);
 router.post('/reset-demo-balances', resetDemoBalances);
+router.get('/coupons', getCoupons);
+router.post('/coupons', createCoupon);
+router.delete('/coupons/:id', deleteCoupon);
 
 module.exports = router;

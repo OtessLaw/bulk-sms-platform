@@ -288,6 +288,64 @@ exports.resetDemoBalances = async (req, res, next) => {
   }
 };
 
+// @desc    Get All Promo Coupons
+// @route   GET /api/admin/coupons
+exports.getCoupons = async (req, res, next) => {
+  try {
+    const Coupon = require('../models/Coupon');
+    const coupons = await Coupon.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: coupons });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Create New Promo Coupon
+// @route   POST /api/admin/coupons
+exports.createCoupon = async (req, res, next) => {
+  try {
+    const Coupon = require('../models/Coupon');
+    const { code, bonusUnits, maxUses } = req.body;
+
+    if (!code || !bonusUnits) {
+      return res.status(400).json({ success: false, message: 'Coupon code and bonus units are required' });
+    }
+
+    const cleanCode = String(code).trim().toUpperCase();
+    const existing = await Coupon.findOne({ code: cleanCode });
+    if (existing) {
+      return res.status(400).json({ success: false, message: `Coupon code '${cleanCode}' already exists` });
+    }
+
+    const coupon = await Coupon.create({
+      code: cleanCode,
+      bonusUnits: Number(bonusUnits),
+      maxUses: Number(maxUses) || 100,
+      status: 'Active',
+    });
+
+    res.status(201).json({ success: true, message: `Promo coupon '${cleanCode}' created! (+${coupon.bonusUnits} SMS units)`, data: coupon });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Delete Promo Coupon
+// @route   DELETE /api/admin/coupons/:id
+exports.deleteCoupon = async (req, res, next) => {
+  try {
+    const Coupon = require('../models/Coupon');
+    const coupon = await Coupon.findByIdAndDelete(req.params.id);
+    if (!coupon) {
+      return res.status(404).json({ success: false, message: 'Coupon not found' });
+    }
+
+    res.status(200).json({ success: true, message: `Promo coupon '${coupon.code}' deleted` });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Get Security Audit Logs
 // @route   GET /api/admin/audit-logs
 exports.getAuditLogs = async (req, res, next) => {
