@@ -10,11 +10,20 @@ const {
   createKnowledgeDoc,
   deleteKnowledgeDoc,
 } = require('../controllers/aiController');
-const { protect, authorize } = require('../middleware/auth');
+const { protect } = require('../middleware/authMiddleware');
+const { authorize } = require('../middleware/rbacMiddleware');
 
-// User AI Support Routes
-router.post('/chat', protect, processChat);
-router.post('/analyze-image', protect, analyzeImage);
+// Optional protect middleware helper for public/guest chat support
+const optionalProtect = (req, res, next) => {
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    return protect(req, res, next);
+  }
+  next();
+};
+
+// User AI Support Routes (Public & Authenticated)
+router.post('/chat', optionalProtect, processChat);
+router.post('/analyze-image', optionalProtect, analyzeImage);
 router.get('/conversations', protect, getConversations);
 router.post('/feedback', protect, submitFeedback);
 
