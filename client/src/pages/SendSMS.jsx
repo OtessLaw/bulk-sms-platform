@@ -2,41 +2,108 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Send, Clock, Sparkles, Smartphone, Users, HelpCircle, Calendar } from 'lucide-react';
+import { Send, Clock, Sparkles, Smartphone, Users, HelpCircle, Calendar, UserCheck, Layers } from 'lucide-react';
 
 export default function SendSMS() {
   const { wallet, refreshWallet } = useAuth();
   const [senderIds, setSenderIds] = useState([]);
+  const [contactGroups, setContactGroups] = useState([]);
+  const [contacts, setContacts] = useState([]);
+
+  // Dispatch Mode: 'single' or 'bulk'
+  const [dispatchMode, setDispatchMode] = useState('bulk');
+
   const [formData, setFormData] = useState({
     senderId: 'FASREACH',
     recipientPhone: '',
+    bulkRecipientsText: '',
+    selectedGroup: '',
     content: '',
     scheduledFor: '',
   });
+
   const [isScheduleEnabled, setIsScheduleEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [generatingAi, setGeneratingAi] = useState(false);
 
   useEffect(() => {
-    fetchSenderIds();
+    fetchInitialData();
   }, []);
 
-  const fetchSenderIds = async () => {
+  const fetchInitialData = async () => {
     try {
-      const res = await API.get('/sender-ids');
-      if (res.data.success) {
-        setSenderIds(res.data.data.filter((s) => s.status === 'Approved'));
+      // Fetch Sender IDs
+      const senderRes = await API.get('/sender-ids');
+      if (senderRes.data.success) {
+        setSenderIds(senderRes.data.data.filter((s) => s.status === 'Approved'));
+      }
+
+      // Fetch Contacts & Groups
+      const contactRes = await API.get('/contacts');
+      if (contactRes.data.success) {
+        setContacts(contactRes.data.data.contacts || []);
+        setContactGroups(contactRes.data.data.groups || []);
       }
     } catch (err) {
-      console.error('Failed to load sender IDs', err);
+      console.error('Failed to load SMS dispatcher data', err);
     }
   };
 
+  // Helper to extract unique clean phone numbers from text
+  const extractPhoneNumbers = (text) => {
+    if (!text) return [];
+    const rawList = text.split(/[\s,;\n]+/);
+    const cleaned = rawList
+      .map((p) => p.replace(/[^0-9+]/g, '').trim())
+      .filter((p) => p.length >= 7);
+    return Array.from(new Set(cleaned));
+  };
+
+  // Handle Contact Group Selection
+  const handleGroupSelect = (groupName) => {
+    setFormData((prev) => {
+      let groupPhones = [];
+      if (groupName === 'ALL') {
+        groupPhones = contacts.map((c) => c.phone);
+      } else if (groupName) {
+        groupPhones = contacts.filter((c) => c.groupName === groupName).map((c) => c.phone);
+      }
+
+      const existingPhones = extractPhoneNumbers(prev.bulkRecipientsText);
+      const combined = Array.from(new Set([...existingPhones, ...groupPhones]));
+
+      return {
+        ...prev,
+        selectedGroup: groupName,
+        bulkRecipientsText: combined.join(', '),
+      };
+    });
+
+    if (groupName) {
+      toast.success(`Populated contacts from '${groupName}'!`);
+    }
+  };
+
+  const parsedRecipients = dispatchMode === 'single'
+    ? (formData.recipientPhone.trim() ? [formData.recipientPhone.trim()] : [])
+    : extractPhoneNumbers(formData.bulkRecipientsText);
+
+  const recipientCount = parsedRecipients.length;
+  const smsUnitsPerMsg = Math.ceil(formData.content.length / 160) || 1;
+  const totalSmsUnitsNeeded = recipientCount * smsUnitsPerMsg;
+  const totalCostGHS = (totalSmsUnitsNeeded * 0.04).toFixed(2);
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!formData.recipientPhone || !formData.content) {
-      toast.error('Recipient phone and message content are required');
+
+    if (recipientCount === 0) {
+      toast.error(dispatchMode === 'single' ? 'Please enter a recipient phone number' : 'Please enter or select at least one recipient phone number');
+      return;
+    }
+
+    if (!formData.content) {
+      toast.error('Message content cannot be empty');
       return;
     }
 
@@ -47,17 +114,37 @@ export default function SendSMS() {
 
     setLoading(true);
     try {
-      const payload = {
-        ...formData,
-        scheduledFor: isScheduleEnabled ? formData.scheduledFor : null,
-      };
+      const scheduledForVal = isScheduleEnabled ? formData.scheduledFor : null;
 
-      const res = await API.post('/sms/send', payload);
-      if (res.data.success) {
-        toast.success(res.data.message || 'SMS dispatched successfully!');
-        setFormData({ senderId: 'FASREACH', recipientPhone: '', content: '', scheduledFor: '' });
-        setIsScheduleEnabled(false);
-        await refreshWallet();
+      if (dispatchMode === 'single') {
+        const res = await API.post('/sms/send', {
+          senderId: formData.senderId,
+          recipientPhone: parsedRecipients[0],
+          content: formData.content,
+          scheduledFor: scheduledForVal,
+        });
+
+        if (res.data.success) {
+          toast.success(res.data.message || 'SMS dispatched successfully!');
+          setFormData((prev) => ({ ...prev, recipientPhone: '', content: '', scheduledFor: '' }));
+          setIsScheduleEnabled(false);
+          await refreshWallet();
+        }
+      } else {
+        // Bulk Dispatch Mode
+        const res = await API.post('/sms/bulk', {
+          senderId: formData.senderId,
+          recipients: parsedRecipients,
+          content: formData.content,
+          scheduledFor: scheduledForVal,
+        });
+
+        if (res.data.success) {
+          toast.success(res.data.message || `Bulk SMS broadcast of ${recipientCount} messages dispatched!`);
+          setFormData((prev) => ({ ...prev, bulkRecipientsText: '', selectedGroup: '', content: '', scheduledFor: '' }));
+          setIsScheduleEnabled(false);
+          await refreshWallet();
+        }
       }
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'Dispatch failed');
@@ -85,20 +172,49 @@ export default function SendSMS() {
     }
   };
 
-  const smsUnits = Math.ceil(formData.content.length / 160) || 1;
-  const totalCost = (smsUnits * 0.04).toFixed(2);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div>
-        <h1 className="text-2xl font-bold text-white">Send Single & Scheduled SMS</h1>
-        <p className="text-xs text-[#AEB4BC]">Compose immediate or scheduled SMS broadcasts with AI templates</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+          <Send className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Send Bulk & Single SMS
+        </h1>
+        <p className="text-xs text-[#AEB4BC]">Broadcast messages to thousands of contacts, select contact groups, or schedule future dispatches</p>
+      </div>
+
+      {/* Dispatch Mode Toggle Tabs */}
+      <div className="flex items-center space-x-3 bg-[#2A3038]/70 border border-[rgba(212,175,106,0.2)] p-1.5 rounded-2xl w-fit">
+        <button
+          type="button"
+          onClick={() => setDispatchMode('bulk')}
+          className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+            dispatchMode === 'bulk'
+              ? 'bg-[#D4AF6A] text-black shadow-lg'
+              : 'text-[#AEB4BC] hover:text-white'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Bulk Recipients / Group Broadcast</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setDispatchMode('single')}
+          className={`px-5 py-2 rounded-xl text-xs font-bold transition-all flex items-center space-x-2 ${
+            dispatchMode === 'single'
+              ? 'bg-[#D4AF6A] text-black shadow-lg'
+              : 'text-[#AEB4BC] hover:text-white'
+          }`}
+        >
+          <Smartphone className="w-4 h-4" />
+          <span>Single Recipient</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* SMS Composer Form */}
-        <div className="lg:col-span-2 bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 shadow-2xl space-y-4">
+        <div className="lg:col-span-2 bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.3)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
           <form onSubmit={handleSend} className="space-y-4">
+            {/* Sender ID Header Selector */}
             <div>
               <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Sender ID Header</label>
               <select
@@ -115,17 +231,66 @@ export default function SendSMS() {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Recipient Phone Number</label>
-              <input
-                type="text"
-                required
-                value={formData.recipientPhone}
-                onChange={(e) => setFormData({ ...formData, recipientPhone: e.target.value })}
-                placeholder="e.g. 0241112233 or +233241112233"
-                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
-              />
-            </div>
+            {/* Recipient Input Mode: Single vs Bulk */}
+            {dispatchMode === 'single' ? (
+              <div>
+                <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Recipient Phone Number</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.recipientPhone}
+                  onChange={(e) => setFormData({ ...formData, recipientPhone: e.target.value })}
+                  placeholder="e.g. 0241112233 or +233241112233"
+                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {/* Select from Saved Contact Groups */}
+                {contacts.length > 0 && (
+                  <div className="bg-[#1E232B]/80 border border-[rgba(212,175,106,0.2)] rounded-2xl p-3 space-y-2">
+                    <label className="block text-[11px] font-bold text-[#D4AF6A] flex items-center gap-1">
+                      <Layers className="w-3.5 h-3.5" /> Populate Phone Numbers from Saved Contact Group
+                    </label>
+                    <select
+                      value={formData.selectedGroup}
+                      onChange={(e) => handleGroupSelect(e.target.value)}
+                      className="w-full bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-semibold"
+                    >
+                      <option value="">-- Choose Contact Group --</option>
+                      <option value="ALL">All Contacts ({contacts.length} numbers)</option>
+                      {contactGroups.map((g) => {
+                        const count = contacts.filter((c) => c.groupName === g.name).length;
+                        return (
+                          <option key={g._id} value={g.name}>
+                            {g.name} ({count} numbers)
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="text-xs font-semibold text-[#AEB4BC]">
+                      Bulk Phone Numbers (Paste multiple numbers separated by commas or newlines)
+                    </label>
+                    <span className="text-xs font-bold text-[#D4AF6A] font-mono">
+                      {recipientCount} {recipientCount === 1 ? 'Recipient' : 'Recipients'}
+                    </span>
+                  </div>
+                  <textarea
+                    rows="4"
+                    value={formData.bulkRecipientsText}
+                    onChange={(e) => setFormData({ ...formData, bulkRecipientsText: e.target.value })}
+                    placeholder="Paste phone numbers here, e.g.:&#10;0241112233, 0509998877, 0277778899&#10;0200001122"
+                    className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#D4AF6A]"
+                  />
+                  <p className="text-[11px] text-[#AEB4BC] mt-1">Separate phone numbers using commas, spaces, or line breaks.</p>
+                </div>
+              </div>
+            )}
 
             {/* AI Generator Helper Box */}
             <div className="bg-[#1E232B]/60 border border-[rgba(212,175,106,0.15)] rounded-2xl p-3 space-y-2">
@@ -151,11 +316,12 @@ export default function SendSMS() {
               </div>
             </div>
 
+            {/* Message Content */}
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-semibold text-[#AEB4BC]">SMS Message Content</label>
                 <span className="text-[10px] text-[#D4AF6A] font-mono">
-                  {formData.content.length} chars ({smsUnits} unit)
+                  {formData.content.length} chars ({smsUnitsPerMsg} unit/msg)
                 </span>
               </div>
               <textarea
@@ -196,24 +362,54 @@ export default function SendSMS() {
               )}
             </div>
 
+            {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs py-3 rounded-xl flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50"
+              disabled={loading || recipientCount === 0}
+              className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs sm:text-sm py-3.5 rounded-xl flex items-center justify-center space-x-2 shadow-lg disabled:opacity-50"
             >
               {isScheduleEnabled ? <Clock className="w-4 h-4" /> : <Send className="w-4 h-4" />}
-              <span>{loading ? 'Processing...' : isScheduleEnabled ? 'Schedule SMS Broadcast' : 'Send SMS Instantly'}</span>
+              <span>
+                {loading
+                  ? 'Processing...'
+                  : isScheduleEnabled
+                  ? `Schedule Broadcast for ${recipientCount} Recipient(s)`
+                  : `Dispatch SMS to ${recipientCount} Recipient(s) (GHS ${totalCostGHS})`}
+              </span>
             </button>
           </form>
         </div>
 
-        {/* Live Device Simulator Preview */}
-        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 shadow-2xl space-y-4 flex flex-col items-center">
+        {/* Live Device Simulator Preview & Broadcast Calculation Box */}
+        <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 shadow-2xl space-y-4 flex flex-col items-center max-w-full overflow-hidden">
           <span className="text-xs font-bold text-[#D4AF6A] flex items-center gap-1">
-            <Smartphone className="w-4 h-4" /> Live Mobile Simulator
+            <Smartphone className="w-4 h-4" /> Live Mobile Preview & Cost
           </span>
 
-          <div className="w-64 h-[380px] bg-black border-4 border-[#3A404A] rounded-[36px] p-3 flex flex-col justify-between shadow-2xl relative">
+          <div className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-2xl p-4 space-y-2 text-xs">
+            <div className="flex justify-between text-[#AEB4BC]">
+              <span>Mode:</span>
+              <span className="font-bold text-white uppercase">{dispatchMode}</span>
+            </div>
+            <div className="flex justify-between text-[#AEB4BC]">
+              <span>Recipients:</span>
+              <span className="font-bold text-white font-mono">{recipientCount} Phones</span>
+            </div>
+            <div className="flex justify-between text-[#AEB4BC]">
+              <span>Units Per SMS:</span>
+              <span className="font-bold text-white font-mono">{smsUnitsPerMsg} Unit</span>
+            </div>
+            <div className="flex justify-between text-[#AEB4BC]">
+              <span>Total Units Needed:</span>
+              <span className="font-bold text-[#D4AF6A] font-mono">{totalSmsUnitsNeeded} Units</span>
+            </div>
+            <div className="pt-2 border-t border-[rgba(212,175,106,0.15)] flex justify-between font-bold text-sm">
+              <span className="text-white">Estimated Cost:</span>
+              <span className="text-[#D4AF6A] font-mono">GHS {totalCostGHS}</span>
+            </div>
+          </div>
+
+          <div className="w-64 h-[350px] bg-black border-4 border-[#3A404A] rounded-[36px] p-3 flex flex-col justify-between shadow-2xl relative">
             <div className="w-20 h-4 bg-[#3A404A] rounded-full mx-auto mb-2" />
 
             <div className="flex-1 bg-[#1A1D24] rounded-2xl p-3 flex flex-col space-y-2 overflow-y-auto">
@@ -230,7 +426,7 @@ export default function SendSMS() {
             </div>
 
             <div className="mt-2 text-center text-[10px] text-[#AEB4BC]">
-              Cost: <span className="text-[#D4AF6A] font-bold">GHS {totalCost}</span> ({smsUnits} unit)
+              Recipient Count: <span className="text-[#D4AF6A] font-bold">{recipientCount}</span>
             </div>
           </div>
         </div>
