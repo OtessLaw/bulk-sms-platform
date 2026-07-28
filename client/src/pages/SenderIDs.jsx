@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Plus, ShieldCheck, ShieldAlert, Lock } from 'lucide-react';
 
 export default function SenderIDs() {
   const [senderIds, setSenderIds] = useState([]);
@@ -44,23 +44,36 @@ export default function SenderIDs() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full overflow-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Custom Sender IDs</h1>
-          <p className="text-xs text-[#AEB4BC]">Register custom 11-character branded SMS headers with instant Arkesel activation</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Custom Sender IDs
+          </h1>
+          <p className="text-xs text-[#AEB4BC]">Register custom 11-character branded SMS headers with anti-fraud security protection</p>
         </div>
 
         <button
           onClick={() => setShowModal(true)}
-          className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md"
+          className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-md shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Register New Sender ID</span>
         </button>
       </div>
 
-      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4">
+      {/* Anti-Fraud Security Information Notice */}
+      <div className="bg-[#2A3038]/70 border border-[rgba(212,175,106,0.3)] rounded-3xl p-5 shadow-2xl flex items-start space-x-3">
+        <ShieldAlert className="w-5 h-5 text-[#D4AF6A] shrink-0 mt-0.5" />
+        <div className="text-xs text-[#AEB4BC] space-y-1">
+          <span className="font-bold text-white block">Anti-Phishing & Anti-Fraud Security Protection</span>
+          <p>
+            To prevent fraud and impersonation, Sender IDs of reputable institutions (such as banks, telecoms, government agencies, utilities, and financial services) are reserved and restricted. Official institutions can contact support for authorization verification.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -108,10 +121,18 @@ export default function SenderIDs() {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.3)] rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
-            <h3 className="text-base font-bold text-white">Register Sender ID Header</h3>
-            <form onSubmit={handleRequest} className="space-y-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-[#D4AF6A]" /> Register Sender ID Header
+            </h3>
+
+            <div className="bg-[#1E232B] border border-amber-500/30 rounded-2xl p-3 text-[11px] text-[#AEB4BC]">
+              <span className="text-amber-400 font-bold block mb-0.5">🔒 Fraud Prevention Warning</span>
+              Institutional headers (e.g. ECG, MTN, GCB, GRA) are protected against unauthorized registration.
+            </div>
+
+            <form onSubmit={handleRequest} className="space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Sender ID Header (Max 11 Chars)</label>
+                <label className="block font-semibold text-[#AEB4BC] mb-1">Sender ID Header (Max 11 Chars)</label>
                 <input
                   type="text"
                   maxLength="11"
@@ -119,25 +140,25 @@ export default function SenderIDs() {
                   value={newSender.senderId}
                   onChange={(e) => setNewSender({ ...newSender, senderId: e.target.value.toUpperCase() })}
                   placeholder="e.g. MYBRAND"
-                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white uppercase font-mono"
+                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-white uppercase font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Business Purpose</label>
+                <label className="block font-semibold text-[#AEB4BC] mb-1">Business Purpose</label>
                 <input
                   type="text"
                   required
                   value={newSender.purpose}
                   onChange={(e) => setNewSender({ ...newSender, purpose: e.target.value })}
                   placeholder="Transactional order updates"
-                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white"
+                  className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-white"
                 />
               </div>
               <div className="flex justify-end space-x-2 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-xs text-[#AEB4BC]">
+                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-[#AEB4BC]">
                   Cancel
                 </button>
-                <button type="submit" className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-xs px-4 py-2 rounded-xl">
+                <button type="submit" className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold px-4 py-2 rounded-xl">
                   Register & Activate
                 </button>
               </div>

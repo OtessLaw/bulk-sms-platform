@@ -1,6 +1,20 @@
 const SenderId = require('../models/SenderId');
 const { registerArkeselSenderId } = require('../services/multiSmsService');
 
+// Reserved Reputable Institutions & Financial Headers (Anti-Phishing & Anti-Fraud Security Filter)
+const PROTECTED_INSTITUTIONS = [
+  // Telecom Operators
+  'MTN', 'MTNGHANA', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'ATGHANA', 'GLO',
+  // Banks & Financial Services
+  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESS', 'ACCESSBANK',
+  'UBA', 'GTBANK', 'BOA', 'BANKOFGHANA', 'SGGHANA', 'ADB', 'NIB', 'FIRSTBANK', 'BESTPOINT',
+  'MOMO', 'MOBILEMONEY', 'GHIPSS', 'GIPSS', 'PAYSTACK', 'HUBTEL', 'ARKESEL', 'SUREPAY',
+  // Government, Utility & Security Services
+  'GRA', 'SSNIT', 'ECG', 'GWCL', 'NCA', 'NIA', 'GHANASTAT', 'POLICE', 'GHPOLICE', 'FIRESERVICE',
+  'MILITARY', 'GOVGHANA', 'PARLIAMENT', 'MINISTRY', 'PASSPORT', 'JUDICIARY', 'DVLA', 'COCOBOD',
+  'ELECTION', 'EC', 'INLAND', 'CUSTOMS',
+];
+
 // @desc    Get User or All Sender IDs
 // @route   GET /api/sender-ids
 exports.getSenderIds = async (req, res, next) => {
@@ -18,7 +32,7 @@ exports.getSenderIds = async (req, res, next) => {
   }
 };
 
-// @desc    Submit & Auto-Register Sender ID with Arkesel (No Admin Approval Required)
+// @desc    Submit & Register Sender ID with Fraud Prevention Security Check
 // @route   POST /api/sender-ids/request
 exports.requestSenderId = async (req, res, next) => {
   try {
@@ -27,6 +41,22 @@ exports.requestSenderId = async (req, res, next) => {
 
     if (!cleanHeader || cleanHeader.length > 11) {
       return res.status(400).json({ success: false, message: 'Sender ID header must be 1 to 11 characters long' });
+    }
+
+    const isSuperAdmin = req.user.role === 'Super Admin';
+
+    // Anti-Fraud Check: Restrict Reputable Institution headers for non-admin accounts
+    if (!isSuperAdmin) {
+      const isProtected = PROTECTED_INSTITUTIONS.some(
+        (brand) => cleanHeader === brand || cleanHeader.includes(brand) || brand.includes(cleanHeader)
+      );
+
+      if (isProtected) {
+        return res.status(400).json({
+          success: false,
+          message: `Security Restriction: Sender ID '${cleanHeader}' is reserved for a reputable institution/bank to prevent fraud & impersonation. Please submit official authorization documents to support for verification.`,
+        });
+      }
     }
 
     // Check if user already registered this Sender ID
@@ -48,7 +78,7 @@ exports.requestSenderId = async (req, res, next) => {
       senderId: cleanHeader,
       purpose,
       sampleMessage,
-      status: 'Approved', // Auto-Approved! No admin wait required.
+      status: 'Approved',
     });
 
     res.status(201).json({
