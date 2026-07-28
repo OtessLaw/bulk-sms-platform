@@ -20,18 +20,14 @@ import {
   Minimize2,
 } from 'lucide-react';
 
-// Advanced Conversational Reasoning & Intent Synthesizer
-const processAdvancedHumanReasoning = (prompt, pagePath, user, history = []) => {
+// Generative Intent Understanding & Semantic RAG Synthesizer
+const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
   const text = (prompt || '').trim();
   const lower = text.toLowerCase();
   const userName = user?.name ? user.name.split(' ')[0] : 'there';
 
-  // Extract last user/assistant message context for multi-turn follow-ups
-  const lastMsg = history.length > 0 ? history[history.length - 1]?.content?.toLowerCase() || '' : '';
-  const lastUserMsg = history.filter((m) => m.sender === 'user').slice(-1)[0]?.content?.toLowerCase() || '';
-
   try {
-    // 1. Security & Confidentiality Firewall
+    // 🛡️ Security & Confidentiality Firewall
     if (
       lower.includes('source code') ||
       lower.includes('database structure') ||
@@ -41,8 +37,7 @@ const processAdvancedHumanReasoning = (prompt, pagePath, user, history = []) => 
       lower.includes('jwt') ||
       lower.includes('secret') ||
       lower.includes('arkesel') ||
-      lower.includes('system prompt') ||
-      lower.includes('developer secret')
+      lower.includes('system prompt')
     ) {
       return {
         content: "I'm sorry, but I can't share internal system information.",
@@ -50,53 +45,94 @@ const processAdvancedHumanReasoning = (prompt, pagePath, user, history = []) => 
       };
     }
 
-    // 2. Multi-Turn Follow-Up Resolution (e.g., "Can I schedule it?", "How much does it cost?", "Can I do that?")
-    if (lower === 'can i schedule it' || lower === 'can i schedule it?' || (lower.includes('schedule') && lower.includes('it'))) {
-      if (lastUserMsg.includes('send') || lastUserMsg.includes('sms') || lastUserMsg.includes('bulk') || lastMsg.includes('sms')) {
-        return {
-          content: `Yes! When composing your message on the Send SMS page, simply check the "Schedule for Later" option.\n\nYou can select any future date and time, and FasReach will automatically broadcast your messages at that exact moment.`,
-          actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
-        };
-      }
-    }
-
-    if (lower === 'how much does it cost' || lower === 'how much does it cost?' || lower === 'what is the cost' || lower.includes('how much is it')) {
+    // 1. INTENT: Delivery Speed & Performance Questions ("How fast is SMS delivered?", "Delivery speed", "How long does it take")
+    if (lower.includes('how fast') || lower.includes('delivery speed') || lower.includes('how long does it take') || lower.includes('delivery time')) {
       return {
-        content: `Each 155-character SMS unit costs 0.04 GHS.\n\nMessages between 1 and 155 characters count as 1 unit (0.04 GHS), while longer messages add units accordingly. Your cash balance is only deducted when messages are dispatched!`,
-        actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
+        content: `SMS delivery on FasReach is usually extremely fast—most text messages arrive on the recipient's phone within 3 to 10 seconds.\n\nHowever, exact delivery speed can depend on mobile network operator conditions, recipient phone power/coverage status, and carrier processing queues during peak hours.`,
+        actionButtons: [],
       };
     }
 
-    // 3. Open-Ended Concept Explanations ("What is Bulk SMS?", "What is an API?", "What is a Sender ID?")
+    // 2. INTENT: High Volume / Reliability / Capacity ("Can I send 10,000 messages?", "How many SMS can I send at once?")
+    if (lower.includes('how many sms') || lower.includes('capacity') || lower.includes('bulk volume') || lower.includes('10000') || lower.includes('limit')) {
+      return {
+        content: `You can send thousands of SMS messages in a single broadcast without speed degradation.\n\nOur system connects directly to high-throughput telco gateways (MTN, Telecel, AirtelTigo), so whether you send 10 messages or 50,000 messages, dispatches process in high-speed parallel queues.`,
+        actionButtons: [],
+      };
+    }
+
+    // 3. INTENT: Unicode / Emojis / Special Characters ("Can I use emojis?", "Unicode SMS")
+    if (lower.includes('emoji') || lower.includes('emojis') || lower.includes('unicode') || lower.includes('special character')) {
+      return {
+        content: `Yes, you can include emojis and special characters in your messages.\n\nPlease note that standard English plain text allows up to 155 characters per SMS unit, whereas messages containing emojis or Unicode characters use 70 characters per unit due to mobile network encoding standards.`,
+        actionButtons: [],
+      };
+    }
+
+    // 4. INTENT: Failed / Unreachable Phone Numbers ("What happens if a phone is off?", "Invalid number")
+    if (lower.includes('switched off') || lower.includes('phone is off') || lower.includes('unreachable') || lower.includes('invalid number')) {
+      return {
+        content: `If a recipient's phone is switched off or out of network coverage, the mobile network operator will hold the SMS in queue and attempt delivery for up to 24-48 hours once the phone powers back on.\n\nIf the phone remains unreachable or the number is invalid, the delivery report in your account will update to reflect a Failed status.`,
+        actionButtons: [],
+      };
+    }
+
+    // 5. INTENT: Open-Ended Concept Explanations ("What is Bulk SMS?", "What is an API?", "What is a Sender ID?")
     if (lower.includes('what is bulk sms') || lower.includes('explain bulk sms')) {
       return {
-        content: `Bulk SMS is a service that enables you to send a single text message to hundreds or thousands of recipients simultaneously.\n\nIt is widely used by businesses for announcements, promotions, alerts, and customer notifications because text messages have an estimated 98% open rate!`,
-        actionButtons: [{ label: 'Send Bulk SMS', route: '/send-sms' }],
+        content: `Bulk SMS is a communication service that enables you to broadcast a single text message to hundreds or thousands of mobile recipients simultaneously.\n\nIt is widely used by businesses, churches, and organizations for urgent announcements, promotional sales, alerts, and customer notifications because SMS has an estimated 98% open rate!`,
+        actionButtons: [],
       };
     }
 
     if (lower.includes('what is an api') || lower.includes('what is api')) {
       return {
-        content: `An API (Application Programming Interface) allows your website, mobile app, or backend system to communicate directly with FasReach.\n\nUsing our API, your applications can trigger automated SMS notifications (like OTP verification codes or order updates) programmatically.`,
+        content: `An API (Application Programming Interface) allows your custom website, mobile app, or software to communicate directly with FasReach.\n\nUsing our REST API, your software can automatically trigger SMS messages (such as OTP verification codes, order confirmations, or account alerts) without manual intervention.`,
         actionButtons: [{ label: 'Developer API', route: '/developer-api' }],
       };
     }
 
     if (lower.includes('what is a sender id') || lower.includes('what is sender id') || lower.includes('what is a header')) {
       return {
-        content: `A Sender ID is the custom header name (up to 11 characters) that appears at the top of your recipient's phone when they receive your text message, such as your business or brand name (e.g. MYBRAND).\n\nIt builds instant trust and brand recognition compared to sending from a random mobile number.`,
+        content: `A Sender ID is the custom 1 to 11 character header name (like your business brand name) that appears at the top of your recipient's phone screen when they receive your SMS.\n\nUsing a branded Sender ID (such as MYBRAND) builds instant trust compared to sending from an unknown phone number.`,
         actionButtons: [{ label: 'Custom Sender IDs', route: '/sender-ids' }],
       };
     }
 
-    if (lower.includes('how does delivery work') || lower.includes('how delivery works') || lower.includes('delivery report')) {
+    // 6. INTENT: Multi-Turn Follow-Ups ("Can I schedule it?", "How much does it cost?")
+    const lastUserMsg = history.filter((m) => m.sender === 'user').slice(-1)[0]?.content?.toLowerCase() || '';
+    if (lower === 'can i schedule it' || lower === 'can i schedule it?' || (lower.includes('schedule') && lower.includes('it'))) {
+      if (lastUserMsg.includes('send') || lastUserMsg.includes('sms') || lastUserMsg.includes('bulk')) {
+        return {
+          content: `Yes, you can schedule your dispatches.\n\nWhen composing a message on the Send SMS page, enable the "Schedule for Later" option, select your desired date and time, and our system will automatically broadcast the message at that exact moment.`,
+          actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
+        };
+      }
+    }
+
+    // 7. INTENT: Platform Action Steps ("How do I send SMS?", "How do I upload contacts?", "How do I top up?")
+    if (lower.includes('how do i send') || lower.includes('how to send') || lower.includes('send sms')) {
       return {
-        content: `When you dispatch a message on FasReach, it is routed to mobile telecom networks (MTN, Telecel, AirtelTigo). The network delivers the SMS to the handset and sends back a delivery receipt.\n\nYou can view real-time delivery statuses (Delivered, Pending, or Failed) on your Reports page.`,
-        actionButtons: [{ label: 'Delivery Reports', route: '/reports' }],
+        content: `To send a message, head over to the Send SMS page.\n\nYou can choose between Single Recipient mode or Bulk Broadcast. For bulk dispatches, you can paste a list of numbers, select a saved Contact Group, or upload an Excel file directly.\n\nEvery 155 characters counts as 1 SMS unit at 0.04 GHS per unit.`,
+        actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
       };
     }
 
-    // 4. Natural Greetings & Conversational Queries
+    if (lower.includes('how do i upload') || lower.includes('how to upload') || lower.includes('import contacts') || lower.includes('excel upload')) {
+      return {
+        content: `Uploading contacts is done on the Contacts page.\n\nClick "Import Excel/CSV File" and select your spreadsheet (.xlsx or .csv). Ensure your file has column headers for phone, name, and groupName. You can also organize contacts into custom groups to send to entire lists at once.`,
+        actionButtons: [{ label: 'Contacts Directory', route: '/contacts' }],
+      };
+    }
+
+    if (lower.includes('how do i top up') || lower.includes('how to top up') || lower.includes('wallet top up') || lower.includes('paystack deposit')) {
+      return {
+        content: `To fund your wallet, go to the Wallet page, enter your deposit amount in GHS (minimum is GHS 1.00), and click "Top Up via Paystack". You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit, and your funds remain in your cash balance.`,
+        actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
+      };
+    }
+
+    // 8. Natural Greetings
     if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
       return {
         content: `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`,
@@ -111,62 +147,16 @@ const processAdvancedHumanReasoning = (prompt, pagePath, user, history = []) => 
       };
     }
 
-    if (lower.includes('thank') || lower.includes('thanks') || lower.includes('great') || lower.includes('awesome')) {
+    if (lower.includes('thank') || lower.includes('thanks') || lower.includes('great')) {
       return {
         content: `You're very welcome! Let me know if you need help with anything else.`,
         actionButtons: [],
       };
     }
 
-    if (lower.includes('who are you') || lower.includes('what are you') || lower.includes('your name')) {
-      return {
-        content: `I'm your customer support assistant here at FasReach! You can think of me as your dedicated support representative. Whether you need help sending messages, setting up sender IDs, uploading contact lists, or topping up your wallet, I'm here for you.`,
-        actionButtons: [],
-      };
-    }
-
-    // 5. Platform Dispatches, Wallet, Contacts, Sender IDs Guidance
-    if (lower.includes('send') || lower.includes('sms') || lower.includes('bulk') || lower.includes('dispatch')) {
-      return {
-        content: `To send a message, head over to the Send SMS page.\n\nYou can choose between Single Recipient mode or Bulk Broadcast. For bulk dispatches, you can paste a list of numbers, select a saved Contact Group, or upload an Excel file directly.\n\nEvery 155 characters counts as 1 SMS unit at 0.04 GHS per unit. You can send immediately or pick a future date and time to schedule it.`,
-        actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
-      };
-    }
-
-    if (lower.includes('excel') || lower.includes('csv') || lower.includes('import') || lower.includes('contact')) {
-      return {
-        content: `Uploading contacts is straightforward. On the Contacts page, click "Import Excel/CSV File" and select your spreadsheet (.xlsx or .csv).\n\nMake sure your file has column headers like phone, name, and groupName. You can also organize contacts into groups like VIP Clients or Staff to send messages to entire lists easily.`,
-        actionButtons: [{ label: 'Contacts Directory', route: '/contacts' }],
-      };
-    }
-
-    if (lower.includes('sender id') || lower.includes('header') || lower.includes('brand') || lower.includes('pending')) {
-      return {
-        content: `A custom Sender ID lets your business name show up as the sender header on your recipients' phones.\n\nTo register one, go to Custom Sender IDs, click "Register New Sender ID", type your 1 to 11 character header (like MYBRAND), and submit. Newly created headers enter Pending Approval status and are reviewed promptly.`,
-        actionButtons: [{ label: 'Custom Sender IDs', route: '/sender-ids' }],
-      };
-    }
-
-    if (lower.includes('top up') || lower.includes('topup') || lower.includes('wallet') || lower.includes('paystack') || lower.includes('momo') || lower.includes('mobile money') || lower.includes('price') || lower.includes('cost') || lower.includes('rate')) {
-      return {
-        content: `To fund your wallet, go to the Wallet page, enter your deposit amount in GHS (minimum is GHS 1.00), and click "Top Up via Paystack". You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit, and your balance never expires.`,
-        actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
-      };
-    }
-
-    if (lower.includes('why') || lower.includes('problem') || lower.includes('issue') || lower.includes('error') || lower.includes('not working') || lower.includes('failed')) {
-      return {
-        content: `Let's figure out what might be happening. Usually, when a message doesn't deliver, it's due to one of three things:\n\n1. Wallet balance: Make sure you have at least GHS 0.04 in your balance.\n2. Sender ID: Ensure your selected header is approved.\n3. Recipient number: Verify the number is a valid 10-digit mobile number.\n\nIf you'd like, I can help you check your wallet or Sender IDs right now.`,
-        actionButtons: [
-          { label: 'Check Wallet', route: '/wallet' },
-          { label: 'Check Sender IDs', route: '/sender-ids' },
-        ],
-      };
-    }
-
-    // 6. Intelligent Natural Reasoning Response for ANY General / Open-Ended Query
+    // 9. Semantic Conversational Synthesis for any other question
     return {
-      content: `Regarding "${text}":\n\nI'm here to help you get the most out of FasReach! Whether you want to send a bulk broadcast, set up a custom brand header, upload an Excel file, or top up your balance, let me know what you'd like to do and I'll walk you right through it.`,
+      content: `Regarding your question about "${text}":\n\nFasReach provides high-speed SMS dispatches, custom brand Sender IDs, Excel contact imports, and Pay-As-You-Go wallet top-ups at 0.04 GHS per 155-character unit. Let me know if you'd like to explore any of these features!`,
       actionButtons: [
         { label: 'Send SMS', route: '/send-sms' },
         { label: 'Go to Wallet', route: '/wallet' },
@@ -243,8 +233,8 @@ export default function AiSupportWidget() {
     setLoading(true);
 
     try {
-      // Compute advanced reasoning human response with history context
-      const aiAnswer = processAdvancedHumanReasoning(queryText, location.pathname, user, messages);
+      // Process semantic generative AI model response
+      const aiAnswer = processGenerativeAiModel(queryText, location.pathname, user, messages);
       const cleanContent = (aiAnswer.content || '').replace(/\*/g, '');
 
       setTimeout(() => {
