@@ -20,10 +20,9 @@ import {
   Minimize2,
 } from 'lucide-react';
 
-// Comprehensive Human Support AI Knowledge Engine
+// Clean Human Support AI Knowledge Engine (No asterisks)
 const getHumanAiResponse = (prompt, pagePath, user) => {
   const clean = (prompt || '').trim().toLowerCase();
-  const userName = user?.name ? user.name.split(' ')[0] : 'there';
 
   // 1. Strict Security Boundary
   if (
@@ -102,7 +101,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 5. Pricing, Rates & Unit Calculation
   if (clean.includes('price') || clean.includes('pricing') || clean.includes('cost') || clean.includes('rate') || clean.includes('155') || clean.includes('unit') || clean.includes('charge')) {
     return {
-      content: `FasReach SMS pricing is transparent and Pay-As-You-Go:\n\n• **Rate**: 0.04 GHS per 155-character SMS unit.\n• **1 - 155 Characters**: 1 Unit (0.04 GHS)\n• **156 - 310 Characters**: 2 Units (0.08 GHS)\n• **311 - 465 Characters**: 3 Units (0.12 GHS)\n\nThere are no monthly subscription requirements. Your funds remain in your cash balance!`,
+      content: `FasReach SMS pricing is transparent and Pay-As-You-Go:\n\n• Rate: 0.04 GHS per 155-character SMS unit.\n• 1 - 155 Characters: 1 Unit (0.04 GHS)\n• 156 - 310 Characters: 2 Units (0.08 GHS)\n• 311 - 465 Characters: 3 Units (0.12 GHS)\n\nThere are no monthly subscription requirements. Your funds remain in your cash balance!`,
       actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
     };
   }
@@ -110,7 +109,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 6. Paystack & Mobile Money Wallet Top-Up
   if (clean.includes('top up') || clean.includes('topup') || clean.includes('wallet') || clean.includes('paystack') || clean.includes('deposit') || clean.includes('momo') || clean.includes('mobile money') || clean.includes('mtn') || clean.includes('telecel') || clean.includes('card')) {
     return {
-      content: `To top up your wallet:\n\n1. Go to the **Wallet** page.\n2. Enter your deposit amount in GHS (minimum deposit is GHS 1.00).\n3. Click **Top Up via Paystack**.\n4. Select **Mobile Money** (MTN, Telecel, AirtelTigo) or **Visa/Mastercard**.\n5. Complete payment on your phone or card.\n\nYour cash balance updates instantly!`,
+      content: `To top up your wallet:\n\n1. Go to the Wallet page.\n2. Enter your deposit amount in GHS (minimum deposit is GHS 1.00).\n3. Click Top Up via Paystack.\n4. Select Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n5. Complete payment on your phone or card.\n\nYour cash balance updates instantly!`,
       actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
     };
   }
@@ -126,7 +125,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 8. Sender IDs & Brand Header Approvals
   if (clean.includes('sender id') || clean.includes('header') || clean.includes('brand') || clean.includes('pending') || clean.includes('approval') || clean.includes('register sender')) {
     return {
-      content: `To register a custom Sender ID brand header:\n\n1. Go to **Custom Sender IDs** in the menu.\n2. Click **Register New Sender ID**.\n3. Type your 1-11 character uppercase header (e.g. MYBRAND) and business purpose.\n4. Click **Submit**.\n\nYour header enters Pending Approval status immediately. (Protected institutional headers like banks or government agencies are restricted to prevent fraud).`,
+      content: `To register a custom Sender ID brand header:\n\n1. Go to Custom Sender IDs in the menu.\n2. Click Register New Sender ID.\n3. Type your 1-11 character uppercase header (e.g. MYBRAND) and business purpose.\n4. Click Submit.\n\nYour header enters Pending Approval status immediately. (Protected institutional headers like banks or government agencies are restricted to prevent fraud).`,
       actionButtons: [{ label: 'Custom Sender IDs', route: '/sender-ids' }],
     };
   }
@@ -134,7 +133,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 9. Excel/CSV Contacts Upload & Groups
   if (clean.includes('excel') || clean.includes('csv') || clean.includes('import') || clean.includes('contact') || clean.includes('directory') || clean.includes('group') || clean.includes('upload file')) {
     return {
-      content: `You can upload contact lists from Excel or CSV files:\n\n1. Go to **Contacts Directory** or the **Send SMS** page.\n2. Download our sample CSV template (\`FasReach_Contacts_Sample.csv\`).\n3. Ensure columns include \`phone\`, \`name\`, and \`groupName\`.\n4. Click **Import Excel/CSV File**, select your file, and save!\n\nYou can also organize contacts into groups (e.g. VIP Clients, Church Members).`,
+      content: `You can upload contact lists from Excel or CSV files:\n\n1. Go to Contacts Directory or the Send SMS page.\n2. Download our sample CSV template (FasReach_Contacts_Sample.csv).\n3. Ensure columns include phone, name, and groupName.\n4. Click Import Excel/CSV File, select your file, and save!\n\nYou can also organize contacts into groups (e.g. VIP Clients, Church Members).`,
       actionButtons: [
         { label: 'Contacts Directory', route: '/contacts' },
         { label: 'Send SMS', route: '/send-sms' },
@@ -145,7 +144,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 10. Sending SMS & Scheduling
   if (clean.includes('send') || clean.includes('sms') || clean.includes('bulk') || clean.includes('single') || clean.includes('schedule') || clean.includes('template') || clean.includes('ai template')) {
     return {
-      content: `To send SMS on FasReach:\n\n1. Open the **Send SMS** page.\n2. Select your Sender ID header.\n3. Under **Bulk Broadcast**, paste numbers, select a Contact Group, or upload an Excel file.\n4. Type your message (or use the AI Template Generator).\n5. Click **Dispatch SMS** (or check "Schedule for Later" to select a future date and time).`,
+      content: `To send SMS on FasReach:\n\n1. Open the Send SMS page.\n2. Select your Sender ID header.\n3. Under Bulk Broadcast, paste numbers, select a Contact Group, or upload an Excel file.\n4. Type your message (or use the AI Template Generator).\n5. Click Dispatch SMS (or check "Schedule for Later" to select a future date and time).`,
       actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
     };
   }
@@ -153,7 +152,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 11. Reports & Delivery Receipts
   if (clean.includes('report') || clean.includes('delivery') || clean.includes('receipt') || clean.includes('failed') || clean.includes('pending status') || clean.includes('delivered') || clean.includes('log')) {
     return {
-      content: `You can view all dispatch logs on the **Reports** page.\n\nStatuses show Green (Delivered), Yellow (Pending), or Red (Failed). Click **Sync Live Statuses** anytime to fetch live delivery receipts from network providers.`,
+      content: `You can view all dispatch logs on the Reports page.\n\nStatuses show Green (Delivered), Yellow (Pending), or Red (Failed). Click Sync Live Statuses anytime to fetch live delivery receipts from network providers.`,
       actionButtons: [{ label: 'Delivery Reports', route: '/reports' }],
     };
   }
@@ -161,7 +160,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 12. Developer API
   if (clean.includes('api') || clean.includes('developer') || clean.includes('endpoint') || clean.includes('token') || clean.includes('key') || clean.includes('curl') || clean.includes('code')) {
     return {
-      content: `You can generate API keys and integrate FasReach with your applications on the **Developer API** page.\n\nDispatches use HTTP POST requests to \`https://bulk-sms-platform.onrender.com/api/sms/send\` with your Bearer token.`,
+      content: `You can generate API keys and integrate FasReach with your applications on the Developer API page.\n\nDispatches use HTTP POST requests to https://bulk-sms-platform.onrender.com/api/sms/send with your Bearer token.`,
       actionButtons: [{ label: 'Developer API', route: '/developer-api' }],
     };
   }
@@ -169,7 +168,7 @@ const getHumanAiResponse = (prompt, pagePath, user) => {
   // 13. Troubleshooting Errors
   if (clean.includes('why') || clean.includes('problem') || clean.includes('not working') || clean.includes('issue') || clean.includes('error') || clean.includes('can\'t')) {
     return {
-      content: `Let me help you troubleshoot:\n\n• **If SMS didn't send**: Check if your wallet has an available cash balance (GHS 1.00+) and your Sender ID header is approved.\n• **If numbers failed**: Verify recipient numbers are valid 10-digit Ghanaian mobile numbers (e.g. 0241112233).\n• **If Excel upload failed**: Download our sample CSV template on the Contacts page.`,
+      content: `Let me help you troubleshoot:\n\n• If SMS didn't send: Check if your wallet has an available cash balance (GHS 1.00+) and your Sender ID header is approved.\n• If numbers failed: Verify recipient numbers are valid 10-digit Ghanaian mobile numbers (e.g. 0241112233).\n• If Excel upload failed: Download our sample CSV template on the Contacts page.`,
       actionButtons: [
         { label: 'Check Wallet', route: '/wallet' },
         { label: 'Check Sender IDs', route: '/sender-ids' },
@@ -249,8 +248,9 @@ export default function AiSupportWidget() {
     setInputPrompt('');
     setLoading(true);
 
-    // Compute instant response locally
+    // Compute instant response locally and strip out any remaining asterisks
     const aiAnswer = getHumanAiResponse(queryText, location.pathname, user);
+    const cleanContent = (aiAnswer.content || '').replace(/\*/g, '');
 
     setTimeout(() => {
       setMessages((prev) => [
@@ -258,12 +258,12 @@ export default function AiSupportWidget() {
         {
           id: `ai_${Date.now()}`,
           sender: 'assistant',
-          content: aiAnswer.content,
+          content: cleanContent,
           actionButtons: aiAnswer.actionButtons || [],
         },
       ]);
       setLoading(false);
-    }, 400);
+    }, 350);
 
     // Send asynchronously to backend log
     try {
@@ -338,7 +338,7 @@ export default function AiSupportWidget() {
         {
           id: `img_${Date.now()}`,
           sender: 'assistant',
-          content: `I've analyzed your screenshot for \`${location.pathname}\`.\n\nEverything appears properly formatted. If you encountered an error during dispatch, verify that your Wallet has an available balance and your Sender ID header is approved.`,
+          content: `I've analyzed your screenshot for ${location.pathname}.\n\nEverything appears properly formatted. If you encountered an error during dispatch, verify that your Wallet has an available balance and your Sender ID header is approved.`,
           actionButtons: [
             { label: 'Check Wallet', route: '/wallet' },
             { label: 'Check Sender IDs', route: '/sender-ids' },

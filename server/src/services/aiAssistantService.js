@@ -1,8 +1,7 @@
 const Wallet = require('../models/Wallet');
 const SenderId = require('../models/SenderId');
-const KnowledgeDocument = require('../models/KnowledgeDocument');
 
-// Human Customer Representative Intelligence Service
+// Clean Human Representative Intelligence Service (No asterisks)
 exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId }) => {
   const cleanPrompt = (prompt || '').trim().toLowerCase();
   const userName = user?.name ? user.name.split(' ')[0] : 'there';
@@ -11,7 +10,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
   let tutorialSteps = null;
   let confidenceScore = 0.98;
 
-  // 1. Strict Security Boundary (Refuse confidential / system internal prompts)
+  // 1. Security Boundary
   if (
     cleanPrompt.includes('source code') ||
     cleanPrompt.includes('database structure') ||
@@ -29,7 +28,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     };
   }
 
-  // 2. Greetings & Casual Human Dialogues ("how are u", "hello", "hi")
+  // 2. Greetings
   if (cleanPrompt.includes('how are u') || cleanPrompt.includes('how are you') || cleanPrompt.includes('how u doing')) {
     responseText = `I'm doing great, thank you for asking! How can I help you today?`;
     return { responseText, confidenceScore: 1.0 };
@@ -45,7 +44,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, confidenceScore: 1.0 };
   }
 
-  // 3. Platform Explanation ("what is this platform/site/plate for", "what do you do")
+  // 3. Platform Explanation
   if (
     cleanPrompt.includes('plate') ||
     cleanPrompt.includes('platform') ||
@@ -62,7 +61,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons, confidenceScore: 1.0 };
   }
 
-  // 4. Live Balance Check ("Check my balance", "My wallet")
+  // 4. Live Balance Check
   if (cleanPrompt.includes('balance') || cleanPrompt.includes('wallet') || cleanPrompt.includes('credit')) {
     let cash = '0.00';
     let credits = 0;
@@ -81,7 +80,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons, confidenceScore: 1.0 };
   }
 
-  // 5. Troubleshooting Questions ("My SMS failed", "Why didn't my SMS send")
+  // 5. Troubleshooting Questions
   if (cleanPrompt.includes('failed') || cleanPrompt.includes('why didnt') || cleanPrompt.includes('didnt send') || cleanPrompt.includes('not sending') || cleanPrompt.includes('error')) {
     responseText = `Let's figure that out together.\n\nCould you tell me:\n• Was your wallet funded at the time of dispatch?\n• Was your selected Sender ID approved?\n• Were the recipient phone numbers valid 10-digit numbers?\n\nIf you'd like, I can also check your live wallet balance or Sender ID status right now.`;
     actionButtons = [
@@ -91,43 +90,31 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons, confidenceScore: 1.0 };
   }
 
-  // 6. Page Awareness ("What does this page do?")
-  if (cleanPrompt.includes('this page') || cleanPrompt.includes('what does this page do') || cleanPrompt.includes('explain this page')) {
-    if (currentPage === '/send-sms') {
-      responseText = `You are on the Send SMS page.\n\nHere you can dispatch single or bulk SMS messages, select saved Contact Directory groups, upload Excel/CSV files directly, or schedule dispatches for later.`;
-    } else if (currentPage === '/wallet') {
-      responseText = `You are on the Wallet page.\n\nHere you can top up your balance via Paystack (MTN Mobile Money, Telecel Cash, or Visa/Mastercard) and view your transaction history.`;
-    } else if (currentPage === '/sender-ids') {
-      responseText = `You are on the Custom Sender IDs page.\n\nHere you can register custom 1 to 11 character brand headers (e.g. MYBRAND) to show up as the header when recipients receive your SMS.`;
-    } else {
-      responseText = `You are currently viewing ${currentPage}.\n\nHow can I help you navigate or accomplish your task on this page?`;
-    }
-    return { responseText, confidenceScore: 1.0 };
-  }
-
-  // 7. General Knowledge Base Fallback & Keyword Search
+  // 6. Excel/CSV & Contacts
   if (cleanPrompt.includes('excel') || cleanPrompt.includes('csv') || cleanPrompt.includes('contacts') || cleanPrompt.includes('import')) {
-    responseText = `You can upload contact lists directly from the Contacts page or inside the Send SMS page.\n\nClick "Import Excel/CSV File", select your file (.xlsx, .csv, or .xls), and save your contacts.\n\nIf you'd like, I can also explain the correct Excel column format.`;
+    responseText = `You can upload contact lists directly from the Contacts page or inside the Send SMS page.\n\nClick Import Excel/CSV File, select your file (.xlsx, .csv, or .xls), and save your contacts.\n\nIf you'd like, I can also explain the correct Excel column format.`;
     actionButtons = [{ label: 'Go to Contacts', route: '/contacts', actionType: 'navigate' }];
     return { responseText, actionButtons, confidenceScore: 1.0 };
   }
 
+  // 7. Sender IDs
   if (cleanPrompt.includes('sender id') || cleanPrompt.includes('header') || cleanPrompt.includes('brand')) {
-    responseText = `You can register custom brand headers from the Custom Sender IDs page.\n\nClick "Register New Sender ID", enter your 1-11 character header (e.g. MYBRAND), and submit. Newly submitted Sender IDs enter Pending Approval status and process promptly.`;
+    responseText = `You can register custom brand headers from the Custom Sender IDs page.\n\nClick Register New Sender ID, enter your 1-11 character header (e.g. MYBRAND), and submit. Newly submitted Sender IDs enter Pending Approval status and process promptly.`;
     actionButtons = [{ label: 'Custom Sender IDs', route: '/sender-ids', actionType: 'navigate' }];
     return { responseText, actionButtons, confidenceScore: 1.0 };
   }
 
+  // 8. Top Up
   if (cleanPrompt.includes('top up') || cleanPrompt.includes('paystack') || cleanPrompt.includes('price') || cleanPrompt.includes('cost') || cleanPrompt.includes('momo')) {
-    responseText = `To top up your wallet, go to the Wallet page.\n\nEnter your amount in GHS (minimum deposit is GHS 1.00) and click "Top Up via Paystack". You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit.`;
+    responseText = `To top up your wallet, go to the Wallet page.\n\nEnter your amount in GHS (minimum deposit is GHS 1.00) and click Top Up via Paystack. You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit.`;
     actionButtons = [{ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' }];
     return { responseText, actionButtons, confidenceScore: 1.0 };
   }
 
-  // Final catch-all response (Friendly, concise human assistant)
+  // Final catch-all response (Clean text, no asterisks)
   responseText = `FasReach is an enterprise Bulk SMS platform designed to help you send fast SMS messages to single or bulk recipients, import Excel contact lists, register custom brand Sender IDs, and track delivery reports. How can I help you today?`;
   return {
-    responseText,
+    responseText: responseText.replace(/\*/g, ''),
     actionButtons: [
       { label: 'Send SMS', route: '/send-sms', actionType: 'navigate' },
       { label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' },
