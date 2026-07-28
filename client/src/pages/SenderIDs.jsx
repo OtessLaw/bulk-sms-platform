@@ -13,6 +13,7 @@ const PROTECTED_BRANDS_EXACT = new Set([
 export default function SenderIDs() {
   const [senderIds, setSenderIds] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [newSender, setNewSender] = useState({ senderId: '', purpose: '', sampleMessage: '' });
 
   useEffect(() => {
@@ -32,6 +33,8 @@ export default function SenderIDs() {
 
   const handleRequest = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+
     const cleanHeader = newSender.senderId.trim().toUpperCase();
 
     if (cleanHeader.length > 11) {
@@ -45,6 +48,7 @@ export default function SenderIDs() {
       return;
     }
 
+    setSubmitting(true);
     try {
       const res = await API.post('/sender-ids/request', newSender);
       if (res.data.success) {
@@ -55,6 +59,8 @@ export default function SenderIDs() {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -167,14 +173,16 @@ export default function SenderIDs() {
               </div>
 
               <div className="flex justify-end space-x-2 pt-2">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-[#AEB4BC]">
+                <button type="button" onClick={() => setShowModal(false)} disabled={submitting} className="px-4 py-2 text-[#AEB4BC]">
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold px-4 py-2 rounded-xl"
+                  disabled={submitting}
+                  className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold px-4 py-2 rounded-xl disabled:opacity-50 flex items-center space-x-2"
                 >
-                  Submit for Approval
+                  {submitting && <div className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin shrink-0" />}
+                  <span>{submitting ? 'Submitting...' : 'Submit for Approval'}</span>
                 </button>
               </div>
             </form>
