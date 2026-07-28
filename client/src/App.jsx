@@ -33,6 +33,7 @@ import AdminGatewaySwitch from './pages/admin/AdminGatewaySwitch';
 import AdminStaff from './pages/admin/AdminStaff';
 import AdminSystemSettings from './pages/admin/AdminSystemSettings';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
+import AdminAiManagement from './pages/admin/AdminAiManagement';
 
 // Scroll To Top on Route Change Component
 function ScrollToTop() {
@@ -265,6 +266,14 @@ export default function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminGatewaySwitch />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/ai-management"
+            element={
+              <ProtectedRoute requireAdmin={true}>
+                <AdminAiManagement />
               </ProtectedRoute>
             }
           />

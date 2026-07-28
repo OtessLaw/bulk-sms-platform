@@ -15,6 +15,7 @@ const senderIdRoutes = require('./routes/senderIdRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const teamRoutes = require('./routes/teamRoutes');
+const aiRoutes = require('./routes/aiRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -79,6 +80,7 @@ app.use('/api/sender-ids', senderIdRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/team', teamRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Global Error Handler
 app.use(errorHandler);
