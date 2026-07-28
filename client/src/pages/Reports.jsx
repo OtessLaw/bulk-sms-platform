@@ -30,7 +30,7 @@ export default function Reports() {
   };
 
   const handleManualSync = () => {
-    toast.loading('Syncing Live Delivery Receipts with Arkesel...', { id: 'sync-toast' });
+    toast.loading('Syncing Live Delivery Receipts...', { id: 'sync-toast' });
     fetchReports().then(() => {
       toast.success('Real-Time Delivery Statuses Synchronized!', { id: 'sync-toast' });
     });
@@ -43,7 +43,7 @@ export default function Reports() {
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <FileBarChart className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Reports & Live Delivery Logs
           </h1>
-          <p className="text-xs text-[#AEB4BC]">Real-time SMS status tracking synchronized live with Arkesel network</p>
+          <p className="text-xs text-[#AEB4BC]">Real-time SMS status tracking synchronized live with direct telco networks</p>
         </div>
 
         <button
