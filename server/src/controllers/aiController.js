@@ -75,12 +75,16 @@ exports.processChat = async (req, res, next) => {
     });
   } catch (error) {
     console.error('[processChat Error]', error);
+    const text = (req.body?.prompt || '').trim();
     return res.status(200).json({
       success: true,
       data: {
         conversationId: `CONV_${Date.now()}`,
         message: {
-          content: `FasReach is an enterprise Bulk SMS platform designed to help you send fast SMS messages to single or bulk recipients, import Excel contact lists, register custom brand Sender IDs, and track delivery reports. How can I help you today?`,
+          content: text
+            ? `I hear you! Regarding "${text}": I am here to help you navigate FasReach, send SMS broadcasts, register brand headers, or manage your wallet. How can I assist you further?`
+            : `How can I help you today with your FasReach dispatches or account?`,
+          actionButtons: [{ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' }],
         },
       },
     });
@@ -91,7 +95,7 @@ exports.processChat = async (req, res, next) => {
 // @route   POST /api/ai/analyze-image
 exports.analyzeImage = async (req, res, next) => {
   try {
-    const { imageName, pageContext } = req.body;
+    const { pageContext } = req.body;
 
     res.status(200).json({
       success: true,

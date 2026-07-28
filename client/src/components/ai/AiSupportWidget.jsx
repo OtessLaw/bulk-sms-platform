@@ -109,16 +109,17 @@ export default function AiSupportWidget() {
         ]);
       }
     } catch (err) {
-      // Fail-safe client side human fallback
-      const text = queryText.toLowerCase();
-      let fallbackText = `I am here to assist you with your FasReach account! Whether you need help sending single/bulk SMS, uploading Excel files, registering Sender IDs, or topping up your wallet, let me know what you'd like to do.`;
+      // Natural human fallback for offline/guest network states
+      const lower = queryText.toLowerCase();
+      let fallbackText = `I hear you! How can I best assist you with your FasReach dispatches, Sender IDs, or wallet top-up today?`;
       
-      if (text.startsWith('am ') || text.includes('my name is')) {
+      if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is')) {
         const name = queryText.replace(/^(am|i am|my name is)\s+/i, '').trim();
-        fallbackText = `Nice to meet you, ${name}! 👋 How can I help you today with your FasReach dispatches or account?`;
-      } else if (text.includes('what is done here')) {
+        const capName = name ? name.charAt(0).toUpperCase() + name.slice(1) : 'there';
+        fallbackText = `Nice to meet you, ${capName}! 👋 How can I help you today?`;
+      } else if (lower.includes('what is done here') || lower.includes('what do you do')) {
         fallbackText = `Here on FasReach, you can broadcast single & bulk SMS, upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches, and track real-time delivery reports. What would you like to work on?`;
-      } else if (text.includes('how are u')) {
+      } else if (lower.includes('how are u') || lower.includes('how are you')) {
         fallbackText = `I'm doing well, thank you for asking! How can I help you today?`;
       }
 
