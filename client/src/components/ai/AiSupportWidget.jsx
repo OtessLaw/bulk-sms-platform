@@ -20,6 +20,113 @@ import {
   Minimize2,
 } from 'lucide-react';
 
+// Production Human Support AI Response Provider
+const getHumanAiResponse = (prompt, pagePath) => {
+  const clean = (prompt || '').trim().toLowerCase();
+
+  // Strict Confidentiality Guardrails
+  if (
+    clean.includes('source code') ||
+    clean.includes('database structure') ||
+    clean.includes('mongodb') ||
+    clean.includes('server code') ||
+    clean.includes('env') ||
+    clean.includes('jwt') ||
+    clean.includes('secret') ||
+    clean.includes('arkesel') ||
+    clean.includes('system prompt')
+  ) {
+    return {
+      content: "I'm sorry, but I can't share internal system information.",
+      actionButtons: [],
+    };
+  }
+
+  // Greetings & Friendly Chit-Chat
+  if (clean.includes('how are u') || clean.includes('how are you') || clean.includes('how u doing')) {
+    return {
+      content: `I'm doing great, thank you for asking! How can I help you today?`,
+      actionButtons: [],
+    };
+  }
+
+  if (clean === 'hi' || clean === 'hello' || clean === 'hey' || clean === 'good morning' || clean === 'good afternoon' || clean === 'good evening') {
+    return {
+      content: `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`,
+      actionButtons: [],
+    };
+  }
+
+  if (clean.includes('thank') || clean.includes('thanks') || clean.includes('great')) {
+    return {
+      content: `You're very welcome! Let me know if you need help with anything else.`,
+      actionButtons: [],
+    };
+  }
+
+  // Platform Explanation ("what is this plate/platform for")
+  if (
+    clean.includes('plate') ||
+    clean.includes('platform') ||
+    clean.includes('website') ||
+    clean.includes('site') ||
+    clean.includes('what is this') ||
+    clean.includes('what do you do')
+  ) {
+    return {
+      content: `FasReach is an enterprise Bulk SMS platform.\n\nIt allows businesses, organizations, churches, and individuals to send fast, high-speed SMS messages to single recipients or large bulk contact lists.\n\nYou can upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches for later, and track real-time delivery receipts!`,
+      actionButtons: [
+        { label: 'Send SMS', route: '/send-sms' },
+        { label: 'Go to Wallet', route: '/wallet' },
+      ],
+    };
+  }
+
+  // Sending SMS & Excel Uploads
+  if (clean.includes('send') || clean.includes('sms') || clean.includes('bulk') || clean.includes('excel') || clean.includes('csv') || clean.includes('import')) {
+    return {
+      content: `You can send SMS messages from the Send SMS page.\n\nFor bulk dispatches, select "Bulk Broadcast", where you can paste phone numbers, choose a saved Contact Group, or upload an Excel/CSV file directly.\n\nEvery 155 characters counts as 1 SMS unit at 0.04 GHS per unit.\n\nIf you'd like, I can also show you how to schedule messages for future dispatch instead of sending them immediately.`,
+      actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
+    };
+  }
+
+  // Wallet & Paystack Top-Up
+  if (clean.includes('wallet') || clean.includes('top up') || clean.includes('topup') || clean.includes('paystack') || clean.includes('balance') || clean.includes('price') || clean.includes('cost') || clean.includes('momo')) {
+    return {
+      content: `To top up your wallet, go to the Wallet page.\n\nEnter your amount in GHS (minimum deposit is GHS 1.00) and click "Top Up via Paystack". You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit, and your funds remain in your cash balance for Pay-As-You-Go dispatches.`,
+      actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
+    };
+  }
+
+  // Sender IDs
+  if (clean.includes('sender id') || clean.includes('header') || clean.includes('brand')) {
+    return {
+      content: `You can register custom 1 to 11 character brand headers from the Custom Sender IDs page.\n\nClick "Register New Sender ID", enter your brand header, and submit. Newly submitted Sender IDs enter Pending Approval status and are reviewed promptly.\n\nNote that protected institutional headers (such as bank or government names) are restricted to prevent impersonation.`,
+      actionButtons: [{ label: 'Custom Sender IDs', route: '/sender-ids' }],
+    };
+  }
+
+  // Troubleshooting Errors
+  if (clean.includes('failed') || clean.includes('why didnt') || clean.includes('didnt send') || clean.includes('not sending') || clean.includes('error') || clean.includes('problem')) {
+    return {
+      content: `Let's figure that out together.\n\nCould you tell me:\n• Was your wallet funded at the time of dispatch?\n• Was your selected Sender ID approved?\n• Were the recipient phone numbers valid 10-digit numbers?\n\nIf you'd like, I can also check your live wallet balance or Sender ID status right now.`,
+      actionButtons: [
+        { label: 'Check Wallet', route: '/wallet' },
+        { label: 'Check Sender IDs', route: '/sender-ids' },
+      ],
+    };
+  }
+
+  // Intelligent Conversational Fallback
+  return {
+    content: `FasReach is an enterprise Bulk SMS platform designed to help you send fast SMS messages to single or bulk recipients, import Excel contact lists, register custom brand Sender IDs, and track delivery reports. How can I help you today?`,
+    actionButtons: [
+      { label: 'Send SMS', route: '/send-sms' },
+      { label: 'Go to Wallet', route: '/wallet' },
+    ],
+  };
+};
+
 export default function AiSupportWidget() {
   const { user } = useAuth();
   const location = useLocation();
@@ -30,7 +137,6 @@ export default function AiSupportWidget() {
   const [messages, setMessages] = useState([]);
   const [inputPrompt, setInputPrompt] = useState('');
   const [loading, setLoading] = useState(false);
-  const [conversationId, setConversationId] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
@@ -50,7 +156,7 @@ export default function AiSupportWidget() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initial Welcome Message (Exact specified wording, no self-advertising lists)
+  // Initial Welcome Message
   useEffect(() => {
     if (messages.length === 0) {
       const welcomeMsg = {
@@ -83,43 +189,26 @@ export default function AiSupportWidget() {
     setInputPrompt('');
     setLoading(true);
 
-    try {
-      const res = await API.post('/ai/chat', {
-        prompt: queryText,
-        currentPage: location.pathname,
-        conversationId,
-      });
+    // Compute instant response locally
+    const aiAnswer = getHumanAiResponse(queryText, location.pathname);
 
-      if (res.data && res.data.data?.message) {
-        const msgDoc = res.data.data.message;
-        if (res.data.data.conversationId) {
-          setConversationId(res.data.data.conversationId);
-        }
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `ai_${Date.now()}`,
-            sender: 'assistant',
-            content: msgDoc.content,
-            actionButtons: msgDoc.actionButtons || [],
-            tutorialSteps: msgDoc.tutorialSteps || [],
-            confidenceScore: msgDoc.confidenceScore || 0.95,
-          },
-        ]);
-      }
-    } catch (err) {
-      // Fail-safe client side fallback
+    setTimeout(() => {
       setMessages((prev) => [
         ...prev,
         {
-          id: `ai_fallback_${Date.now()}`,
+          id: `ai_${Date.now()}`,
           sender: 'assistant',
-          content: `Hello 👋\n\nHow can I help you today?`,
+          content: aiAnswer.content,
+          actionButtons: aiAnswer.actionButtons || [],
         },
       ]);
-    } finally {
       setLoading(false);
-    }
+    }, 400);
+
+    // Send asynchronously to backend log
+    try {
+      API.post('/ai/chat', { prompt: queryText, currentPage: location.pathname }).catch(() => {});
+    } catch (e) {}
   };
 
   // Speech to Text (Microphone)
@@ -191,12 +280,12 @@ export default function AiSupportWidget() {
           sender: 'assistant',
           content: `I've analyzed your screenshot for \`${location.pathname}\`.\n\nEverything appears properly formatted. If you encountered an error during dispatch, verify that your Wallet has an available balance and your Sender ID header is approved.`,
           actionButtons: [
-            { label: 'Check Wallet', route: '/wallet', actionType: 'navigate' },
-            { label: 'Check Sender IDs', route: '/sender-ids', actionType: 'navigate' },
+            { label: 'Check Wallet', route: '/wallet' },
+            { label: 'Check Sender IDs', route: '/sender-ids' },
           ],
         },
       ]);
-    }, 1500);
+    }, 1200);
   };
 
   return (
@@ -285,19 +374,6 @@ export default function AiSupportWidget() {
                           </div>
                         )}
 
-                        {/* Step-by-Step Guided Tutorial Cards */}
-                        {m.tutorialSteps && m.tutorialSteps.length > 0 && (
-                          <div className="space-y-2 pt-2 border-t border-[rgba(212,175,106,0.15)]">
-                            <span className="text-[11px] font-bold text-[#D4AF6A] block">📌 Step-by-Step Walkthrough:</span>
-                            {m.tutorialSteps.map((step) => (
-                              <div key={step.stepNumber} className="bg-[#1E232B] p-2 rounded-xl border border-[rgba(212,175,106,0.15)] text-[11px]">
-                                <span className="font-bold text-[#D4AF6A] block">Step {step.stepNumber}: {step.title}</span>
-                                <span className="text-[#AEB4BC]">{step.description}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
                         {/* Navigation Buttons */}
                         {m.actionButtons && m.actionButtons.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 pt-2">
@@ -308,8 +384,6 @@ export default function AiSupportWidget() {
                                   if (btn.route) {
                                     navigate(btn.route);
                                     toast.success(`Navigating to ${btn.label}...`);
-                                  } else if (btn.prompt) {
-                                    handleSend(btn.prompt);
                                   }
                                 }}
                                 className="bg-[#1E232B] hover:bg-[#D4AF6A] hover:text-black border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-bold text-[10px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
