@@ -3,8 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Toaster } from 'react-hot-toast';
 
-// Layout & UI
+// Layout & Public Landing
 import DashboardLayout from './components/layout/DashboardLayout';
+import LandingPage from './pages/LandingPage';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -95,6 +96,9 @@ export default function App() {
           }}
         />
         <Routes>
+          {/* Public Landing Page */}
+          <Route path="/" element={<LandingPage />} />
+
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -256,7 +260,7 @@ export default function App() {
           />
 
           {/* Catch-all Fallback Route */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
     </Router>
