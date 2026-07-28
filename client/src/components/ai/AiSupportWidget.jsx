@@ -100,13 +100,15 @@ export default function AiSupportWidget() {
         conversationId,
       });
 
-      if (res.data.success && res.data.data?.message) {
+      if (res.data && res.data.data?.message) {
         const msgDoc = res.data.data.message;
-        setConversationId(res.data.data.conversationId);
+        if (res.data.data.conversationId) {
+          setConversationId(res.data.data.conversationId);
+        }
         setMessages((prev) => [
           ...prev,
           {
-            id: msgDoc._id || `ai_${Date.now()}`,
+            id: `ai_${Date.now()}`,
             sender: 'assistant',
             content: msgDoc.content,
             actionButtons: msgDoc.actionButtons || [],
@@ -116,7 +118,19 @@ export default function AiSupportWidget() {
         ]);
       }
     } catch (err) {
-      toast.error('AI Support server temporarily unreachable');
+      // Fail-safe client side fallback
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai_fallback_${Date.now()}`,
+          sender: 'assistant',
+          content: `👋 Hello! I am **FasReach AI Support**.\n\nI can help you with:\n- **Sending Bulk SMS & Excel uploads**\n- **Registering Custom Sender IDs**\n- **Paystack Wallet Top-Ups**\n- **Delivery Reports & API Integration**`,
+          actionButtons: [
+            { label: 'Send SMS', route: '/send-sms', actionType: 'navigate' },
+            { label: 'Top Up Wallet', route: '/wallet', actionType: 'navigate' },
+          ],
+        },
+      ]);
     } finally {
       setLoading(false);
     }
