@@ -199,18 +199,21 @@ export default function SendSMS() {
 
   const handleGenerateAi = async () => {
     if (!aiPrompt) {
-      toast.error('Please enter a brief topic or prompt for AI');
+      toast.error('Please enter a topic or keyword for AI');
       return;
     }
+
     setGeneratingAi(true);
     try {
       const res = await API.post('/sms/ai-templates', { category: 'Marketing', keywords: [aiPrompt] });
-      if (res.data.success && res.data.data?.length > 0) {
-        setFormData({ ...formData, content: res.data.data[0].content });
-        toast.success('AI Template generated!');
+      if (res.data.success && res.data.data && res.data.data.length > 0) {
+        const item = res.data.data[0];
+        const generatedText = typeof item === 'string' ? item : item.content;
+        setFormData((prev) => ({ ...prev, content: generatedText }));
+        toast.success('AI Template generated & inserted!');
       }
     } catch (err) {
-      toast.error('AI Generation failed');
+      toast.error(err.response?.data?.message || 'AI Generation failed');
     } finally {
       setGeneratingAi(false);
     }
@@ -366,7 +369,7 @@ export default function SendSMS() {
                   type="button"
                   onClick={handleGenerateAi}
                   disabled={generatingAi}
-                  className="bg-[#D4AF6A] text-black font-bold text-[11px] px-3 py-1.5 rounded-xl shrink-0"
+                  className="bg-[#D4AF6A] text-black font-bold text-[11px] px-3.5 py-1.5 rounded-xl shrink-0 hover:bg-[#E7D3A4] transition-all disabled:opacity-50"
                 >
                   {generatingAi ? 'Generating...' : 'Generate'}
                 </button>
