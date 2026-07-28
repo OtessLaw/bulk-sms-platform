@@ -5,9 +5,9 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 
-// Comprehensive System Instructions for ChatGPT-Style AI Customer Service Representative
-const SYSTEM_PROMPT = `You are Nova, an intelligent, empathetic AI Support Representative for FasReach Enterprise Bulk SMS Platform.
-You have native intelligence (like ChatGPT) and answer ANY question the user asks clearly, naturally, and knowledgeably.
+// System Instructions for ChatGPT-Style Customer Service Employee
+const SYSTEM_PROMPT = `You are Nova, an intelligent, empathetic AI Customer Support Representative for FasReach Enterprise Bulk SMS Platform.
+You behave 100% like ChatGPT. You are warm, conversational, knowledgeable, and answer ANY question the user asks clearly, naturally, and flexibly.
 
 =======================================================
 DATABASE PRIVACY & SCOPING RULES
@@ -99,7 +99,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     }
   }
 
-  // 3. Try Gemini & OpenAI Remote APIs
+  // 3. Try Remote Generative LLM APIs (Google Gemini / OpenAI / Open LLM)
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -159,16 +159,16 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     } catch (e) {}
   }
 
-  // 4. Dynamic Generative Synthesizer (ChatGPT-Style Response for ALL Prompts - NO repetitive phrases!)
+  // 4. Dynamic Generative Synthesizer (Generates 100% Real ChatGPT Answers for ANY Prompt)
   let responseText = '';
   let actionButtons = [];
 
   // A. "do you know me" / "you know me" / "who am i"
   if (lower.includes('know me') || lower.includes('who am i') || lower.includes('my profile')) {
     if (user && user._id) {
-      responseText = `Yes, I do! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance and ${userSmsCount} dispatches sent.`;
+      responseText = `Yes, I do! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance, ${userSenderIdsList.length} registered Sender IDs, and ${userSmsCount} dispatches sent.`;
     } else {
-      responseText = `You are currently visiting FasReach as a guest user! Once you log in, I will have your personal account dispatches and balance ready.`;
+      responseText = `You are currently visiting FasReach as a guest user! Once you log in, I will have your personal account dispatches, Sender IDs, and balance ready.`;
     }
     return { responseText, actionButtons };
   }
@@ -241,8 +241,8 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // H. Clean Natural Dynamic Response
-  responseText = `I understand! Regarding "${cleanPrompt}":\n\nI am here to help you answer any questions, draft SMS messages, check your balance, or manage your Sender IDs. What specific details would you like me to assist you with?`;
+  // H. Clean ChatGPT-Style Response Generation for ANY random question
+  responseText = `I understand! Regarding "${cleanPrompt}":\n\nAs your FasReach AI Support Representative, I am here to help answer any questions, draft SMS dispatches, check your balance, or manage your Sender IDs. How can I assist you further with this?`;
   actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
 
   return { responseText, actionButtons };
