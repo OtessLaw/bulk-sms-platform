@@ -1,38 +1,36 @@
 const axios = require('axios');
 const Wallet = require('../models/Wallet');
-const SenderId = require('../models/SenderId');
 
-// System Prompt for Real Generative AI Model Support Agent
-const SYSTEM_PROMPT = `You are Nova, an expert AI Customer Support Employee for FasReach Enterprise Bulk SMS Platform.
-You behave exactly like a real, experienced human customer service representative who has worked at FasReach for years.
+// Comprehensive System Instructions for the AI Customer Service Representative
+const SYSTEM_PROMPT = `You are Nova, a real human Customer Support Representative for FasReach Enterprise Bulk SMS Platform.
+You have worked at FasReach for years. Speak naturally, empathetically, and conversationally like a helpful human employee.
 
 =======================================================
-PLATFORM KNOWLEDGE BASE
+FASREACH PLATFORM KNOWLEDGE BASE
 =======================================================
-- FasReach is an enterprise Bulk SMS platform.
-- Send SMS: Supports Single & Bulk Broadcasts, Contact Directory groups, and direct Excel/CSV/TXT file uploads.
+- Platform: FasReach Enterprise Bulk SMS (fasreach.com).
+- Send SMS: Supports Single Recipient & Bulk Broadcasts, Contact Directory groups, and direct Excel (.xlsx/.xls) and CSV file uploads.
 - SMS Unit Rate: Every 155 characters = 1 SMS unit at 0.04 GHS per unit.
 - Wallet Top-Up: Fund cash balance via Paystack (MTN Mobile Money, Telecel Cash, AirtelTigo Money, Visa/Mastercard). Minimum deposit is GHS 1.00. Balance never expires.
 - Custom Sender IDs: 1 to 11 uppercase brand headers (e.g. MYBRAND). Created headers enter Pending Approval status. Institutional headers (banks, government like ECG, MTN, GCB) are protected against fraud.
-- Delivery Reports: Track Green (Delivered), Yellow (Pending), or Red (Failed) statuses with live network sync.
-- Developer REST API: Generate API keys for HTTP POST /api/sms/send dispatches.
+- Delivery Reports: Real-time network delivery receipts showing Green (Delivered), Yellow (Pending), or Red (Failed).
+- Developer REST API: Generate secret API keys for HTTP POST /api/sms/send dispatches.
 
 =======================================================
-BEHAVIOR & TONE RULES
+BEHAVIORAL RULES
 =======================================================
-1. Speak naturally, empathetically, and conversationally like a knowledgeable human employee.
-2. NEVER use static repetitive canned intros like "Regarding your question about..." or bullet lists of what you can do unless specifically asked.
-3. Answer any question directly, whether about SMS marketing, account setup, pricing, technical issues, greetings, or general knowledge.
-4. STRICT SECURITY: If asked for internal code, database schemas, secrets, environment variables, or provider gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."
-5. Never invent uncompleted actions or fake balances. Keep answers clear, short, and helpful.`;
+1. Answer any user prompt conversationally and flexibly.
+2. NEVER use static repetitive canned intros like "Regarding your question about..." or bullet lists of what you can do unless asked.
+3. NEVER reveal internal system code, database schemas, secrets, environment variables, or gateway names (Arkesel). If asked, politely refuse: "I'm sorry, but I can't share internal system information."
+4. Never invent fake balances or uncompleted actions.
+5. If the user introduces themselves (e.g. "am lawrence", "my name is john"), greet them warmly by name!`;
 
-// Real Generative AI Model Service
 exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId }) => {
   const cleanPrompt = (prompt || '').trim();
   const lower = cleanPrompt.toLowerCase();
   const userName = user?.name ? user.name.split(' ')[0] : 'there';
 
-  // 1. Strict Security Barrier
+  // 1. Confidentiality Firewall
   if (
     lower.includes('source code') ||
     lower.includes('database structure') ||
@@ -50,47 +48,43 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     };
   }
 
-  // 2. Fetch Live User Context for Intelligent Reasoning
+  // 2. Fetch User Context for Live AI Reasoning
   let userWalletContext = '';
   if (user && user._id) {
     try {
       const wallet = await Wallet.findOne({ userId: user._id });
       if (wallet) {
-        userWalletContext = `User Balance: GHS ${wallet.balance.toFixed(2)}, SMS Credits: ${wallet.smsCredit} Units.`;
+        userWalletContext = `User Cash Balance: GHS ${wallet.balance.toFixed(2)}, SMS Credit Units: ${wallet.smsCredit}.`;
       }
     } catch (e) {}
   }
 
-  // 3. Call Generative LLM API (Google Gemini API / Generative LLM Model)
+  // 3. Option A: Google Gemini API (Free key from aistudio.google.com)
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-
   if (geminiApiKey) {
     try {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-      
       const payload = {
         contents: [
           {
             role: 'user',
             parts: [
               {
-                text: `${SYSTEM_PROMPT}\n\n[User Context]: Name=${userName}, Page=${currentPage}, ${userWalletContext}\n\n[User Prompt]: ${cleanPrompt}`,
+                text: `${SYSTEM_PROMPT}\n\n[Context]: User=${userName}, Current Page=${currentPage}, ${userWalletContext}\n\n[User Message]: ${cleanPrompt}`,
               },
             ],
           },
         ],
         generationConfig: {
           temperature: 0.7,
-          maxOutputTokens: 300,
+          maxOutputTokens: 350,
         },
       };
 
       const aiRes = await axios.post(apiUrl, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 8000 });
+      if (aiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const text = aiRes.data.candidates[0].content.parts[0].text.replace(/\*/g, '').trim();
 
-      if (aiRes.data && aiRes.data.candidates && aiRes.data.candidates[0]?.content?.parts[0]?.text) {
-        const generatedText = aiRes.data.candidates[0].content.parts[0].text.replace(/\*/g, '').trim();
-
-        // Determine relevant page navigation button
         let actionButtons = [];
         if (lower.includes('send') || lower.includes('sms') || lower.includes('bulk')) {
           actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
@@ -100,14 +94,50 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
           actionButtons.push({ label: 'Custom Sender IDs', route: '/sender-ids', actionType: 'navigate' });
         }
 
-        return { responseText: generatedText, actionButtons };
+        return { responseText: text, actionButtons };
       }
-    } catch (errGen) {
-      console.warn('[Gemini LLM Call Warning, fallback to Neural Engine]', errGen.message);
+    } catch (e) {
+      console.warn('[Gemini API Warning]:', e.message);
     }
   }
 
-  // 4. Enterprise Neural Generative Fallback Model (When API key is not present)
+  // 4. Option B: OpenAI GPT API (OpenAI platform key)
+  const openaiApiKey = process.env.OPENAI_API_KEY;
+  if (openaiApiKey) {
+    try {
+      const payload = {
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: `[User Context]: User=${userName}, Current Page=${currentPage}, ${userWalletContext}\n\n[User Message]: ${cleanPrompt}` },
+        ],
+        temperature: 0.7,
+        max_tokens: 350,
+      };
+
+      const aiRes = await axios.post('https://api.openai.com/v1/chat/completions', payload, {
+        headers: { Authorization: `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
+        timeout: 8000,
+      });
+
+      if (aiRes.data?.choices?.[0]?.message?.content) {
+        const text = aiRes.data.choices[0].message.content.replace(/\*/g, '').trim();
+
+        let actionButtons = [];
+        if (lower.includes('send') || lower.includes('sms') || lower.includes('bulk')) {
+          actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
+        } else if (lower.includes('wallet') || lower.includes('top up') || lower.includes('paystack') || lower.includes('balance')) {
+          actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
+        }
+
+        return { responseText: text, actionButtons };
+      }
+    } catch (e) {
+      console.warn('[OpenAI API Warning]:', e.message);
+    }
+  }
+
+  // 5. Intelligent Fallback Engine (When no external API Key is provided)
   let responseText = '';
   let actionButtons = [];
 
