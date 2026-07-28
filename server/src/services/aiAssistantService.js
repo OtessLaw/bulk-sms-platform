@@ -1,7 +1,7 @@
 const axios = require('axios');
 const Wallet = require('../models/Wallet');
 const SenderId = require('../models/SenderId');
-const SmsLog = require('../models/SmsLog');
+const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 
@@ -30,7 +30,7 @@ FASREACH PLATFORM KNOWLEDGE BASE
 BEHAVIORAL RULES
 =======================================================
 1. Answer ANY question in natural, helpful plain text (like ChatGPT).
-2. NEVER use static repetitive canned intros like "Regarding your question about..." or bullet lists of what you can do unless asked.
+2. Never sound canned or pre-scripted.
 3. STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."
 4. If the user introduces themselves (e.g. "am lawrence"), greet them warmly by name!`;
 
@@ -79,12 +79,12 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
       }
 
       totalUsersCount = await User.countDocuments();
-      totalSystemSmsCount = await SmsLog.countDocuments();
+      totalSystemSmsCount = await Message.countDocuments();
       pendingSenderIdsCount = await SenderId.countDocuments({ status: 'Pending Approval' });
       userWalletObj = await Wallet.findOne({ userId: user._id });
 
       const userSenderIds = await SenderId.find({ userId: user._id }).select('senderId status');
-      userSmsCount = await SmsLog.countDocuments({ userId: user._id });
+      userSmsCount = await Message.countDocuments({ userId: user._id });
       userContactsCount = await Contact.countDocuments({ userId: user._id });
       userSenderIdsList = userSenderIds.map((s) => `${s.senderId} (${s.status})`);
 
@@ -241,7 +241,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // H. Clean Natural Dynamic Response (NO repeated "I hear you!" text!)
+  // H. Clean Natural Dynamic Response
   responseText = `I understand! Regarding "${cleanPrompt}":\n\nI am here to help you answer any questions, draft SMS messages, check your balance, or manage your Sender IDs. What specific details would you like me to assist you with?`;
   actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
 
