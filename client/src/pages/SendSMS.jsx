@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Send, Clock, Sparkles, Smartphone, Users, HelpCircle, Calendar, Upload, Layers, FileSpreadsheet } from 'lucide-react';
+import { Send, Clock, Sparkles, Smartphone, Users, Calendar, Layers, FileSpreadsheet } from 'lucide-react';
 
 export default function SendSMS() {
-  const { wallet, refreshWallet } = useAuth();
+  const { refreshWallet } = useAuth();
   const [senderIds, setSenderIds] = useState([]);
   const [contactGroups, setContactGroups] = useState([]);
   const [contacts, setContacts] = useState([]);
