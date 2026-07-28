@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Plus, ShieldCheck, ShieldAlert, Lock } from 'lucide-react';
+import { CheckCircle2, Plus, ShieldCheck, ShieldAlert, Lock, AlertTriangle } from 'lucide-react';
+
+const PROTECTED_BRANDS = [
+  'MTN', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'GLO',
+  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESS',
+  'UBA', 'GTBANK', 'BOA', 'ADB', 'NIB', 'MOMO', 'GHIPSS', 'PAYSTACK', 'HUBTEL', 'ARKESEL',
+  'GRA', 'SSNIT', 'ECG', 'GWCL', 'NCA', 'NIA', 'POLICE', 'MILITARY', 'GOVGHANA', 'DVLA', 'COCOBOD',
+];
 
 export default function SenderIDs() {
   const [senderIds, setSenderIds] = useState([]);
@@ -23,10 +30,22 @@ export default function SenderIDs() {
     }
   };
 
+  const isProtectedInput = PROTECTED_BRANDS.some((brand) => {
+    const clean = newSender.senderId.trim().toUpperCase();
+    return clean && (clean === brand || clean.includes(brand) || (brand.length >= 3 && clean.startsWith(brand)));
+  });
+
   const handleRequest = async (e) => {
     e.preventDefault();
-    if (newSender.senderId.length > 11) {
+    const cleanHeader = newSender.senderId.trim().toUpperCase();
+
+    if (cleanHeader.length > 11) {
       toast.error('Sender ID must be maximum 11 characters');
+      return;
+    }
+
+    if (isProtectedInput) {
+      toast.error(`Security Warning: Sender ID '${cleanHeader}' is reserved for a reputable institution to prevent fraud.`);
       return;
     }
 
@@ -68,7 +87,7 @@ export default function SenderIDs() {
         <div className="text-xs text-[#AEB4BC] space-y-1">
           <span className="font-bold text-white block">Anti-Phishing & Anti-Fraud Security Protection</span>
           <p>
-            To prevent fraud and impersonation, Sender IDs of reputable institutions (such as banks, telecoms, government agencies, utilities, and financial services) are reserved and restricted. Official institutions can contact support for authorization verification.
+            To prevent fraud and impersonation, Sender IDs of reputable institutions (banks, telecoms, government agencies, utilities) are restricted against unauthorized registration.
           </p>
         </div>
       </div>
@@ -126,8 +145,8 @@ export default function SenderIDs() {
             </h3>
 
             <div className="bg-[#1E232B] border border-amber-500/30 rounded-2xl p-3 text-[11px] text-[#AEB4BC]">
-              <span className="text-amber-400 font-bold block mb-0.5">🔒 Fraud Prevention Warning</span>
-              Institutional headers (e.g. ECG, MTN, GCB, GRA) are protected against unauthorized registration.
+              <span className="text-amber-400 font-bold block mb-0.5">🔒 Anti-Fraud Security Protection</span>
+              Institutional headers (e.g. ECG, MTN, GCB, GRA, SSNIT) are protected against unauthorized registration.
             </div>
 
             <form onSubmit={handleRequest} className="space-y-4 text-xs">
@@ -142,7 +161,15 @@ export default function SenderIDs() {
                   placeholder="e.g. MYBRAND"
                   className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-white uppercase font-mono"
                 />
+
+                {isProtectedInput && (
+                  <div className="mt-2 bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded-xl text-[11px] font-bold flex items-center space-x-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0" />
+                    <span>This header is reserved for a reputable institution and cannot be registered to prevent fraud.</span>
+                  </div>
+                )}
               </div>
+
               <div>
                 <label className="block font-semibold text-[#AEB4BC] mb-1">Business Purpose</label>
                 <input
@@ -154,11 +181,16 @@ export default function SenderIDs() {
                   className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-white"
                 />
               </div>
+
               <div className="flex justify-end space-x-2 pt-2">
                 <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 text-[#AEB4BC]">
                   Cancel
                 </button>
-                <button type="submit" className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold px-4 py-2 rounded-xl">
+                <button
+                  type="submit"
+                  disabled={isProtectedInput}
+                  className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold px-4 py-2 rounded-xl disabled:opacity-50"
+                >
                   Register & Activate
                 </button>
               </div>

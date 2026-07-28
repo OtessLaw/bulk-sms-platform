@@ -32,7 +32,7 @@ exports.getSenderIds = async (req, res, next) => {
   }
 };
 
-// @desc    Submit & Register Sender ID with Fraud Prevention Security Check
+// @desc    Submit & Register Sender ID with Anti-Fraud Protection
 // @route   POST /api/sender-ids/request
 exports.requestSenderId = async (req, res, next) => {
   try {
@@ -43,20 +43,16 @@ exports.requestSenderId = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Sender ID header must be 1 to 11 characters long' });
     }
 
-    const isSuperAdmin = req.user.role === 'Super Admin';
+    // Anti-Fraud Check: Check if header matches or contains any protected institution/bank brand
+    const isProtected = PROTECTED_INSTITUTIONS.some((brand) => {
+      return cleanHeader === brand || cleanHeader.includes(brand) || (brand.length >= 3 && cleanHeader.startsWith(brand));
+    });
 
-    // Anti-Fraud Check: Restrict Reputable Institution headers for non-admin accounts
-    if (!isSuperAdmin) {
-      const isProtected = PROTECTED_INSTITUTIONS.some(
-        (brand) => cleanHeader === brand || cleanHeader.includes(brand) || brand.includes(cleanHeader)
-      );
-
-      if (isProtected) {
-        return res.status(400).json({
-          success: false,
-          message: `Security Restriction: Sender ID '${cleanHeader}' is reserved for a reputable institution/bank to prevent fraud & impersonation. Please submit official authorization documents to support for verification.`,
-        });
-      }
+    if (isProtected) {
+      return res.status(400).json({
+        success: false,
+        message: `Security Restriction: Sender ID '${cleanHeader}' is reserved for a reputable institution/bank to prevent fraud & impersonation. Submissions for institutional headers are blocked.`,
+      });
     }
 
     // Check if user already registered this Sender ID
