@@ -15,6 +15,7 @@ import {
   Sparkles,
   Layers,
   Save,
+  User,
 } from 'lucide-react';
 
 export default function AdminAiManagement() {
@@ -28,6 +29,7 @@ export default function AdminAiManagement() {
   });
 
   const [docs, setDocs] = useState([]);
+  const [userLogs, setUserLogs] = useState([]);
   const [showDocModal, setShowDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({
     title: '',
@@ -35,12 +37,6 @@ export default function AdminAiManagement() {
     targetPage: '',
     keywords: '',
     content: '',
-  });
-
-  const [aiSettings, setAiSettings] = useState({
-    aiName: 'Pulse AI',
-    personality: 'Professional & Friendly',
-    welcomeMessage: "Hello 👋 Welcome to FasReach. I'm your AI Assistant. How can I help you today?",
   });
 
   useEffect(() => {
@@ -57,6 +53,11 @@ export default function AdminAiManagement() {
       const docsRes = await API.get('/ai/admin/knowledge');
       if (docsRes.data.success) {
         setDocs(docsRes.data.data);
+      }
+
+      const logsRes = await API.get('/ai/admin/user-logs');
+      if (logsRes.data.success) {
+        setUserLogs(logsRes.data.data);
       }
     } catch (err) {
       console.error('Failed to load AI analytics', err);
@@ -98,7 +99,7 @@ export default function AdminAiManagement() {
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <BrainCircuit className="w-6 h-6 text-[#D4AF6A] shrink-0" /> AI Agent Management & RAG Engine
           </h1>
-          <p className="text-xs text-[#AEB4BC]">Manage Knowledge Base RAG documents, AI personality, and support analytics</p>
+          <p className="text-xs text-[#AEB4BC]">Manage Knowledge Base RAG documents, review user questions, and monitor AI support performance</p>
         </div>
 
         <button
@@ -116,7 +117,7 @@ export default function AdminAiManagement() {
           <span className="text-[11px] text-[#AEB4BC] uppercase font-semibold flex items-center gap-1">
             <MessageSquare className="w-3.5 h-3.5 text-[#D4AF6A]" /> Total Questions
           </span>
-          <span className="text-xl font-extrabold text-white">{analytics.totalQuestions || 0}</span>
+          <span className="text-xl font-extrabold text-white">{analytics.totalQuestions || userLogs.length || 0}</span>
         </div>
 
         <div className="bg-[#2A3038]/70 border border-emerald-500/25 rounded-2xl p-4 space-y-1">
@@ -138,6 +139,50 @@ export default function AdminAiManagement() {
             <TrendingUp className="w-3.5 h-3.5 text-purple-400" /> Escalation Rate
           </span>
           <span className="text-xl font-extrabold text-purple-400">{analytics.escalationRate}</span>
+        </div>
+      </div>
+
+      {/* Admin User AI Questions & Chat Logs Monitor */}
+      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
+        <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <MessageSquare className="w-4 h-4 text-[#D4AF6A]" /> User AI Questions & Support Logs ({userLogs.length})
+          </h3>
+          <span className="text-xs text-[#D4AF6A] font-mono">Live Admin Monitor</span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-[rgba(212,175,106,0.15)] font-semibold text-[#AEB4BC] uppercase tracking-wider">
+                <th className="pb-3 px-3">User</th>
+                <th className="pb-3 px-3">Question Asked</th>
+                <th className="pb-3 px-3">Page Context</th>
+                <th className="pb-3 px-3 text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[rgba(212,175,106,0.1)] text-white">
+              {userLogs.length > 0 ? (
+                userLogs.map((log) => (
+                  <tr key={log._id} className="hover:bg-[#1E232B]/40">
+                    <td className="py-3 px-3 font-bold text-[#D4AF6A] flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5 text-[#AEB4BC]" />
+                      <span>{log.userId?.name || 'Guest User'}</span>
+                    </td>
+                    <td className="py-3 px-3 text-white max-w-md">{log.content}</td>
+                    <td className="py-3 px-3 font-mono text-[#AEB4BC]">{log.pageContext || '/dashboard'}</td>
+                    <td className="py-3 px-3 text-right text-[#AEB4BC]">{new Date(log.createdAt).toLocaleString()}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="4" className="py-4 text-center text-[#AEB4BC]">
+                    No user questions logged yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 

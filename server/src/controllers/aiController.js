@@ -82,7 +82,7 @@ exports.processChat = async (req, res, next) => {
         conversationId: `CONV_${Date.now()}`,
         message: {
           content: text
-            ? `I hear you! Regarding "${text}": I am here to help you navigate FasReach, send SMS broadcasts, register brand headers, or manage your wallet. How can I assist you further?`
+            ? `I hear you! How can I best assist you with your question or your FasReach account today?`
             : `How can I help you today with your FasReach dispatches or account?`,
           actionButtons: [{ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' }],
         },
@@ -150,7 +150,7 @@ exports.getAdminAnalytics = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        totalQuestions: totalConversations * 4 + 18,
+        totalQuestions: totalConversations,
         satisfactionRate: '98.4%',
         avgResponseTime: '1.1s',
         escalationRate: '1.6%',
@@ -163,6 +163,21 @@ exports.getAdminAnalytics = async (req, res, next) => {
         ],
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get All User AI Questions & Logs for Admin Visibility
+// @route   GET /api/admin/ai/user-logs
+exports.getAllUserChatLogs = async (req, res, next) => {
+  try {
+    const recentMessages = await AiMessage.find({ sender: 'user' })
+      .populate('userId', 'name email mobileNumber')
+      .sort({ createdAt: -1 })
+      .limit(50);
+
+    res.status(200).json({ success: true, data: recentMessages });
   } catch (error) {
     next(error);
   }

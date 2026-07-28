@@ -6,6 +6,7 @@ const {
   getConversations,
   submitFeedback,
   getAdminAnalytics,
+  getAllUserChatLogs,
   getKnowledgeDocs,
   createKnowledgeDoc,
   deleteKnowledgeDoc,
@@ -27,8 +28,9 @@ router.post('/analyze-image', optionalProtect, analyzeImage);
 router.get('/conversations', protect, getConversations);
 router.post('/feedback', protect, submitFeedback);
 
-// Super Admin AI Knowledge & Analytics Management Routes
+// Super Admin AI Knowledge, User Chat Logs & Analytics Management Routes
 router.get('/admin/analytics', protect, authorize('Super Admin', 'Admin'), getAdminAnalytics);
+router.get('/admin/user-logs', protect, authorize('Super Admin', 'Admin'), getAllUserChatLogs);
 router.get('/admin/knowledge', protect, authorize('Super Admin', 'Admin'), getKnowledgeDocs);
 router.post('/admin/knowledge', protect, authorize('Super Admin', 'Admin'), createKnowledgeDoc);
 router.delete('/admin/knowledge/:id', protect, authorize('Super Admin', 'Admin'), deleteKnowledgeDoc);
