@@ -20,189 +20,6 @@ import {
   Minimize2,
 } from 'lucide-react';
 
-// Generative Human Intelligence Engine (No canned "Regarding your question about" strings!)
-const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
-  const text = (prompt || '').trim();
-  const lower = text.toLowerCase();
-
-  try {
-    // 🛡️ Security & Confidentiality Firewall
-    if (
-      lower.includes('source code') ||
-      lower.includes('database structure') ||
-      lower.includes('mongodb') ||
-      lower.includes('server code') ||
-      lower.includes('env') ||
-      lower.includes('jwt') ||
-      lower.includes('secret') ||
-      lower.includes('arkesel') ||
-      lower.includes('system prompt')
-    ) {
-      return {
-        content: "I'm sorry, but I can't share internal system information.",
-        actionButtons: [],
-      };
-    }
-
-    // 1. Name Introductions ("am lawrence", "i am john", "my name is lawrence", "call me alex")
-    if (
-      lower.startsWith('am ') ||
-      lower.startsWith('i am ') ||
-      lower.includes('my name is') ||
-      lower.includes('call me')
-    ) {
-      const namePart = text.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
-      const capitalizedName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : 'there';
-
-      return {
-        content: `Nice to meet you, ${capitalizedName}! 👋\n\nHow can I help you today with your FasReach account or SMS dispatches?`,
-        actionButtons: [],
-      };
-    }
-
-    // 2. What is done here / Page Questions ("what is done here", "what can i do here", "what is this place")
-    if (
-      lower.includes('what is done here') ||
-      lower.includes('what do you do here') ||
-      lower.includes('what can i do here') ||
-      lower.includes('what is this page') ||
-      lower.includes('what is this place')
-    ) {
-      if (pagePath === '/send-sms') {
-        return {
-          content: `On this Send SMS page, you can dispatch single or bulk SMS messages, upload Excel/CSV contact spreadsheets, select saved Contact Directory groups, and schedule dispatches for future dates!`,
-          actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
-        };
-      }
-      if (pagePath === '/wallet') {
-        return {
-          content: `On this Wallet page, you can top up your cash balance via Paystack (MTN Mobile Money, Telecel Cash, Visa/Mastercard) and view your top-up history.`,
-          actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
-        };
-      }
-      return {
-        content: `Here on FasReach, you can broadcast single & bulk SMS, upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches, and track real-time delivery reports. What would you like to work on?`,
-        actionButtons: [
-          { label: 'Send SMS', route: '/send-sms' },
-          { label: 'Go to Wallet', route: '/wallet' },
-        ],
-      };
-    }
-
-    // 3. Delivery Speed & Performance ("How fast is SMS delivered?", "Delivery speed")
-    if (lower.includes('how fast') || lower.includes('delivery speed') || lower.includes('how long does it take') || lower.includes('delivery time')) {
-      return {
-        content: `SMS delivery on FasReach is usually extremely fast—most text messages arrive on the recipient's phone within 3 to 10 seconds.\n\nHowever, exact delivery speed can depend on mobile network operator conditions, recipient phone power/coverage status, and carrier processing queues during peak hours.`,
-        actionButtons: [],
-      };
-    }
-
-    // 4. Capacity & High Volume ("Can I send 10,000 messages?", "Bulk volume")
-    if (lower.includes('how many sms') || lower.includes('capacity') || lower.includes('bulk volume') || lower.includes('10000') || lower.includes('limit')) {
-      return {
-        content: `You can send thousands of SMS messages in a single broadcast without speed degradation.\n\nOur system connects directly to high-throughput telco gateways (MTN, Telecel, AirtelTigo), so whether you send 10 messages or 50,000 messages, dispatches process in high-speed parallel queues.`,
-        actionButtons: [],
-      };
-    }
-
-    // 5. Emojis & Unicode ("Can I use emojis?")
-    if (lower.includes('emoji') || lower.includes('emojis') || lower.includes('unicode') || lower.includes('special character')) {
-      return {
-        content: `Yes, you can include emojis and special characters in your messages.\n\nPlease note that standard English plain text allows up to 155 characters per SMS unit, whereas messages containing emojis or Unicode characters use 70 characters per unit due to mobile network encoding standards.`,
-        actionButtons: [],
-      };
-    }
-
-    // 6. Unreachable / Off Phones ("What if phone is off?")
-    if (lower.includes('switched off') || lower.includes('phone is off') || lower.includes('unreachable') || lower.includes('invalid number')) {
-      return {
-        content: `If a recipient's phone is switched off or out of network coverage, the mobile network operator will hold the SMS in queue and attempt delivery for up to 24-48 hours once the phone powers back on.\n\nIf the phone remains unreachable or the number is invalid, the delivery report in your account will update to reflect a Failed status.`,
-        actionButtons: [],
-      };
-    }
-
-    // 7. General Concept Explanations ("What is Bulk SMS?", "What is an API?", "What is a Sender ID?")
-    if (lower.includes('what is bulk sms') || lower.includes('explain bulk sms')) {
-      return {
-        content: `Bulk SMS is a communication service that enables you to broadcast a single text message to hundreds or thousands of mobile recipients simultaneously.\n\nIt is widely used by businesses, churches, and organizations for urgent announcements, promotional sales, alerts, and customer notifications because SMS has an estimated 98% open rate!`,
-        actionButtons: [],
-      };
-    }
-
-    if (lower.includes('what is an api') || lower.includes('what is api')) {
-      return {
-        content: `An API (Application Programming Interface) allows your custom website, mobile app, or software to communicate directly with FasReach.\n\nUsing our REST API, your software can automatically trigger SMS messages (such as OTP verification codes, order confirmations, or account alerts) without manual intervention.`,
-        actionButtons: [{ label: 'Developer API', route: '/developer-api' }],
-      };
-    }
-
-    if (lower.includes('what is a sender id') || lower.includes('what is sender id') || lower.includes('what is a header')) {
-      return {
-        content: `A Sender ID is the custom 1 to 11 character header name (like your business brand name) that appears at the top of your recipient's phone screen when they receive your SMS.\n\nUsing a branded Sender ID (such as MYBRAND) builds instant trust compared to sending from an unknown phone number.`,
-        actionButtons: [{ label: 'Custom Sender IDs', route: '/sender-ids' }],
-      };
-    }
-
-    // 8. Action Steps ("How do I send SMS?", "How do I upload contacts?", "How do I top up?")
-    if (lower.includes('how do i send') || lower.includes('how to send') || lower.includes('send sms')) {
-      return {
-        content: `To send a message, head over to the Send SMS page.\n\nYou can choose between Single Recipient mode or Bulk Broadcast. For bulk dispatches, you can paste a list of numbers, select a saved Contact Group, or upload an Excel file directly.\n\nEvery 155 characters counts as 1 SMS unit at 0.04 GHS per unit.`,
-        actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
-      };
-    }
-
-    if (lower.includes('how do i upload') || lower.includes('how to upload') || lower.includes('import contacts') || lower.includes('excel upload')) {
-      return {
-        content: `Uploading contacts is done on the Contacts page.\n\nClick "Import Excel/CSV File" and select your spreadsheet (.xlsx or .csv). Ensure your file has column headers for phone, name, and groupName. You can also organize contacts into custom groups to send to entire lists at once.`,
-        actionButtons: [{ label: 'Contacts Directory', route: '/contacts' }],
-      };
-    }
-
-    if (lower.includes('how do i top up') || lower.includes('how to top up') || lower.includes('wallet top up') || lower.includes('paystack deposit')) {
-      return {
-        content: `To fund your wallet, go to the Wallet page, enter your deposit amount in GHS (minimum is GHS 1.00), and click "Top Up via Paystack". You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit, and your funds remain in your cash balance.`,
-        actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
-      };
-    }
-
-    // 9. Greetings & Casual Dialogue
-    if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
-      return {
-        content: `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`,
-        actionButtons: [],
-      };
-    }
-
-    if (lower.includes('how are u') || lower.includes('how are you') || lower.includes('how u doing')) {
-      return {
-        content: `I'm doing well, thank you for asking! How can I help you today?`,
-        actionButtons: [],
-      };
-    }
-
-    if (lower.includes('thank') || lower.includes('thanks') || lower.includes('great')) {
-      return {
-        content: `You're very welcome! Let me know if you need help with anything else.`,
-        actionButtons: [],
-      };
-    }
-
-    // 10. Natural Conversational Human Fallback (NO "Regarding your question about" string!)
-    return {
-      content: `I am here to assist you with your FasReach account!\n\nWhether you need help broadcasting single or bulk SMS, uploading Excel contact files, registering custom Sender IDs, or topping up your wallet, let me know what you'd like to do and I'll walk you right through it.`,
-      actionButtons: [
-        { label: 'Send SMS', route: '/send-sms' },
-        { label: 'Go to Wallet', route: '/wallet' },
-      ],
-    };
-  } catch (err) {
-    return {
-      content: `How can I assist you today with your FasReach dispatches, Sender IDs, or wallet balance?`,
-      actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
-    };
-  }
-};
-
 export default function AiSupportWidget() {
   const { user } = useAuth();
   const location = useLocation();
@@ -213,6 +30,7 @@ export default function AiSupportWidget() {
   const [messages, setMessages] = useState([]);
   const [inputPrompt, setInputPrompt] = useState('');
   const [loading, setLoading] = useState(false);
+  const [conversationId, setConversationId] = useState(null);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
@@ -266,26 +84,54 @@ export default function AiSupportWidget() {
     setLoading(true);
 
     try {
-      // Process semantic generative AI model response
-      const aiAnswer = processGenerativeAiModel(queryText, location.pathname, user, messages);
-      const cleanContent = (aiAnswer.content || '').replace(/\*/g, '');
+      // Call Real Backend Generative AI Agent Endpoint
+      const res = await API.post('/ai/chat', {
+        prompt: queryText,
+        currentPage: location.pathname,
+        conversationId,
+      });
 
-      setTimeout(() => {
+      if (res.data && res.data.data?.message) {
+        const msgDoc = res.data.data.message;
+        if (res.data.data.conversationId) {
+          setConversationId(res.data.data.conversationId);
+        }
+
+        const cleanContent = (msgDoc.content || '').replace(/\*/g, '');
         setMessages((prev) => [
           ...prev,
           {
             id: `ai_${Date.now()}`,
             sender: 'assistant',
             content: cleanContent,
-            actionButtons: aiAnswer.actionButtons || [],
+            actionButtons: msgDoc.actionButtons || [],
           },
         ]);
-        setLoading(false);
-      }, 350);
+      }
+    } catch (err) {
+      // Fail-safe client side human fallback
+      const text = queryText.toLowerCase();
+      let fallbackText = `I am here to assist you with your FasReach account! Whether you need help sending single/bulk SMS, uploading Excel files, registering Sender IDs, or topping up your wallet, let me know what you'd like to do.`;
+      
+      if (text.startsWith('am ') || text.includes('my name is')) {
+        const name = queryText.replace(/^(am|i am|my name is)\s+/i, '').trim();
+        fallbackText = `Nice to meet you, ${name}! 👋 How can I help you today with your FasReach dispatches or account?`;
+      } else if (text.includes('what is done here')) {
+        fallbackText = `Here on FasReach, you can broadcast single & bulk SMS, upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches, and track real-time delivery reports. What would you like to work on?`;
+      } else if (text.includes('how are u')) {
+        fallbackText = `I'm doing well, thank you for asking! How can I help you today?`;
+      }
 
-      // Send asynchronously to backend log
-      API.post('/ai/chat', { prompt: queryText, currentPage: location.pathname }).catch(() => {});
-    } catch (e) {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `ai_fallback_${Date.now()}`,
+          sender: 'assistant',
+          content: fallbackText,
+          actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
+        },
+      ]);
+    } finally {
       setLoading(false);
     }
   };
@@ -465,7 +311,7 @@ export default function AiSupportWidget() {
                                     toast.success(`Navigating to ${btn.label}...`);
                                   }
                                 }}
-                                className="bg-[#1E232B] hover:bg-[#D4AF6A] hover:text-black border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-bold text-[10px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
+                                className="bg-[#1E232B] hover:bg-[#D4AF6A] hover:text-[#1E232B] border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-bold text-[10px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
                               >
                                 <span>{btn.label}</span>
                                 <ChevronRight className="w-3 h-3" />
@@ -483,7 +329,7 @@ export default function AiSupportWidget() {
                   <div className="flex justify-start">
                     <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.2)] text-white p-3 rounded-2xl flex items-center space-x-2">
                       <div className="w-2 h-2 bg-[#D4AF6A] rounded-full animate-ping" />
-                      <span className="text-xs font-semibold text-[#D4AF6A]">FasReach AI is typing...</span>
+                      <span className="text-xs font-semibold text-[#D4AF6A]">FasReach AI is thinking...</span>
                     </div>
                   </div>
                 )}
