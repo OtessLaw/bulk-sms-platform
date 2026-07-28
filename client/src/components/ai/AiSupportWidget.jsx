@@ -14,11 +14,7 @@ import {
   VolumeX,
   Image as ImageIcon,
   ChevronRight,
-  HelpCircle,
   Compass,
-  ArrowRight,
-  CheckCircle2,
-  ShieldAlert,
   Headphones,
   Maximize2,
   Minimize2,
@@ -54,20 +50,14 @@ export default function AiSupportWidget() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initial Welcome Message
+  // Initial Welcome Message (Exact specified wording, no self-advertising lists)
   useEffect(() => {
     if (messages.length === 0) {
       const welcomeMsg = {
         id: 'welcome_1',
         sender: 'assistant',
-        content: `Hello 👋 Welcome to FasReach Bulk SMS Platform!\n\nI'm your **Smart Support AI**. I can help you:\n✓ Send Single & Bulk SMS\n✓ Register Custom Sender IDs\n✓ Import Excel / CSV Contacts\n✓ Top Up Wallet & Solve Problems\n\nWhat would you like help with today?`,
+        content: `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`,
         pageContext: location.pathname,
-        actionButtons: [
-          { label: 'How to Send SMS', prompt: 'How do I send SMS?' },
-          { label: 'Check Balance', prompt: 'Check my balance' },
-          { label: 'Why did SMS fail?', prompt: 'Why did my SMS fail?' },
-          { label: 'Register Sender ID', prompt: 'How do I register a Sender ID?' },
-        ],
       };
       setMessages([welcomeMsg]);
     }
@@ -124,11 +114,7 @@ export default function AiSupportWidget() {
         {
           id: `ai_fallback_${Date.now()}`,
           sender: 'assistant',
-          content: `👋 Hello! I am **FasReach AI Support**.\n\nI can help you with:\n- **Sending Bulk SMS & Excel uploads**\n- **Registering Custom Sender IDs**\n- **Paystack Wallet Top-Ups**\n- **Delivery Reports & API Integration**`,
-          actionButtons: [
-            { label: 'Send SMS', route: '/send-sms', actionType: 'navigate' },
-            { label: 'Top Up Wallet', route: '/wallet', actionType: 'navigate' },
-          ],
+          content: `Hello 👋\n\nHow can I help you today?`,
         },
       ]);
     } finally {
@@ -203,9 +189,9 @@ export default function AiSupportWidget() {
         {
           id: `img_${Date.now()}`,
           sender: 'assistant',
-          content: `📸 **Screenshot Analysis Complete**:\nI checked your uploaded screenshot for \`${location.pathname}\`.\n\nEverything looks valid! If your SMS did not send, verify that your Wallet has a cash balance of GHS 1.00+ and your Sender ID is Active.`,
+          content: `I've analyzed your screenshot for \`${location.pathname}\`.\n\nEverything appears properly formatted. If you encountered an error during dispatch, verify that your Wallet has an available balance and your Sender ID header is approved.`,
           actionButtons: [
-            { label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' },
+            { label: 'Check Wallet', route: '/wallet', actionType: 'navigate' },
             { label: 'Check Sender IDs', route: '/sender-ids', actionType: 'navigate' },
           ],
         },
@@ -247,7 +233,7 @@ export default function AiSupportWidget() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  FasReach AI Support <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
+                  FasReach Support AI <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
                 </h3>
                 <span className="text-[10px] text-[#AEB4BC] flex items-center gap-1">
                   <Compass className="w-3 h-3 text-[#D4AF6A]" /> Page: {location.pathname}
@@ -312,7 +298,7 @@ export default function AiSupportWidget() {
                           </div>
                         )}
 
-                        {/* Take Me There Navigation Buttons & Quick Prompt Chips */}
+                        {/* Navigation Buttons */}
                         {m.actionButtons && m.actionButtons.length > 0 && (
                           <div className="flex flex-wrap gap-1.5 pt-2">
                             {m.actionButtons.map((btn, idx) => (
@@ -324,8 +310,6 @@ export default function AiSupportWidget() {
                                     toast.success(`Navigating to ${btn.label}...`);
                                   } else if (btn.prompt) {
                                     handleSend(btn.prompt);
-                                  } else if (btn.actionType === 'escalate') {
-                                    window.open('https://wa.me/233240000000', '_blank');
                                   }
                                 }}
                                 className="bg-[#1E232B] hover:bg-[#D4AF6A] hover:text-black border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-bold text-[10px] px-2.5 py-1 rounded-lg transition-all flex items-center gap-1"
@@ -346,7 +330,7 @@ export default function AiSupportWidget() {
                   <div className="flex justify-start">
                     <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.2)] text-white p-3 rounded-2xl flex items-center space-x-2">
                       <div className="w-2 h-2 bg-[#D4AF6A] rounded-full animate-ping" />
-                      <span className="text-xs font-semibold text-[#D4AF6A]">FasReach AI is thinking...</span>
+                      <span className="text-xs font-semibold text-[#D4AF6A]">FasReach AI is typing...</span>
                     </div>
                   </div>
                 )}
@@ -394,7 +378,7 @@ export default function AiSupportWidget() {
                     type="text"
                     value={inputPrompt}
                     onChange={(e) => setInputPrompt(e.target.value)}
-                    placeholder="Ask FasReach AI anything... (Alt + K)"
+                    placeholder="Ask FasReach Support... (Alt + K)"
                     className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                   />
 
@@ -408,7 +392,7 @@ export default function AiSupportWidget() {
                 </form>
 
                 <div className="flex justify-between items-center text-[10px] text-[#AEB4BC] px-1">
-                  <span>Powered by RAG Vector Engine</span>
+                  <span>Customer Support AI</span>
                   <a
                     href="https://wa.me/233240000000"
                     target="_blank"
