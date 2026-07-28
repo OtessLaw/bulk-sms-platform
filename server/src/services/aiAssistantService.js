@@ -59,85 +59,53 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     } catch (e) {}
   }
 
-  // 3. Option A: Google Gemini API (Free key from aistudio.google.com)
+  // 3. Google Gemini API (Secure Environment Variable)
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   if (geminiApiKey) {
-    try {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`;
-      const payload = {
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                text: `${SYSTEM_PROMPT}\n\n[Context]: User=${userName}, Current Page=${currentPage}, ${userWalletContext}\n\n[User Message]: ${cleanPrompt}`,
-              },
-            ],
+    const candidateModels = ['gemini-flash-latest', 'gemini-2.5-flash-lite', 'gemini-2.0-flash-lite', 'gemini-1.5-flash'];
+
+    for (const modelName of candidateModels) {
+      try {
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
+        const payload = {
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: `${SYSTEM_PROMPT}\n\n[Context]: User=${userName}, Current Page=${currentPage}, ${userWalletContext}\n\n[User Message]: ${cleanPrompt}`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 350,
           },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 350,
-        },
-      };
+        };
 
-      const aiRes = await axios.post(apiUrl, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 8000 });
-      if (aiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const text = aiRes.data.candidates[0].content.parts[0].text.replace(/\*/g, '').trim();
+        const aiRes = await axios.post(apiUrl, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 8000 });
+        if (aiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          const text = aiRes.data.candidates[0].content.parts[0].text.replace(/\*/g, '').trim();
 
-        let actionButtons = [];
-        if (lower.includes('send') || lower.includes('sms') || lower.includes('bulk')) {
-          actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
-        } else if (lower.includes('wallet') || lower.includes('top up') || lower.includes('paystack') || lower.includes('balance')) {
-          actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
-        } else if (lower.includes('sender id') || lower.includes('header') || lower.includes('brand')) {
-          actionButtons.push({ label: 'Custom Sender IDs', route: '/sender-ids', actionType: 'navigate' });
+          let actionButtons = [];
+          if (lower.includes('send') || lower.includes('sms') || lower.includes('bulk')) {
+            actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
+          } else if (lower.includes('wallet') || lower.includes('top up') || lower.includes('paystack') || lower.includes('balance')) {
+            actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
+          } else if (lower.includes('sender id') || lower.includes('header') || lower.includes('brand')) {
+            actionButtons.push({ label: 'Custom Sender IDs', route: '/sender-ids', actionType: 'navigate' });
+          }
+
+          return { responseText: text, actionButtons };
         }
-
-        return { responseText: text, actionButtons };
+      } catch (e) {
+        // Try next model if one returns quota or model name change
       }
-    } catch (e) {
-      console.warn('[Gemini API Warning]:', e.message);
     }
   }
 
-  // 4. Option B: OpenAI GPT API (OpenAI platform key)
-  const openaiApiKey = process.env.OPENAI_API_KEY;
-  if (openaiApiKey) {
-    try {
-      const payload = {
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `[User Context]: User=${userName}, Current Page=${currentPage}, ${userWalletContext}\n\n[User Message]: ${cleanPrompt}` },
-        ],
-        temperature: 0.7,
-        max_tokens: 350,
-      };
-
-      const aiRes = await axios.post('https://api.openai.com/v1/chat/completions', payload, {
-        headers: { Authorization: `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
-        timeout: 8000,
-      });
-
-      if (aiRes.data?.choices?.[0]?.message?.content) {
-        const text = aiRes.data.choices[0].message.content.replace(/\*/g, '').trim();
-
-        let actionButtons = [];
-        if (lower.includes('send') || lower.includes('sms') || lower.includes('bulk')) {
-          actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
-        } else if (lower.includes('wallet') || lower.includes('top up') || lower.includes('paystack') || lower.includes('balance')) {
-          actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
-        }
-
-        return { responseText: text, actionButtons };
-      }
-    } catch (e) {
-      console.warn('[OpenAI API Warning]:', e.message);
-    }
-  }
-
-  // 5. Intelligent Fallback Engine (When no external API Key is provided)
+  // 4. Intelligent Natural Human Fallback Engine
   let responseText = '';
   let actionButtons = [];
 
@@ -184,9 +152,8 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
   } else if (lower.includes('thank') || lower.includes('thanks') || lower.includes('great')) {
     responseText = `You're very welcome! Let me know if you need help with anything else.`;
   } else {
-    responseText = `I am here to assist you with your FasReach account!\n\nWhether you need help broadcasting single or bulk SMS, uploading Excel contact files, registering custom Sender IDs, or topping up your wallet, let me know what you'd like to do and I'll walk you right through it.`;
+    responseText = `I'm here to help! How can I assist you further with your FasReach dispatches, Sender IDs, or wallet balance today?`;
     actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
-    actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
   }
 
   return { responseText, actionButtons };
