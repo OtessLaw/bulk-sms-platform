@@ -20,11 +20,12 @@ import {
   Minimize2,
 } from 'lucide-react';
 
-// Production Human Support AI Response Provider
-const getHumanAiResponse = (prompt, pagePath) => {
+// Comprehensive Human Support AI Knowledge Engine
+const getHumanAiResponse = (prompt, pagePath, user) => {
   const clean = (prompt || '').trim().toLowerCase();
+  const userName = user?.name ? user.name.split(' ')[0] : 'there';
 
-  // Strict Confidentiality Guardrails
+  // 1. Strict Security Boundary
   if (
     clean.includes('source code') ||
     clean.includes('database structure') ||
@@ -42,7 +43,7 @@ const getHumanAiResponse = (prompt, pagePath) => {
     };
   }
 
-  // Greetings & Friendly Chit-Chat
+  // 2. Greetings & Conversational Chit-Chat
   if (clean.includes('how are u') || clean.includes('how are you') || clean.includes('how u doing')) {
     return {
       content: `I'm doing great, thank you for asking! How can I help you today?`,
@@ -57,21 +58,29 @@ const getHumanAiResponse = (prompt, pagePath) => {
     };
   }
 
-  if (clean.includes('thank') || clean.includes('thanks') || clean.includes('great')) {
+  if (clean.includes('thank') || clean.includes('thanks') || clean.includes('great') || clean.includes('awesome')) {
     return {
       content: `You're very welcome! Let me know if you need help with anything else.`,
       actionButtons: [],
     };
   }
 
-  // Platform Explanation ("what is this plate/platform for")
+  if (clean.includes('who are you') || clean.includes('what are you') || clean.includes('your name')) {
+    return {
+      content: `I am your personal FasReach Customer Support Assistant. I am here to help you send SMS dispatches, manage Sender IDs, top up your wallet, import contacts, and answer any questions you have about the platform!`,
+      actionButtons: [],
+    };
+  }
+
+  // 3. Platform Explanation & Capabilities
   if (
     clean.includes('plate') ||
     clean.includes('platform') ||
     clean.includes('website') ||
     clean.includes('site') ||
     clean.includes('what is this') ||
-    clean.includes('what do you do')
+    clean.includes('what do you do') ||
+    clean.includes('what can i do')
   ) {
     return {
       content: `FasReach is an enterprise Bulk SMS platform.\n\nIt allows businesses, organizations, churches, and individuals to send fast, high-speed SMS messages to single recipients or large bulk contact lists.\n\nYou can upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches for later, and track real-time delivery receipts!`,
@@ -82,34 +91,85 @@ const getHumanAiResponse = (prompt, pagePath) => {
     };
   }
 
-  // Sending SMS & Excel Uploads
-  if (clean.includes('send') || clean.includes('sms') || clean.includes('bulk') || clean.includes('excel') || clean.includes('csv') || clean.includes('import')) {
+  // 4. Password & Account Access
+  if (clean.includes('password') || clean.includes('reset') || clean.includes('login') || clean.includes('forgot') || clean.includes('account setting') || clean.includes('security')) {
     return {
-      content: `You can send SMS messages from the Send SMS page.\n\nFor bulk dispatches, select "Bulk Broadcast", where you can paste phone numbers, choose a saved Contact Group, or upload an Excel/CSV file directly.\n\nEvery 155 characters counts as 1 SMS unit at 0.04 GHS per unit.\n\nIf you'd like, I can also show you how to schedule messages for future dispatch instead of sending them immediately.`,
-      actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
+      content: `You can manage your account password and security settings by navigating to Settings & Security in the sidebar menu.\n\nThere you can update your profile name, change your password, and enable security preferences.`,
+      actionButtons: [{ label: 'Settings & Security', route: '/settings' }],
     };
   }
 
-  // Wallet & Paystack Top-Up
-  if (clean.includes('wallet') || clean.includes('top up') || clean.includes('topup') || clean.includes('paystack') || clean.includes('balance') || clean.includes('price') || clean.includes('cost') || clean.includes('momo')) {
+  // 5. Pricing, Rates & Unit Calculation
+  if (clean.includes('price') || clean.includes('pricing') || clean.includes('cost') || clean.includes('rate') || clean.includes('155') || clean.includes('unit') || clean.includes('charge')) {
     return {
-      content: `To top up your wallet, go to the Wallet page.\n\nEnter your amount in GHS (minimum deposit is GHS 1.00) and click "Top Up via Paystack". You can pay using Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n\nYour rate is 0.04 GHS per 155-character SMS unit, and your funds remain in your cash balance for Pay-As-You-Go dispatches.`,
+      content: `FasReach SMS pricing is transparent and Pay-As-You-Go:\n\n• **Rate**: 0.04 GHS per 155-character SMS unit.\n• **1 - 155 Characters**: 1 Unit (0.04 GHS)\n• **156 - 310 Characters**: 2 Units (0.08 GHS)\n• **311 - 465 Characters**: 3 Units (0.12 GHS)\n\nThere are no monthly subscription requirements. Your funds remain in your cash balance!`,
       actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
     };
   }
 
-  // Sender IDs
-  if (clean.includes('sender id') || clean.includes('header') || clean.includes('brand')) {
+  // 6. Paystack & Mobile Money Wallet Top-Up
+  if (clean.includes('top up') || clean.includes('topup') || clean.includes('wallet') || clean.includes('paystack') || clean.includes('deposit') || clean.includes('momo') || clean.includes('mobile money') || clean.includes('mtn') || clean.includes('telecel') || clean.includes('card')) {
     return {
-      content: `You can register custom 1 to 11 character brand headers from the Custom Sender IDs page.\n\nClick "Register New Sender ID", enter your brand header, and submit. Newly submitted Sender IDs enter Pending Approval status and are reviewed promptly.\n\nNote that protected institutional headers (such as bank or government names) are restricted to prevent impersonation.`,
+      content: `To top up your wallet:\n\n1. Go to the **Wallet** page.\n2. Enter your deposit amount in GHS (minimum deposit is GHS 1.00).\n3. Click **Top Up via Paystack**.\n4. Select **Mobile Money** (MTN, Telecel, AirtelTigo) or **Visa/Mastercard**.\n5. Complete payment on your phone or card.\n\nYour cash balance updates instantly!`,
+      actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
+    };
+  }
+
+  // 7. Balance Checking
+  if (clean.includes('balance') || clean.includes('my wallet') || clean.includes('my credit') || clean.includes('check balance')) {
+    return {
+      content: `You can view your available cash balance and SMS credits directly on your Dashboard or Wallet page.\n\nWould you like me to open your Wallet page now?`,
+      actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
+    };
+  }
+
+  // 8. Sender IDs & Brand Header Approvals
+  if (clean.includes('sender id') || clean.includes('header') || clean.includes('brand') || clean.includes('pending') || clean.includes('approval') || clean.includes('register sender')) {
+    return {
+      content: `To register a custom Sender ID brand header:\n\n1. Go to **Custom Sender IDs** in the menu.\n2. Click **Register New Sender ID**.\n3. Type your 1-11 character uppercase header (e.g. MYBRAND) and business purpose.\n4. Click **Submit**.\n\nYour header enters Pending Approval status immediately. (Protected institutional headers like banks or government agencies are restricted to prevent fraud).`,
       actionButtons: [{ label: 'Custom Sender IDs', route: '/sender-ids' }],
     };
   }
 
-  // Troubleshooting Errors
-  if (clean.includes('failed') || clean.includes('why didnt') || clean.includes('didnt send') || clean.includes('not sending') || clean.includes('error') || clean.includes('problem')) {
+  // 9. Excel/CSV Contacts Upload & Groups
+  if (clean.includes('excel') || clean.includes('csv') || clean.includes('import') || clean.includes('contact') || clean.includes('directory') || clean.includes('group') || clean.includes('upload file')) {
     return {
-      content: `Let's figure that out together.\n\nCould you tell me:\n• Was your wallet funded at the time of dispatch?\n• Was your selected Sender ID approved?\n• Were the recipient phone numbers valid 10-digit numbers?\n\nIf you'd like, I can also check your live wallet balance or Sender ID status right now.`,
+      content: `You can upload contact lists from Excel or CSV files:\n\n1. Go to **Contacts Directory** or the **Send SMS** page.\n2. Download our sample CSV template (\`FasReach_Contacts_Sample.csv\`).\n3. Ensure columns include \`phone\`, \`name\`, and \`groupName\`.\n4. Click **Import Excel/CSV File**, select your file, and save!\n\nYou can also organize contacts into groups (e.g. VIP Clients, Church Members).`,
+      actionButtons: [
+        { label: 'Contacts Directory', route: '/contacts' },
+        { label: 'Send SMS', route: '/send-sms' },
+      ],
+    };
+  }
+
+  // 10. Sending SMS & Scheduling
+  if (clean.includes('send') || clean.includes('sms') || clean.includes('bulk') || clean.includes('single') || clean.includes('schedule') || clean.includes('template') || clean.includes('ai template')) {
+    return {
+      content: `To send SMS on FasReach:\n\n1. Open the **Send SMS** page.\n2. Select your Sender ID header.\n3. Under **Bulk Broadcast**, paste numbers, select a Contact Group, or upload an Excel file.\n4. Type your message (or use the AI Template Generator).\n5. Click **Dispatch SMS** (or check "Schedule for Later" to select a future date and time).`,
+      actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
+    };
+  }
+
+  // 11. Reports & Delivery Receipts
+  if (clean.includes('report') || clean.includes('delivery') || clean.includes('receipt') || clean.includes('failed') || clean.includes('pending status') || clean.includes('delivered') || clean.includes('log')) {
+    return {
+      content: `You can view all dispatch logs on the **Reports** page.\n\nStatuses show Green (Delivered), Yellow (Pending), or Red (Failed). Click **Sync Live Statuses** anytime to fetch live delivery receipts from network providers.`,
+      actionButtons: [{ label: 'Delivery Reports', route: '/reports' }],
+    };
+  }
+
+  // 12. Developer API
+  if (clean.includes('api') || clean.includes('developer') || clean.includes('endpoint') || clean.includes('token') || clean.includes('key') || clean.includes('curl') || clean.includes('code')) {
+    return {
+      content: `You can generate API keys and integrate FasReach with your applications on the **Developer API** page.\n\nDispatches use HTTP POST requests to \`https://bulk-sms-platform.onrender.com/api/sms/send\` with your Bearer token.`,
+      actionButtons: [{ label: 'Developer API', route: '/developer-api' }],
+    };
+  }
+
+  // 13. Troubleshooting Errors
+  if (clean.includes('why') || clean.includes('problem') || clean.includes('not working') || clean.includes('issue') || clean.includes('error') || clean.includes('can\'t')) {
+    return {
+      content: `Let me help you troubleshoot:\n\n• **If SMS didn't send**: Check if your wallet has an available cash balance (GHS 1.00+) and your Sender ID header is approved.\n• **If numbers failed**: Verify recipient numbers are valid 10-digit Ghanaian mobile numbers (e.g. 0241112233).\n• **If Excel upload failed**: Download our sample CSV template on the Contacts page.`,
       actionButtons: [
         { label: 'Check Wallet', route: '/wallet' },
         { label: 'Check Sender IDs', route: '/sender-ids' },
@@ -117,9 +177,9 @@ const getHumanAiResponse = (prompt, pagePath) => {
     };
   }
 
-  // Intelligent Conversational Fallback
+  // 14. Universal Natural Language Human Response for any other question
   return {
-    content: `FasReach is an enterprise Bulk SMS platform designed to help you send fast SMS messages to single or bulk recipients, import Excel contact lists, register custom brand Sender IDs, and track delivery reports. How can I help you today?`,
+    content: `Regarding your query "${prompt.trim()}":\n\nI am here to assist you! If you need help sending single/bulk SMS, uploading Excel files, registering Sender IDs, or topping up your wallet via Mobile Money or Card, let me know which area you'd like to explore.`,
     actionButtons: [
       { label: 'Send SMS', route: '/send-sms' },
       { label: 'Go to Wallet', route: '/wallet' },
@@ -190,7 +250,7 @@ export default function AiSupportWidget() {
     setLoading(true);
 
     // Compute instant response locally
-    const aiAnswer = getHumanAiResponse(queryText, location.pathname);
+    const aiAnswer = getHumanAiResponse(queryText, location.pathname, user);
 
     setTimeout(() => {
       setMessages((prev) => [
