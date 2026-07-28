@@ -3,12 +3,12 @@ import API from '../services/api';
 import toast from 'react-hot-toast';
 import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
 
-const PROTECTED_BRANDS = [
-  'MTN', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'GLO',
-  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESS',
-  'UBA', 'GTBANK', 'BOA', 'ADB', 'NIB', 'MOMO', 'GHIPSS', 'PAYSTACK', 'HUBTEL', 'ARKESEL',
+const PROTECTED_BRANDS_EXACT = new Set([
+  'MTN', 'MTNGHANA', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'GLO',
+  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESS', 'ACCESSBANK',
+  'UBA', 'GTBANK', 'BOA', 'ADB', 'NIB', 'MOMO', 'MOBILEMONEY', 'GHIPSS', 'GIPSS', 'PAYSTACK', 'HUBTEL', 'ARKESEL',
   'GRA', 'SSNIT', 'ECG', 'GWCL', 'NCA', 'NIA', 'POLICE', 'MILITARY', 'GOVGHANA', 'DVLA', 'COCOBOD',
-];
+]);
 
 export default function SenderIDs() {
   const [senderIds, setSenderIds] = useState([]);
@@ -30,11 +30,6 @@ export default function SenderIDs() {
     }
   };
 
-  const isProtectedInput = PROTECTED_BRANDS.some((brand) => {
-    const clean = newSender.senderId.trim().toUpperCase();
-    return clean && (clean === brand || clean.includes(brand) || (brand.length >= 3 && clean.startsWith(brand)));
-  });
-
   const handleRequest = async (e) => {
     e.preventDefault();
     const cleanHeader = newSender.senderId.trim().toUpperCase();
@@ -44,8 +39,9 @@ export default function SenderIDs() {
       return;
     }
 
-    if (isProtectedInput) {
-      toast.error(`Sender ID '${cleanHeader}' is unavailable. Please choose another header.`);
+    // Exact Match check ONLY
+    if (PROTECTED_BRANDS_EXACT.has(cleanHeader)) {
+      toast.error(`Sender ID '${cleanHeader}' is reserved and unavailable. Please choose your custom business header.`);
       return;
     }
 

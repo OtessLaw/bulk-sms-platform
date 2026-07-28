@@ -1,19 +1,18 @@
 const SenderId = require('../models/SenderId');
 const { registerArkeselSenderId } = require('../services/multiSmsService');
 
-// Reserved Reputable Institutions & Financial Headers (Anti-Phishing & Anti-Fraud Security Filter)
-const PROTECTED_INSTITUTIONS = [
-  // Telecom Operators
+// Explicit Exact-Match Institutional & Telecom Headers (Anti-Phishing Security Filter)
+const PROTECTED_INSTITUTIONS_EXACT = new Set([
+  // Telecoms
   'MTN', 'MTNGHANA', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'ATGHANA', 'GLO',
-  // Banks & Financial Services
-  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESS', 'ACCESSBANK',
+  // Banks & Payment Gateways
+  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESSBANK',
   'UBA', 'GTBANK', 'BOA', 'BANKOFGHANA', 'SGGHANA', 'ADB', 'NIB', 'FIRSTBANK', 'BESTPOINT',
   'MOMO', 'MOBILEMONEY', 'GHIPSS', 'GIPSS', 'PAYSTACK', 'HUBTEL', 'ARKESEL', 'SUREPAY',
-  // Government, Utility & Security Services
+  // Major Public Agencies & Utilities
   'GRA', 'SSNIT', 'ECG', 'GWCL', 'NCA', 'NIA', 'GHANASTAT', 'POLICE', 'GHPOLICE', 'FIRESERVICE',
   'MILITARY', 'GOVGHANA', 'PARLIAMENT', 'MINISTRY', 'PASSPORT', 'JUDICIARY', 'DVLA', 'COCOBOD',
-  'ELECTION', 'EC', 'INLAND', 'CUSTOMS',
-];
+]);
 
 // @desc    Get User or All Sender IDs
 // @route   GET /api/sender-ids
@@ -32,7 +31,7 @@ exports.getSenderIds = async (req, res, next) => {
   }
 };
 
-// @desc    Submit & Register Sender ID with Anti-Fraud Protection
+// @desc    Submit & Register Sender ID with Targeted Exact-Match Anti-Fraud Check
 // @route   POST /api/sender-ids/request
 exports.requestSenderId = async (req, res, next) => {
   try {
@@ -43,15 +42,11 @@ exports.requestSenderId = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Sender ID header must be 1 to 11 characters long' });
     }
 
-    // Anti-Fraud Check: Check if header matches or contains any protected institution/bank brand
-    const isProtected = PROTECTED_INSTITUTIONS.some((brand) => {
-      return cleanHeader === brand || cleanHeader.includes(brand) || (brand.length >= 3 && cleanHeader.startsWith(brand));
-    });
-
-    if (isProtected) {
+    // Exact Match Fraud Check ONLY - Do not block business names containing letters
+    if (PROTECTED_INSTITUTIONS_EXACT.has(cleanHeader)) {
       return res.status(400).json({
         success: false,
-        message: `Security Restriction: Sender ID '${cleanHeader}' is reserved for a reputable institution/bank to prevent fraud & impersonation. Submissions for institutional headers are blocked.`,
+        message: `Sender ID header '${cleanHeader}' is unavailable. Please choose a custom business header.`,
       });
     }
 
