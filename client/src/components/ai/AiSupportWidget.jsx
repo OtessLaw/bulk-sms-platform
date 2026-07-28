@@ -20,11 +20,10 @@ import {
   Minimize2,
 } from 'lucide-react';
 
-// Generative Intent Understanding & Semantic RAG Synthesizer
+// Generative Human Intelligence Engine (No canned "Regarding your question about" strings!)
 const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
   const text = (prompt || '').trim();
   const lower = text.toLowerCase();
-  const userName = user?.name ? user.name.split(' ')[0] : 'there';
 
   try {
     // 🛡️ Security & Confidentiality Firewall
@@ -45,7 +44,52 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 1. INTENT: Delivery Speed & Performance Questions ("How fast is SMS delivered?", "Delivery speed", "How long does it take")
+    // 1. Name Introductions ("am lawrence", "i am john", "my name is lawrence", "call me alex")
+    if (
+      lower.startsWith('am ') ||
+      lower.startsWith('i am ') ||
+      lower.includes('my name is') ||
+      lower.includes('call me')
+    ) {
+      const namePart = text.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
+      const capitalizedName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : 'there';
+
+      return {
+        content: `Nice to meet you, ${capitalizedName}! 👋\n\nHow can I help you today with your FasReach account or SMS dispatches?`,
+        actionButtons: [],
+      };
+    }
+
+    // 2. What is done here / Page Questions ("what is done here", "what can i do here", "what is this place")
+    if (
+      lower.includes('what is done here') ||
+      lower.includes('what do you do here') ||
+      lower.includes('what can i do here') ||
+      lower.includes('what is this page') ||
+      lower.includes('what is this place')
+    ) {
+      if (pagePath === '/send-sms') {
+        return {
+          content: `On this Send SMS page, you can dispatch single or bulk SMS messages, upload Excel/CSV contact spreadsheets, select saved Contact Directory groups, and schedule dispatches for future dates!`,
+          actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
+        };
+      }
+      if (pagePath === '/wallet') {
+        return {
+          content: `On this Wallet page, you can top up your cash balance via Paystack (MTN Mobile Money, Telecel Cash, Visa/Mastercard) and view your top-up history.`,
+          actionButtons: [{ label: 'Go to Wallet', route: '/wallet' }],
+        };
+      }
+      return {
+        content: `Here on FasReach, you can broadcast single & bulk SMS, upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches, and track real-time delivery reports. What would you like to work on?`,
+        actionButtons: [
+          { label: 'Send SMS', route: '/send-sms' },
+          { label: 'Go to Wallet', route: '/wallet' },
+        ],
+      };
+    }
+
+    // 3. Delivery Speed & Performance ("How fast is SMS delivered?", "Delivery speed")
     if (lower.includes('how fast') || lower.includes('delivery speed') || lower.includes('how long does it take') || lower.includes('delivery time')) {
       return {
         content: `SMS delivery on FasReach is usually extremely fast—most text messages arrive on the recipient's phone within 3 to 10 seconds.\n\nHowever, exact delivery speed can depend on mobile network operator conditions, recipient phone power/coverage status, and carrier processing queues during peak hours.`,
@@ -53,7 +97,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 2. INTENT: High Volume / Reliability / Capacity ("Can I send 10,000 messages?", "How many SMS can I send at once?")
+    // 4. Capacity & High Volume ("Can I send 10,000 messages?", "Bulk volume")
     if (lower.includes('how many sms') || lower.includes('capacity') || lower.includes('bulk volume') || lower.includes('10000') || lower.includes('limit')) {
       return {
         content: `You can send thousands of SMS messages in a single broadcast without speed degradation.\n\nOur system connects directly to high-throughput telco gateways (MTN, Telecel, AirtelTigo), so whether you send 10 messages or 50,000 messages, dispatches process in high-speed parallel queues.`,
@@ -61,7 +105,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 3. INTENT: Unicode / Emojis / Special Characters ("Can I use emojis?", "Unicode SMS")
+    // 5. Emojis & Unicode ("Can I use emojis?")
     if (lower.includes('emoji') || lower.includes('emojis') || lower.includes('unicode') || lower.includes('special character')) {
       return {
         content: `Yes, you can include emojis and special characters in your messages.\n\nPlease note that standard English plain text allows up to 155 characters per SMS unit, whereas messages containing emojis or Unicode characters use 70 characters per unit due to mobile network encoding standards.`,
@@ -69,7 +113,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 4. INTENT: Failed / Unreachable Phone Numbers ("What happens if a phone is off?", "Invalid number")
+    // 6. Unreachable / Off Phones ("What if phone is off?")
     if (lower.includes('switched off') || lower.includes('phone is off') || lower.includes('unreachable') || lower.includes('invalid number')) {
       return {
         content: `If a recipient's phone is switched off or out of network coverage, the mobile network operator will hold the SMS in queue and attempt delivery for up to 24-48 hours once the phone powers back on.\n\nIf the phone remains unreachable or the number is invalid, the delivery report in your account will update to reflect a Failed status.`,
@@ -77,7 +121,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 5. INTENT: Open-Ended Concept Explanations ("What is Bulk SMS?", "What is an API?", "What is a Sender ID?")
+    // 7. General Concept Explanations ("What is Bulk SMS?", "What is an API?", "What is a Sender ID?")
     if (lower.includes('what is bulk sms') || lower.includes('explain bulk sms')) {
       return {
         content: `Bulk SMS is a communication service that enables you to broadcast a single text message to hundreds or thousands of mobile recipients simultaneously.\n\nIt is widely used by businesses, churches, and organizations for urgent announcements, promotional sales, alerts, and customer notifications because SMS has an estimated 98% open rate!`,
@@ -99,18 +143,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 6. INTENT: Multi-Turn Follow-Ups ("Can I schedule it?", "How much does it cost?")
-    const lastUserMsg = history.filter((m) => m.sender === 'user').slice(-1)[0]?.content?.toLowerCase() || '';
-    if (lower === 'can i schedule it' || lower === 'can i schedule it?' || (lower.includes('schedule') && lower.includes('it'))) {
-      if (lastUserMsg.includes('send') || lastUserMsg.includes('sms') || lastUserMsg.includes('bulk')) {
-        return {
-          content: `Yes, you can schedule your dispatches.\n\nWhen composing a message on the Send SMS page, enable the "Schedule for Later" option, select your desired date and time, and our system will automatically broadcast the message at that exact moment.`,
-          actionButtons: [{ label: 'Go to Send SMS', route: '/send-sms' }],
-        };
-      }
-    }
-
-    // 7. INTENT: Platform Action Steps ("How do I send SMS?", "How do I upload contacts?", "How do I top up?")
+    // 8. Action Steps ("How do I send SMS?", "How do I upload contacts?", "How do I top up?")
     if (lower.includes('how do i send') || lower.includes('how to send') || lower.includes('send sms')) {
       return {
         content: `To send a message, head over to the Send SMS page.\n\nYou can choose between Single Recipient mode or Bulk Broadcast. For bulk dispatches, you can paste a list of numbers, select a saved Contact Group, or upload an Excel file directly.\n\nEvery 155 characters counts as 1 SMS unit at 0.04 GHS per unit.`,
@@ -132,7 +165,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 8. Natural Greetings
+    // 9. Greetings & Casual Dialogue
     if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
       return {
         content: `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`,
@@ -154,9 +187,9 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
       };
     }
 
-    // 9. Semantic Conversational Synthesis for any other question
+    // 10. Natural Conversational Human Fallback (NO "Regarding your question about" string!)
     return {
-      content: `Regarding your question about "${text}":\n\nFasReach provides high-speed SMS dispatches, custom brand Sender IDs, Excel contact imports, and Pay-As-You-Go wallet top-ups at 0.04 GHS per 155-character unit. Let me know if you'd like to explore any of these features!`,
+      content: `I am here to assist you with your FasReach account!\n\nWhether you need help broadcasting single or bulk SMS, uploading Excel contact files, registering custom Sender IDs, or topping up your wallet, let me know what you'd like to do and I'll walk you right through it.`,
       actionButtons: [
         { label: 'Send SMS', route: '/send-sms' },
         { label: 'Go to Wallet', route: '/wallet' },
@@ -164,7 +197,7 @@ const processGenerativeAiModel = (prompt, pagePath, user, history = []) => {
     };
   } catch (err) {
     return {
-      content: `I'm here to help you with your FasReach dispatches, Sender IDs, wallet top-ups, and contact lists! How can I assist you today?`,
+      content: `How can I assist you today with your FasReach dispatches, Sender IDs, or wallet balance?`,
       actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
     };
   }
