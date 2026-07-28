@@ -88,10 +88,44 @@ export default function App() {
         <Toaster
           position="top-right"
           toastOptions={{
+            duration: 4000,
             style: {
-              background: '#2A3038',
-              color: '#fff',
-              border: '1px solid rgba(212, 175, 106, 0.3)',
+              background: 'rgba(30, 35, 43, 0.95)',
+              color: '#F3F4F6',
+              border: '1px solid rgba(212, 175, 106, 0.4)',
+              borderRadius: '18px',
+              padding: '12px 18px',
+              fontSize: '12.5px',
+              fontWeight: '600',
+              boxShadow: '0 20px 30px -10px rgba(0, 0, 0, 0.7), 0 0 15px rgba(212, 175, 106, 0.15)',
+              backdropFilter: 'blur(16px)',
+              maxWidth: '380px',
+            },
+            success: {
+              iconTheme: {
+                primary: '#D4AF6A',
+                secondary: '#1A1D24',
+              },
+              style: {
+                border: '1px solid rgba(212, 175, 106, 0.7)',
+                boxShadow: '0 10px 25px rgba(212, 175, 106, 0.25)',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#1A1D24',
+              },
+              style: {
+                border: '1px solid rgba(239, 68, 68, 0.6)',
+                boxShadow: '0 10px 25px rgba(239, 68, 68, 0.25)',
+              },
+            },
+            loading: {
+              iconTheme: {
+                primary: '#D4AF6A',
+                secondary: '#1A1D24',
+              },
             },
           }}
         />
