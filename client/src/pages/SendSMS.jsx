@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Send, Clock, Sparkles, Smartphone, Users, HelpCircle, Calendar, UserCheck, Layers } from 'lucide-react';
+import { Send, Clock, Sparkles, Smartphone, Users, HelpCircle, Calendar, Upload, Layers, FileSpreadsheet } from 'lucide-react';
 
 export default function SendSMS() {
   const { wallet, refreshWallet } = useAuth();
@@ -81,8 +81,52 @@ export default function SendSMS() {
     });
 
     if (groupName) {
-      toast.success(`Populated contacts from '${groupName}'!`);
+      toast.success(`Loaded numbers from '${groupName === 'ALL' ? 'All Contacts' : groupName}'!`);
     }
+  };
+
+  // Handle Direct CSV / Excel File Upload inside Send SMS
+  const handleDirectFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const text = evt.target.result;
+      const lines = text.split(/\r\n|\n/);
+      const extracted = [];
+
+      for (let line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const cols = trimmed.split(/[,;\t]/).map((c) => c.replace(/^["']|["']$/g, '').trim());
+
+        for (let col of cols) {
+          const clean = col.replace(/[^0-9+]/g, '').trim();
+          if (clean.length >= 7) {
+            extracted.push(clean);
+          }
+        }
+      }
+
+      const uniqueExtracted = Array.from(new Set(extracted));
+
+      if (uniqueExtracted.length > 0) {
+        setFormData((prev) => {
+          const existing = extractPhoneNumbers(prev.bulkRecipientsText);
+          const combined = Array.from(new Set([...existing, ...uniqueExtracted]));
+          return {
+            ...prev,
+            bulkRecipientsText: combined.join(', '),
+          };
+        });
+        toast.success(`Extracted ${uniqueExtracted.length} phone numbers from ${file.name}!`);
+      } else {
+        toast.error('No valid phone numbers found in file');
+      }
+    };
+
+    reader.readAsText(file);
   };
 
   const parsedRecipients = dispatchMode === 'single'
@@ -98,7 +142,7 @@ export default function SendSMS() {
     e.preventDefault();
 
     if (recipientCount === 0) {
-      toast.error(dispatchMode === 'single' ? 'Please enter a recipient phone number' : 'Please enter or select at least one recipient phone number');
+      toast.error(dispatchMode === 'single' ? 'Please enter a recipient phone number' : 'Please enter, upload, or select at least one recipient phone number');
       return;
     }
 
@@ -178,7 +222,7 @@ export default function SendSMS() {
         <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
           <Send className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Send Bulk & Single SMS
         </h1>
-        <p className="text-xs text-[#AEB4BC]">Broadcast messages to thousands of contacts, select contact groups, or schedule future dispatches</p>
+        <p className="text-xs text-[#AEB4BC]">Broadcast messages to your Contact Directory, import Excel/CSV files directly, or paste phone numbers</p>
       </div>
 
       {/* Dispatch Mode Toggle Tabs */}
@@ -193,7 +237,7 @@ export default function SendSMS() {
           }`}
         >
           <Users className="w-4 h-4" />
-          <span>Bulk Recipients / Group Broadcast</span>
+          <span>Bulk / Directory Broadcast</span>
         </button>
 
         <button
@@ -246,11 +290,11 @@ export default function SendSMS() {
               </div>
             ) : (
               <div className="space-y-3">
-                {/* Select from Saved Contact Groups */}
-                {contacts.length > 0 && (
-                  <div className="bg-[#1E232B]/80 border border-[rgba(212,175,106,0.2)] rounded-2xl p-3 space-y-2">
+                {/* 1. Select from Saved Contact Directory / Groups */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="bg-[#1E232B]/80 border border-[rgba(212,175,106,0.2)] rounded-2xl p-3 space-y-1.5">
                     <label className="block text-[11px] font-bold text-[#D4AF6A] flex items-center gap-1">
-                      <Layers className="w-3.5 h-3.5" /> Populate Phone Numbers from Saved Contact Group
+                      <Layers className="w-3.5 h-3.5" /> Select from Contact Directory
                     </label>
                     <select
                       value={formData.selectedGroup}
@@ -258,7 +302,7 @@ export default function SendSMS() {
                       className="w-full bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none font-semibold"
                     >
                       <option value="">-- Choose Contact Group --</option>
-                      <option value="ALL">All Contacts ({contacts.length} numbers)</option>
+                      <option value="ALL">All Saved Contacts ({contacts.length} numbers)</option>
                       {contactGroups.map((g) => {
                         const count = contacts.filter((c) => c.groupName === g.name).length;
                         return (
@@ -269,12 +313,25 @@ export default function SendSMS() {
                       })}
                     </select>
                   </div>
-                )}
+
+                  {/* 2. Direct Excel / CSV File Upload Box */}
+                  <div className="bg-[#1E232B]/80 border border-[rgba(212,175,106,0.2)] rounded-2xl p-3 space-y-1.5">
+                    <label className="block text-[11px] font-bold text-[#D4AF6A] flex items-center gap-1">
+                      <FileSpreadsheet className="w-3.5 h-3.5" /> Upload Excel / CSV File Directly
+                    </label>
+                    <input
+                      type="file"
+                      accept=".csv,.xlsx,.xls,.txt"
+                      onChange={handleDirectFileUpload}
+                      className="w-full bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-2 py-1 text-xs text-white file:bg-[#D4AF6A] file:text-black file:border-0 file:font-bold file:rounded-lg file:px-2.5 file:py-1 file:mr-2 file:text-[11px] cursor-pointer"
+                    />
+                  </div>
+                </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-1">
                     <label className="text-xs font-semibold text-[#AEB4BC]">
-                      Bulk Phone Numbers (Paste multiple numbers separated by commas or newlines)
+                      Bulk Phone Numbers List (Pasted or Imported)
                     </label>
                     <span className="text-xs font-bold text-[#D4AF6A] font-mono">
                       {recipientCount} {recipientCount === 1 ? 'Recipient' : 'Recipients'}
@@ -284,10 +341,10 @@ export default function SendSMS() {
                     rows="4"
                     value={formData.bulkRecipientsText}
                     onChange={(e) => setFormData({ ...formData, bulkRecipientsText: e.target.value })}
-                    placeholder="Paste phone numbers here, e.g.:&#10;0241112233, 0509998877, 0277778899&#10;0200001122"
+                    placeholder="Extracted or pasted phone numbers will appear here, e.g.:&#10;0241112233, 0509998877, 0277778899"
                     className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#D4AF6A]"
                   />
-                  <p className="text-[11px] text-[#AEB4BC] mt-1">Separate phone numbers using commas, spaces, or line breaks.</p>
+                  <p className="text-[11px] text-[#AEB4BC] mt-1">Numbers from Contact Groups or Excel files automatically populate here.</p>
                 </div>
               </div>
             )}
