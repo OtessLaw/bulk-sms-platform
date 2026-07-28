@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
 import toast from 'react-hot-toast';
-import { CheckCircle2, Plus, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, Plus, ShieldCheck, Clock, AlertCircle } from 'lucide-react';
 
 const PROTECTED_BRANDS_EXACT = new Set([
   'MTN', 'MTNGHANA', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'GLO',
@@ -48,7 +48,7 @@ export default function SenderIDs() {
     try {
       const res = await API.post('/sender-ids/request', newSender);
       if (res.data.success) {
-        toast.success(res.data.message || 'Sender ID registered and approved instantly!');
+        toast.success(res.data.message || 'Sender ID submitted successfully!');
         fetchSenderIds();
         setShowModal(false);
         setNewSender({ senderId: '', purpose: '', sampleMessage: '' });
@@ -65,7 +65,7 @@ export default function SenderIDs() {
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
             <ShieldCheck className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Custom Sender IDs
           </h1>
-          <p className="text-xs text-[#AEB4BC]">Register custom 11-character branded SMS headers with instant activation</p>
+          <p className="text-xs text-[#AEB4BC]">Register custom 11-character branded SMS headers with live status tracking</p>
         </div>
 
         <button
@@ -85,7 +85,7 @@ export default function SenderIDs() {
                 <th className="pb-3 px-3">Sender ID</th>
                 <th className="pb-3 px-3">Purpose</th>
                 <th className="pb-3 px-3">Status</th>
-                <th className="pb-3 px-3 text-right">Date Activated</th>
+                <th className="pb-3 px-3 text-right">Date Created</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[rgba(212,175,106,0.1)] text-white">
@@ -93,30 +93,41 @@ export default function SenderIDs() {
                 <td className="py-3 px-3 font-bold text-[#D4AF6A]">FASREACH</td>
                 <td className="py-3 px-3 text-[#AEB4BC]">Default Platform Header</td>
                 <td className="py-3 px-3">
-                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
-                    Active (Default)
+                  <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3" /> Active (Default)
                   </span>
                 </td>
                 <td className="py-3 px-3 text-right text-[#AEB4BC]">System</td>
               </tr>
-              {senderIds.map((s) => (
-                <tr key={s._id} className="hover:bg-[#1E232B]/40">
-                  <td className="py-3 px-3 font-bold text-[#D4AF6A]">{s.senderId}</td>
-                  <td className="py-3 px-3 text-[#AEB4BC]">{s.purpose}</td>
-                  <td className="py-3 px-3">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                        s.status === 'Approved'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'
-                      }`}
-                    >
-                      {s.status === 'Approved' ? 'Active' : s.status}
-                    </span>
-                  </td>
-                  <td className="py-3 px-3 text-right text-[#AEB4BC]">{new Date(s.createdAt).toLocaleDateString()}</td>
-                </tr>
-              ))}
+              {senderIds.map((s) => {
+                const isApproved = s.status === 'Approved';
+                const isPending = s.status === 'Pending';
+                const isRejected = s.status === 'Rejected';
+
+                return (
+                  <tr key={s._id} className="hover:bg-[#1E232B]/40">
+                    <td className="py-3 px-3 font-bold text-[#D4AF6A]">{s.senderId}</td>
+                    <td className="py-3 px-3 text-[#AEB4BC]">{s.purpose}</td>
+                    <td className="py-3 px-3">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase inline-flex items-center gap-1 ${
+                          isApproved
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : isPending
+                            ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 animate-pulse'
+                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                        }`}
+                      >
+                        {isApproved && <CheckCircle2 className="w-3 h-3" />}
+                        {isPending && <Clock className="w-3 h-3" />}
+                        {isRejected && <AlertCircle className="w-3 h-3" />}
+                        {isApproved ? 'Active (Approved)' : isPending ? 'Pending Approval' : 'Rejected'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right text-[#AEB4BC]">{new Date(s.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -163,7 +174,7 @@ export default function SenderIDs() {
                   type="submit"
                   className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold px-4 py-2 rounded-xl"
                 >
-                  Register & Activate
+                  Submit for Approval
                 </button>
               </div>
             </form>

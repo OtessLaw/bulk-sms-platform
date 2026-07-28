@@ -6,7 +6,7 @@ const PROTECTED_INSTITUTIONS_EXACT = new Set([
   // Telecoms
   'MTN', 'MTNGHANA', 'TELECEL', 'VODAFONE', 'AIRTELTIGO', 'AIRTEL', 'TIGO', 'ATGHANA', 'GLO',
   // Banks & Payment Gateways
-  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESSBANK',
+  'GCB', 'ECOBANK', 'STANBIC', 'ABSA', 'CALBANK', 'FIDELITY', 'ZENITH', 'ACCESS', 'ACCESSBANK',
   'UBA', 'GTBANK', 'BOA', 'BANKOFGHANA', 'SGGHANA', 'ADB', 'NIB', 'FIRSTBANK', 'BESTPOINT',
   'MOMO', 'MOBILEMONEY', 'GHIPSS', 'GIPSS', 'PAYSTACK', 'HUBTEL', 'ARKESEL', 'SUREPAY',
   // Major Public Agencies & Utilities
@@ -31,7 +31,7 @@ exports.getSenderIds = async (req, res, next) => {
   }
 };
 
-// @desc    Submit & Register Sender ID with Targeted Exact-Match Anti-Fraud Check
+// @desc    Submit & Register Sender ID (Created as Pending)
 // @route   POST /api/sender-ids/request
 exports.requestSenderId = async (req, res, next) => {
   try {
@@ -42,7 +42,7 @@ exports.requestSenderId = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Sender ID header must be 1 to 11 characters long' });
     }
 
-    // Exact Match Fraud Check ONLY - Do not block business names containing letters
+    // Exact Match Fraud Check
     if (PROTECTED_INSTITUTIONS_EXACT.has(cleanHeader)) {
       return res.status(400).json({
         success: false,
@@ -55,26 +55,26 @@ exports.requestSenderId = async (req, res, next) => {
     if (existing) {
       return res.status(200).json({
         success: true,
-        message: `Sender ID '${cleanHeader}' is already active on your account!`,
+        message: `Sender ID '${cleanHeader}' is already on your account (${existing.status})`,
         data: existing,
       });
     }
 
-    // Auto-Register Sender ID directly with Arkesel API
+    // Register Sender ID directly with Gateway API
     const arkeselRes = await registerArkeselSenderId({ senderId: cleanHeader, purpose });
 
-    // Create Sender ID as Approved immediately
+    // Create Sender ID with initial Pending status
     const doc = await SenderId.create({
       userId: req.user._id,
       senderId: cleanHeader,
       purpose,
       sampleMessage,
-      status: 'Approved',
+      status: 'Pending', // Accurately set to Pending for review/approval
     });
 
     res.status(201).json({
       success: true,
-      message: `Sender ID '${cleanHeader}' registered and approved instantly! You can now use it to send SMS.`,
+      message: `Sender ID '${cleanHeader}' submitted successfully! Status is set to Pending Approval.`,
       data: doc,
     });
   } catch (error) {
