@@ -18,16 +18,16 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
 
   // Sandbox Mode (If no key set)
   if (!arkeselApiKey || arkeselApiKey === 'mock_arkesel_key') {
-    console.log(`[Arkesel Gateway Sandbox] Dispatched to ${formattedPhone} via ${cleanSenderId}: "${content}"`);
+    console.log(`[Primary Gateway Sandbox] Dispatched to ${formattedPhone} via ${cleanSenderId}: "${content}"`);
     return {
       success: true,
-      provider: 'Arkesel (Sandbox)',
-      messageId: `ARK_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+      provider: 'Primary Gateway (Sandbox)',
+      messageId: `GW_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       status: 'Submitted',
     };
   }
 
-  console.log(`[Arkesel Live Dispatch] To: ${formattedPhone} From: ${cleanSenderId}`);
+  console.log(`[Primary Gateway Live Dispatch] To: ${formattedPhone} From: ${cleanSenderId}`);
 
   // 1. Try Arkesel v2 API
   try {
@@ -46,8 +46,8 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
       }
     );
 
-    console.log('[Arkesel v2 Response]', res.data);
-    const msgId = res.data?.data?.id || res.data?.id || `ARK_${Date.now()}`;
+    console.log('[Primary Gateway v2 Response]', res.data);
+    const msgId = res.data?.data?.id || res.data?.id || `GW_${Date.now()}`;
     const rawStatus = res.data?.data?.status || res.data?.status || 'Submitted';
 
     let initialStatus = 'Submitted';
@@ -56,12 +56,12 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
 
     return {
       success: true,
-      provider: 'Arkesel (v2 API)',
+      provider: 'Primary Gateway (v2 API)',
       messageId: msgId,
       status: initialStatus,
     };
   } catch (errV2) {
-    console.warn('[Arkesel v2 Failed, Attempting v1 Fallback...]', errV2.response?.data || errV2.message);
+    console.warn('[Primary Gateway v2 Failed, Attempting v1 Fallback...]', errV2.response?.data || errV2.message);
 
     // 2. Try Arkesel v1 Legacy API
     try {
@@ -75,33 +75,33 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
         },
       });
 
-      console.log('[Arkesel v1 Response]', resV1.data);
+      console.log('[Primary Gateway v1 Response]', resV1.data);
       if (resV1.data?.code === '100' || resV1.data?.status === 'success' || String(resV1.data).includes('100')) {
         return {
           success: true,
-          provider: 'Arkesel (v1 API)',
-          messageId: resV1.data?.id || `ARK_${Date.now()}`,
+          provider: 'Primary Gateway (v1 API)',
+          messageId: resV1.data?.id || `GW_${Date.now()}`,
           status: 'Submitted',
         };
       } else {
         throw new Error(resV1.data?.message || resV1.data?.code || JSON.stringify(resV1.data));
       }
     } catch (errV1) {
-      console.warn('[Arkesel Live Notice - Simulated Dispatch]', errV1.message);
+      console.warn('[Primary Gateway Live Notice - Simulated Dispatch]', errV1.message);
       return {
         success: true,
-        provider: 'Arkesel (Simulated)',
-        messageId: `ARK_SIM_${Date.now()}`,
+        provider: 'Primary Gateway (Simulated)',
+        messageId: `GW_SIM_${Date.now()}`,
         status: 'Submitted',
       };
     }
   }
 };
 
-// Check Live Real-Time Delivery Status from Arkesel Server
+// Check Live Real-Time Delivery Status from Gateway Server
 exports.checkArkeselDeliveryStatus = async (messageId) => {
   const arkeselApiKey = await getArkeselApiKey();
-  if (!arkeselApiKey || !messageId || messageId.startsWith('ARK_SIM_')) {
+  if (!arkeselApiKey || !messageId || messageId.startsWith('GW_SIM_')) {
     return null;
   }
 
@@ -125,12 +125,13 @@ exports.checkArkeselDeliveryStatus = async (messageId) => {
   }
 };
 
-// Automatic Arkesel Sender ID Registration Service
+// Automatic Sender ID Direct Gateway Registration Service
 exports.registerArkeselSenderId = async ({ senderId, purpose }) => {
   const arkeselApiKey = await getArkeselApiKey();
   const cleanHeader = (senderId || '').trim().toUpperCase().substring(0, 11);
 
   if (!arkeselApiKey || arkeselApiKey === 'mock_arkesel_key') {
+    console.log(`[Gateway Sender ID Sandbox] Mock approval for ${cleanHeader}`);
     return {
       success: true,
       status: 'Approved',
@@ -138,12 +139,16 @@ exports.registerArkeselSenderId = async ({ senderId, purpose }) => {
     };
   }
 
+  console.log(`[Gateway Sender ID Registration Request] Registering '${cleanHeader}' via API Key: ${arkeselApiKey.substring(0, 6)}...`);
+
   try {
+    // Post to Arkesel v2 Sender ID registration endpoint
     const res = await axios.post(
       'https://sms.arkesel.com/api/v2/sender-id',
       {
         sender_id: cleanHeader,
-        purpose: purpose || 'Transactional updates',
+        sender: cleanHeader,
+        purpose: purpose || 'Transactional customer communications',
       },
       {
         headers: {
@@ -152,8 +157,11 @@ exports.registerArkeselSenderId = async ({ senderId, purpose }) => {
         },
       }
     );
+
+    console.log('[Gateway Sender ID Direct API Success]', res.data);
     return { success: true, status: 'Approved', data: res.data };
   } catch (err) {
+    console.error('[Gateway Sender ID Direct API Error]', err.response?.data || err.message);
     return { success: true, status: 'Approved', data: err.response?.data };
   }
 };
