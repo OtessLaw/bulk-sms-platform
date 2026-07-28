@@ -38,6 +38,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
   const cleanPrompt = (prompt || '').trim();
   const lower = cleanPrompt.toLowerCase();
   let userName = user?.name ? user.name.split(' ')[0] : 'there';
+  let userEmail = user?.email || '';
   let isSuperAdmin = false;
 
   // 1. Confidentiality Firewall
@@ -73,6 +74,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
       const dbUserDoc = await User.findById(user._id);
       if (dbUserDoc) {
         userName = dbUserDoc.name ? dbUserDoc.name.split(' ')[0] : userName;
+        userEmail = dbUserDoc.email || userEmail;
         isSuperAdmin = dbUserDoc.role === 'Super Admin' || dbUserDoc.role === 'Admin';
       }
 
@@ -90,14 +92,14 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
         databaseContext = `[Admin System Database Context]: User Role=Super Admin, Total Platform Users=${totalUsersCount}, Total System SMS Sent=${totalSystemSmsCount}, Pending Sender IDs Needing Review=${pendingSenderIdsCount}, Admin Personal Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}.`;
       } else {
         const senderIdStr = userSenderIdsList.join(', ') || 'None registered yet';
-        databaseContext = `[User Database Context]: User Name=${userName}, Cash Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}, SMS Credit Units=${userWalletObj ? userWalletObj.smsCredit : 0}, Registered Sender IDs=[${senderIdStr}], Total Dispatches Sent=${userSmsCount}, Saved Contacts=${userContactsCount}.`;
+        databaseContext = `[User Database Context]: User Name=${userName}, Email=${userEmail}, Cash Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}, SMS Credit Units=${userWalletObj ? userWalletObj.smsCredit : 0}, Registered Sender IDs=[${senderIdStr}], Total Dispatches Sent=${userSmsCount}, Saved Contacts=${userContactsCount}.`;
       }
     } catch (e) {
       console.warn('[AI DB Fetch Notice]:', e.message);
     }
   }
 
-  // 3. Try Remote LLM APIs (Google Gemini / OpenAI)
+  // 3. Try Gemini & OpenAI Remote APIs
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
 
@@ -157,11 +159,35 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     } catch (e) {}
   }
 
-  // 4. Dynamic Generative Synthesizer (ChatGPT-Style Response for EVERY Prompt)
+  // 4. Dynamic Generative Synthesizer (ChatGPT-Style Response for ALL Prompts - NO repetitive phrases!)
   let responseText = '';
   let actionButtons = [];
 
-  // A. Admin Overall System Stats Questions
+  // A. "do you know me" / "you know me" / "who am i"
+  if (lower.includes('know me') || lower.includes('who am i') || lower.includes('my profile')) {
+    if (user && user._id) {
+      responseText = `Yes, I do! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance and ${userSmsCount} dispatches sent.`;
+    } else {
+      responseText = `You are currently visiting FasReach as a guest user! Once you log in, I will have your personal account dispatches and balance ready.`;
+    }
+    return { responseText, actionButtons };
+  }
+
+  // B. "what this site for" / "what is this site" / "what is this platform"
+  if (
+    lower.includes('what this site for') ||
+    lower.includes('what is this site') ||
+    lower.includes('what is this platform') ||
+    lower.includes('what do you do here') ||
+    lower.includes('what is done here')
+  ) {
+    responseText = `FasReach is an enterprise Bulk SMS platform built for businesses, churches, and organizations to broadcast fast, high-speed text messages to single recipients or large contact lists.\n\nYou can upload Excel contact spreadsheets, register custom brand Sender ID headers, schedule campaigns for future dates, and track real-time delivery reports!`;
+    actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
+    actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
+    return { responseText, actionButtons };
+  }
+
+  // C. Admin Overall System Stats Questions
   if (
     isSuperAdmin &&
     (lower.includes('user') || lower.includes('overall') || lower.includes('system') || lower.includes('how many') || lower.includes('stat') || lower.includes('total'))
@@ -172,7 +198,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // B. Name Introductions
+  // D. Name Introductions
   if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is') || lower.includes('call me')) {
     const namePart = cleanPrompt.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
     const capName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : userName;
@@ -180,7 +206,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // C. Details / Account Stats Queries
+  // E. Details / Account Stats Queries
   if (lower.includes('detail') || lower.includes('my info') || lower.includes('account info') || lower.includes('my account')) {
     if (isSuperAdmin) {
       responseText = `Here are your Super Admin account details:\n\n• Role: Super Admin\n• Personal Cash Balance: GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}\n• Total Platform Users: ${totalUsersCount}\n• Total System Dispatches: ${totalSystemSmsCount}\n• Pending Sender IDs: ${pendingSenderIdsCount}`;
@@ -192,34 +218,14 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // D. Balance & Wallet
+  // F. Balance & Wallet
   if (lower.includes('balance') || lower.includes('wallet') || lower.includes('credit')) {
     responseText = `Your current balance is GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} with ${userWalletObj ? userWalletObj.smsCredit : 0} SMS credit units.\n\nYou can top up anytime via Paystack (MTN Mobile Money, Telecel Cash, AirtelTigo, Visa/Mastercard) at 0.04 GHS per 155-character SMS unit.`;
     actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
     return { responseText, actionButtons };
   }
 
-  // E. Speed & Delivery Performance
-  if (lower.includes('speed') || lower.includes('how fast') || lower.includes('delivery time')) {
-    responseText = `FasReach SMS delivery is extremely fast—most text messages arrive on the recipient's handset within 3 to 10 seconds through direct telco routing.`;
-    return { responseText, actionButtons };
-  }
-
-  // F. Sender IDs
-  if (lower.includes('sender id') || lower.includes('header') || lower.includes('brand name')) {
-    responseText = `A custom Sender ID lets your business name show up as the header on recipients' phones (up to 11 characters, e.g. MYBRAND). Newly registered Sender IDs enter Pending Approval status and are reviewed promptly.`;
-    actionButtons.push({ label: 'Custom Sender IDs', route: '/sender-ids', actionType: 'navigate' });
-    return { responseText, actionButtons };
-  }
-
-  // G. Excel / CSV Contacts
-  if (lower.includes('excel') || lower.includes('csv') || lower.includes('import') || lower.includes('contact')) {
-    responseText = `You can upload Excel (.xlsx/.xls) or CSV contact spreadsheets on the Contacts page or Send SMS page. Ensure columns include phone, name, and groupName.`;
-    actionButtons.push({ label: 'Contacts Directory', route: '/contacts', actionType: 'navigate' });
-    return { responseText, actionButtons };
-  }
-
-  // H. Greetings
+  // G. Greetings
   if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
     responseText = `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`;
     return { responseText, actionButtons };
@@ -235,10 +241,9 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // I. Universal ChatGPT-Style Dynamic Response Synthesizer for ANY OTHER Question
-  responseText = `That's a great question! Regarding "${cleanPrompt}":\n\nAs your FasReach Support Assistant, I am here to help you answer any questions, draft SMS messages, check your balance, or navigate the platform. Let me know what specific details you would like me to cover!`;
+  // H. Clean Natural Dynamic Response (NO repeated "I hear you!" text!)
+  responseText = `I understand! Regarding "${cleanPrompt}":\n\nI am here to help you answer any questions, draft SMS messages, check your balance, or manage your Sender IDs. What specific details would you like me to assist you with?`;
   actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
-  actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
 
   return { responseText, actionButtons };
 };
