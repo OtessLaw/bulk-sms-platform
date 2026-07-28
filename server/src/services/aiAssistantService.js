@@ -12,7 +12,7 @@ const SYSTEM_PROMPT = `You are Nova, an intelligent, empathetic AI Support Emplo
 DATABASE PRIVACY & SCOPING RULES
 =======================================================
 1. REGULAR USERS: When a user asks about account data (balance, sender IDs, contact count, sent SMS, dispatches), ONLY answer using THAT SPECIFIC USER'S DATABASE RECORDS provided in the [User Database Context]. NEVER share or leak another user's data.
-2. ADMIN / SUPER ADMIN USERS: If the user is an Admin or Super Admin, you have overall system-wide access and can provide total system stats (total platform users, total system SMS, pending sender IDs, platform revenue) provided in the [Admin System Database Context].
+2. ADMIN / SUPER ADMIN USERS: If the user is an Admin or Super Admin, you have overall system-wide access and MUST provide total system stats (total platform users, total system SMS, pending sender IDs, platform revenue) provided in the [Admin System Database Context].
 
 =======================================================
 FASREACH PLATFORM KNOWLEDGE BASE
@@ -38,8 +38,8 @@ const RUNTIME_DEFAULT_KEY = Buffer.from('QVEuQWI4Uk42SWFGd0Z6bGJKYTNCMVpVWTZ0b3Z
 exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId }) => {
   const cleanPrompt = (prompt || '').trim();
   const lower = cleanPrompt.toLowerCase();
-  const userName = user?.name ? user.name.split(' ')[0] : 'there';
-  const isSuperAdmin = user?.role === 'Super Admin' || user?.role === 'Admin';
+  let userName = user?.name ? user.name.split(' ')[0] : 'there';
+  let isSuperAdmin = false;
 
   // 1. Confidentiality Firewall
   if (
@@ -59,32 +59,38 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     };
   }
 
-  // 2. Fetch User-Scoped or Admin Overall Database Context
+  // 2. Fetch Real-time Database Stats & Determine Admin Role
   let databaseContext = '';
+  let totalUsersCount = 0;
+  let totalSystemSmsCount = 0;
+  let pendingSenderIdsCount = 0;
+  let userWalletObj = null;
 
   if (user && user._id) {
     try {
-      if (isSuperAdmin) {
-        // ADMIN OVERALL ACCESS
-        const totalUsers = await User.countDocuments();
-        const totalSystemSms = await SmsLog.countDocuments();
-        const pendingSenderIds = await SenderId.countDocuments({ status: 'Pending Approval' });
-        const userWallet = await Wallet.findOne({ userId: user._id });
+      const dbUserDoc = await User.findById(user._id);
+      if (dbUserDoc) {
+        userName = dbUserDoc.name ? dbUserDoc.name.split(' ')[0] : userName;
+        isSuperAdmin = dbUserDoc.role === 'Super Admin' || dbUserDoc.role === 'Admin';
+      }
 
-        databaseContext = `[Admin System Database Context]: User Role=${user.role}, Total Platform Users=${totalUsers}, Total System SMS Sent=${totalSystemSms}, Pending Sender IDs Needing Review=${pendingSenderIds}, Admin Personal Wallet=GHS ${userWallet ? userWallet.balance.toFixed(2) : '0.00'}.`;
+      totalUsersCount = await User.countDocuments();
+      totalSystemSmsCount = await SmsLog.countDocuments();
+      pendingSenderIdsCount = await SenderId.countDocuments({ status: 'Pending Approval' });
+      userWalletObj = await Wallet.findOne({ userId: user._id });
+
+      if (isSuperAdmin) {
+        databaseContext = `[Admin System Database Context]: User Role=Super Admin, Total Platform Users=${totalUsersCount}, Total System SMS Sent=${totalSystemSmsCount}, Pending Sender IDs Needing Review=${pendingSenderIdsCount}, Admin Personal Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}.`;
       } else {
-        // REGULAR USER SCOPED DATABASE ACCESS ONLY
-        const userWallet = await Wallet.findOne({ userId: user._id });
         const userSenderIds = await SenderId.find({ userId: user._id }).select('senderId status');
         const userSmsCount = await SmsLog.countDocuments({ userId: user._id });
         const userContactsCount = await Contact.countDocuments({ userId: user._id });
-
         const senderIdList = userSenderIds.map((s) => `${s.senderId} (${s.status})`).join(', ') || 'None registered yet';
 
-        databaseContext = `[User Database Context]: User Name=${userName}, Cash Balance=GHS ${userWallet ? userWallet.balance.toFixed(2) : '0.00'}, SMS Credit Units=${userWallet ? userWallet.smsCredit : 0}, Registered Sender IDs=[${senderIdList}], Total Dispatches Sent=${userSmsCount}, Saved Contacts=${userContactsCount}.`;
+        databaseContext = `[User Database Context]: User Name=${userName}, Cash Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}, SMS Credit Units=${userWalletObj ? userWalletObj.smsCredit : 0}, Registered Sender IDs=[${senderIdList}], Total Dispatches Sent=${userSmsCount}, Saved Contacts=${userContactsCount}.`;
       }
     } catch (e) {
-      console.warn('[AI DB Scoping Notice]:', e.message);
+      console.warn('[AI DB Fetch Notice]:', e.message);
     }
   }
 
@@ -132,16 +138,34 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     }
   }
 
-  // 4. Natural Conversational ChatGPT-Style Emergency Fallback Synthesizer
+  // 4. Intelligent Fallback Engine (Answers Admin & User Questions Directly!)
   let responseText = '';
   let actionButtons = [];
+
+  // A. Admin Overall System Questions
+  if (
+    isSuperAdmin &&
+    (lower.includes('user') || lower.includes('overall') || lower.includes('total system') || lower.includes('platform stat') || lower.includes('how many user') || lower.includes('give me some detail') || lower.includes('system detail'))
+  ) {
+    responseText = `As an Admin, here are the overall FasReach platform details:\n\n• Total Platform Users: ${totalUsersCount}\n• Total System SMS Sent: ${totalSystemSmsCount}\n• Pending Sender IDs Needing Review: ${pendingSenderIdsCount}\n• Admin Personal Wallet: GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}\n\nLet me know if you would like specific details on any user account, transaction, or campaign!`;
+    actionButtons.push({ label: 'User Management', route: '/admin/users', actionType: 'navigate' });
+    actionButtons.push({ label: 'System Analytics', route: '/admin/analytics', actionType: 'navigate' });
+    return { responseText, actionButtons };
+  }
+
+  // B. Regular User Specific Questions
+  if (lower.includes('detail') || lower.includes('my detail') || lower.includes('account detail')) {
+    responseText = `Here are your FasReach account details:\n\n• Available Cash Balance: GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}\n• Available SMS Credits: ${userWalletObj ? userWalletObj.smsCredit : 0} Units\n• Pricing Rate: 0.04 GHS per 155-character SMS unit.\n\nWould you like me to open your Wallet or Send SMS page?`;
+    actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
+    return { responseText, actionButtons };
+  }
 
   if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is') || lower.includes('call me')) {
     const namePart = cleanPrompt.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
     const capName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : userName;
     responseText = `Nice to meet you, ${capName}! 👋 How can I help you today?`;
   } else if (lower.includes('balance') || lower.includes('my wallet') || lower.includes('credit')) {
-    responseText = `Your current balance is updated in your account context. Let me know if you'd like to top up via Paystack!`;
+    responseText = `Your current balance is GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} with ${userWalletObj ? userWalletObj.smsCredit : 0} SMS credit units. Would you like to top up via Paystack?`;
     actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
   } else if (lower.includes('what is done here') || lower.includes('what do you do here') || lower.includes('what can i do here')) {
     responseText = `Here on FasReach, you can broadcast single & bulk SMS, upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches, and track real-time delivery reports. What would you like to work on?`;
@@ -150,7 +174,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
   } else if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
     responseText = `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`;
   } else {
-    responseText = `I hear you! How can I best assist you with your question or your FasReach account today?`;
+    responseText = `Regarding your query "${cleanPrompt}": How can I best assist you with your FasReach dispatches, Sender IDs, or wallet balance today?`;
   }
 
   return { responseText, actionButtons };
