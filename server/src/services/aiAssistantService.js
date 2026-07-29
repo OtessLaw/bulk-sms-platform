@@ -5,9 +5,9 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 
-// System Instructions: Act 100% like ChatGPT (Native LLM Intelligence for ANY question in the world!)
-const SYSTEM_PROMPT = `You are Nova, an intelligent, empathetic AI Assistant (like ChatGPT) for FasReach Enterprise Bulk SMS Platform.
-You possess native general intelligence and answer ANY question the user asks clearly, naturally, and knowledgeably—whether it is about SMS marketing, writing text messages, general knowledge, business advice, greetings, technical guidance, or any random question on earth.
+// Comprehensive System Instructions for ChatGPT-Style Customer Service Employee
+const SYSTEM_PROMPT = `You are Nova, an intelligent, empathetic AI Support Representative for FasReach Enterprise Bulk SMS Platform.
+You behave 100% like ChatGPT. You are warm, conversational, knowledgeable, and answer ANY question the user asks clearly, naturally, and flexibly.
 
 =======================================================
 DATABASE PRIVACY & SCOPING RULES
@@ -30,7 +30,7 @@ FASREACH PLATFORM KNOWLEDGE BASE
 BEHAVIORAL RULES
 =======================================================
 1. Answer ANY question in natural, helpful plain text (like ChatGPT).
-2. Never sound canned, robotic, or pre-scripted.
+2. Never sound canned or pre-scripted.
 3. STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."
 4. If the user introduces themselves (e.g. "am lawrence"), greet them warmly by name!`;
 
@@ -131,7 +131,9 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
           if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
           return { responseText: text, actionButtons };
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn(`[Gemini API Error for ${modelName}]:`, e.response ? JSON.stringify(e.response.data) : e.message);
+      }
     }
   }
 
@@ -157,7 +159,9 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
         if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
         return { responseText: text, actionButtons };
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[OpenAI API Error]:', e.response ? JSON.stringify(e.response.data) : e.message);
+    }
   }
 
   if (groqApiKey) {
@@ -182,14 +186,15 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
         if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
         return { responseText: text, actionButtons };
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[Groq API Error]:', e.response ? JSON.stringify(e.response.data) : e.message);
+    }
   }
 
-  // 4. Generative Context-Aware ChatGPT Synthesizer (Zero canned rule strings!)
+  // 4. Dynamic Fallback Synthesizer
   let responseText = '';
   let actionButtons = [];
 
-  // A. Admin Overall Platform Questions
   if (
     isSuperAdmin &&
     (lower.includes('user') || lower.includes('overall') || lower.includes('system') || lower.includes('how many') || lower.includes('stat') || lower.includes('total'))
@@ -200,7 +205,6 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // B. User Profile / "who am i" / "do you know me"
   if (lower.includes('know me') || lower.includes('who am i') || lower.includes('my profile')) {
     if (user && user._id) {
       responseText = `Yes, I do! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance, ${userSenderIdsList.length} registered Sender IDs, and ${userSmsCount} dispatches sent.`;
@@ -210,7 +214,6 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // C. Platform Overview / "what is this site for"
   if (
     lower.includes('what this site for') ||
     lower.includes('what is this site') ||
@@ -224,7 +227,6 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // D. Name Introductions
   if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is') || lower.includes('call me')) {
     const namePart = cleanPrompt.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
     const capName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : userName;
@@ -232,21 +234,19 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // E. Balance & Wallet
   if (lower.includes('balance') || lower.includes('wallet') || lower.includes('credit')) {
     responseText = `Your current balance is GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} with ${userWalletObj ? userWalletObj.smsCredit : 0} SMS credit units.\n\nYou can top up anytime via Paystack (MTN Mobile Money, Telecel Cash, AirtelTigo, Visa/Mastercard) at 0.04 GHS per 155-character SMS unit.`;
     actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
     return { responseText, actionButtons };
   }
 
-  // F. Greetings
   if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
     responseText = `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`;
     return { responseText, actionButtons };
   }
 
-  // G. Dynamic Generative ChatGPT Synthesizer for ANY OTHER QUESTION IN THE WORLD
-  responseText = `I'd be happy to help with that! Regarding your query about "${cleanPrompt}":\n\nAs your FasReach AI Support Representative, I am here to help answer questions, draft SMS dispatches, check your balance, or manage your Sender IDs. Let me know what specific details you would like to explore further!`;
+  // Fallback notice explaining API key requirement for 100% LLM mode
+  responseText = `I understand! Regarding "${cleanPrompt}":\n\nTo enable full unlimited ChatGPT responses for every question on earth, please add a valid free Google Gemini API Key (starting with AIzaSy...) or Groq API Key (starting with gsk_...) to your server Environment settings!`;
   actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
 
   return { responseText, actionButtons };
