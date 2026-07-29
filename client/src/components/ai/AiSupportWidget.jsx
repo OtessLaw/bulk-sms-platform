@@ -316,8 +316,12 @@ export default function AiSupportWidget() {
                 {loading && (
                   <div className="flex justify-start">
                     <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.2)] text-white p-3 rounded-2xl flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-[#D4AF6A] rounded-full animate-ping" />
-                      <span className="text-xs font-semibold text-[#D4AF6A]">FasReach AI is thinking...</span>
+                      <div className="flex items-center space-x-1">
+                        <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce [animation-delay:-0.3s]" />
+                        <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce [animation-delay:-0.15s]" />
+                        <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce" />
+                      </div>
+                      <span className="text-xs font-semibold text-[#D4AF6A]">Nova is typing...</span>
                     </div>
                   </div>
                 )}
