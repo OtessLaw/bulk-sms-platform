@@ -38,7 +38,7 @@ export default function AiSupportWidget() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Add Keyboard Shortcut (Alt + K) to toggle AI Assistant
+  // Keyboard Shortcut (Alt + K) to toggle AI Assistant
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.altKey && e.key.toLowerCase() === 'k') {
@@ -109,26 +109,13 @@ export default function AiSupportWidget() {
         ]);
       }
     } catch (err) {
-      // Natural human fallback for offline/guest network states
-      const lower = queryText.toLowerCase();
-      let fallbackText = `I hear you! How can I best assist you with your FasReach dispatches, Sender IDs, or wallet top-up today?`;
-      
-      if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is')) {
-        const name = queryText.replace(/^(am|i am|my name is)\s+/i, '').trim();
-        const capName = name ? name.charAt(0).toUpperCase() + name.slice(1) : 'there';
-        fallbackText = `Nice to meet you, ${capName}! 👋 How can I help you today?`;
-      } else if (lower.includes('what is done here') || lower.includes('what do you do')) {
-        fallbackText = `Here on FasReach, you can broadcast single & bulk SMS, upload Excel contact lists, register custom brand Sender ID headers, schedule dispatches, and track real-time delivery reports. What would you like to work on?`;
-      } else if (lower.includes('how are u') || lower.includes('how are you')) {
-        fallbackText = `I'm doing well, thank you for asking! How can I help you today?`;
-      }
-
+      console.error('[AI Chat Network Notice]:', err);
       setMessages((prev) => [
         ...prev,
         {
           id: `ai_fallback_${Date.now()}`,
           sender: 'assistant',
-          content: fallbackText,
+          content: `Regarding "${queryText}": I am here to help answer any questions, draft SMS dispatches, check your balance, or manage your Sender IDs. How can I assist you further?`,
           actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
         },
       ]);
