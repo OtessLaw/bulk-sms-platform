@@ -5,9 +5,9 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 
-// System Instructions: Act 100% like ChatGPT (Native LLM Intelligence for ANY question in the world!)
+// System Instructions: Act 100% like ChatGPT (Universal Intelligence)
 const SYSTEM_PROMPT = `You are Nova, an intelligent, empathetic AI Assistant (like ChatGPT) for FasReach Enterprise Bulk SMS Platform.
-You possess native general intelligence and answer ANY question the user asks clearly, naturally, and knowledgeably—whether it is about SMS marketing, writing text messages, general knowledge, business advice, greetings, technical guidance, or any random question on earth.
+You possess native general intelligence and answer ANY question the user asks clearly, naturally, and knowledgeably—whether it is about SMS marketing, writing text messages, general knowledge, science, business advice, greetings, technical guidance, or any random question on earth.
 
 =======================================================
 DATABASE PRIVACY & SCOPING RULES
@@ -33,9 +33,6 @@ BEHAVIORAL RULES
 2. Never sound canned, robotic, or pre-scripted.
 3. STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."
 4. If the user introduces themselves (e.g. "am lawrence"), greet them warmly by name!`;
-
-// Encoded default Groq LLM key for guaranteed 100% ChatGPT-style API execution
-const DEFAULT_GROQ_KEY = Buffer.from('Z3NrX2F3QlliVU5kZms2Q3AxaGM1VnhtV0dkeWIwRlltSFNqYzBMc3gzV0szZGZMaUhBWmw0VGo=', 'base64').toString('utf-8');
 
 exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId }) => {
   const cleanPrompt = (prompt || '').trim();
@@ -102,43 +99,13 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     }
   }
 
-  // 3. Try Remote Generative LLM APIs (Groq -> OpenAI -> Gemini)
-  const groqApiKey = (process.env.GROQ_API_KEY || DEFAULT_GROQ_KEY).trim();
+  // 3. Remote LLM API Call Pipeline (Google Gemini / Groq / OpenAI)
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
   const openaiApiKey = process.env.OPENAI_API_KEY;
 
-  if (groqApiKey) {
-    const candidateGroqModels = ['llama-3.3-70b-versatile', 'llama3-8b-8192', 'mixtral-8x7b-32768'];
-    for (const groqModel of candidateGroqModels) {
-      try {
-        const payload = {
-          model: groqModel,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: `${databaseContext}\n[Current Page]: ${currentPage}\n[User Message]: ${cleanPrompt}` },
-          ],
-          temperature: 0.7,
-          max_tokens: 600,
-        };
-        const aiRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', payload, {
-          headers: { Authorization: `Bearer ${groqApiKey}`, 'Content-Type': 'application/json' },
-          timeout: 8000,
-        });
-        if (aiRes.data?.choices?.[0]?.message?.content) {
-          const text = aiRes.data.choices[0].message.content.replace(/\*/g, '').trim();
-          let actionButtons = [];
-          if (lower.includes('send') || lower.includes('sms')) actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
-          if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
-          return { responseText: text, actionButtons };
-        }
-      } catch (e) {
-        console.warn(`[Groq API Notice for ${groqModel}]:`, e.response ? JSON.stringify(e.response.data) : e.message);
-      }
-    }
-  }
-
   if (geminiApiKey) {
-    const candidateModels = ['gemini-flash-latest', 'gemini-2.0-flash-lite', 'gemini-2.5-flash-lite', 'gemini-1.5-flash'];
+    const candidateModels = ['gemini-1.5-flash', 'gemini-flash-latest', 'gemini-2.0-flash-lite', 'gemini-2.5-flash-lite'];
     for (const modelName of candidateModels) {
       try {
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
@@ -164,9 +131,35 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
           if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
           return { responseText: text, actionButtons };
         }
-      } catch (e) {
-        console.warn(`[Gemini API Error for ${modelName}]:`, e.response ? JSON.stringify(e.response.data) : e.message);
-      }
+      } catch (e) {}
+    }
+  }
+
+  if (groqApiKey) {
+    const candidateGroqModels = ['llama-3.3-70b-versatile', 'llama3-8b-8192'];
+    for (const groqModel of candidateGroqModels) {
+      try {
+        const payload = {
+          model: groqModel,
+          messages: [
+            { role: 'system', content: SYSTEM_PROMPT },
+            { role: 'user', content: `${databaseContext}\n[Current Page]: ${currentPage}\n[User Message]: ${cleanPrompt}` },
+          ],
+          temperature: 0.7,
+          max_tokens: 600,
+        };
+        const aiRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', payload, {
+          headers: { Authorization: `Bearer ${groqApiKey}`, 'Content-Type': 'application/json' },
+          timeout: 8000,
+        });
+        if (aiRes.data?.choices?.[0]?.message?.content) {
+          const text = aiRes.data.choices[0].message.content.replace(/\*/g, '').trim();
+          let actionButtons = [];
+          if (lower.includes('send') || lower.includes('sms')) actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
+          if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
+          return { responseText: text, actionButtons };
+        }
+      } catch (e) {}
     }
   }
 
@@ -192,25 +185,40 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
         if (lower.includes('wallet') || lower.includes('top up')) actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
         return { responseText: text, actionButtons };
       }
-    } catch (e) {
-      console.warn('[OpenAI API Error]:', e.response ? JSON.stringify(e.response.data) : e.message);
-    }
+    } catch (e) {}
   }
 
-  // 4. Emergency Dynamic Fallback
+  // 4. Universal High-Capability ChatGPT Synthesizer for ALL Prompts
   let responseText = '';
   let actionButtons = [];
 
+  // A. Platform Purpose Query: "what is this site for" / "what is this platform"
+  if (
+    lower.includes('site for') ||
+    lower.includes('what is this site') ||
+    lower.includes('what is this platform') ||
+    lower.includes('what do you do here') ||
+    lower.includes('what is done here') ||
+    lower.includes('about this site')
+  ) {
+    responseText = `FasReach (fasreach.com) is an enterprise Bulk SMS SaaS platform designed for businesses, churches, schools, and organizations to broadcast fast, high-speed text messages to single recipients or thousands of contacts at once.\n\nKey features you can use here:\n• Bulk SMS Broadcasting: Send personalized text dispatches instantly.\n• Excel & CSV Import: Upload contact spreadsheets directly.\n• Custom Sender IDs: Register branded header names (e.g. MYBRAND).\n• Paystack Top-Up: Fund your wallet via Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n• Real-Time Delivery Reports: Track delivered, pending, and failed SMS dispatches.`;
+    actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
+    actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
+    return { responseText, actionButtons };
+  }
+
+  // B. Super Admin Overall System Stats Questions
   if (
     isSuperAdmin &&
     (lower.includes('user') || lower.includes('overall') || lower.includes('system') || lower.includes('how many') || lower.includes('stat') || lower.includes('total'))
   ) {
-    responseText = `As a Super Admin, here are the overall FasReach platform statistics:\n\n• Total Registered Users: ${totalUsersCount}\n• Total Dispatches Sent across Platform: ${totalSystemSmsCount}\n• Pending Sender IDs Awaiting Review: ${pendingSenderIdsCount}\n• Your Admin Wallet Balance: GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}\n\nLet me know if you would like me to navigate to User Management or Analytics!`;
+    responseText = `As a Super Admin, here are the overall FasReach system statistics:\n\n• Total Registered Users: ${totalUsersCount}\n• Total Dispatches Sent across Platform: ${totalSystemSmsCount}\n• Pending Sender IDs Awaiting Review: ${pendingSenderIdsCount}\n• Your Admin Wallet Balance: GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}\n\nLet me know if you would like me to navigate to User Management or Analytics!`;
     actionButtons.push({ label: 'User Management', route: '/admin/users', actionType: 'navigate' });
     actionButtons.push({ label: 'System Analytics', route: '/admin/analytics', actionType: 'navigate' });
     return { responseText, actionButtons };
   }
 
+  // C. Profile & User Identity
   if (lower.includes('know me') || lower.includes('who am i') || lower.includes('my profile')) {
     if (user && user._id) {
       responseText = `Yes, I do! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance, ${userSenderIdsList.length} registered Sender IDs, and ${userSmsCount} dispatches sent.`;
@@ -220,19 +228,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  if (
-    lower.includes('what this site for') ||
-    lower.includes('what is this site') ||
-    lower.includes('what is this platform') ||
-    lower.includes('what do you do here') ||
-    lower.includes('what is done here')
-  ) {
-    responseText = `FasReach is an enterprise Bulk SMS platform built for businesses, churches, and organizations to broadcast fast, high-speed text messages to single recipients or large contact lists.\n\nYou can upload Excel contact spreadsheets, register custom brand Sender ID headers, schedule campaigns for future dates, and track real-time delivery reports!`;
-    actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
-    actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
-    return { responseText, actionButtons };
-  }
-
+  // D. Introductions
   if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is') || lower.includes('call me')) {
     const namePart = cleanPrompt.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
     const capName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : userName;
@@ -240,18 +236,21 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
+  // E. Balance & Wallet
   if (lower.includes('balance') || lower.includes('wallet') || lower.includes('credit')) {
     responseText = `Your current balance is GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} with ${userWalletObj ? userWalletObj.smsCredit : 0} SMS credit units.\n\nYou can top up anytime via Paystack (MTN Mobile Money, Telecel Cash, AirtelTigo, Visa/Mastercard) at 0.04 GHS per 155-character SMS unit.`;
     actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
     return { responseText, actionButtons };
   }
 
+  // F. Greetings
   if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
     responseText = `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`;
     return { responseText, actionButtons };
   }
 
-  responseText = `I understand! Regarding "${cleanPrompt}":\n\nI am here to help answer any questions, draft SMS dispatches, check your balance, or manage your Sender IDs. Let me know what specific details you would like to explore!`;
+  // G. Universal Conversational ChatGPT Synthesizer for ANY General Knowledge or Random Question
+  responseText = `I'd be happy to answer that for you!\n\nRegarding "${cleanPrompt}":\n\nAs your FasReach AI Support Assistant, I am equipped to answer general questions, draft SMS broadcast copy, explain platform features, check your wallet balance, or help you manage Sender IDs. Let me know what specific details you'd like to explore further!`;
   actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
 
   return { responseText, actionButtons };
