@@ -43,24 +43,32 @@ exports.getSystemStatus = async (req, res, next) => {
 exports.toggleGlobalAiSupport = async (req, res, next) => {
   try {
     const { enabled } = req.body;
+    const isEnabled = Boolean(enabled);
+
     let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
     if (!setting) {
       setting = await SystemSetting.create({
         key: 'globalAiSupportEnabled',
-        value: Boolean(enabled),
+        value: isEnabled,
         description: 'Global AI Support status (ON when admin is away, OFF when admin is around for live human support)',
       });
     } else {
-      setting.value = Boolean(enabled);
+      setting.value = isEnabled;
       await setting.save();
     }
 
+    // Update all active conversations supportMode according to Master Switch
+    await AiConversation.updateMany(
+      {},
+      { $set: { supportMode: isEnabled ? 'AI' : 'HUMAN', isEscalated: !isEnabled } }
+    );
+
     res.status(200).json({
       success: true,
-      message: setting.value
-        ? 'AI Support turned ON (Perincle AI will handle questions while you are away)!'
+      message: isEnabled
+        ? 'Perincle AI is now ACTIVE for all customers! (AI handles questions while you are away)'
         : 'AI Support turned OFF (You are online! All customer messages route directly to you for live human replies)',
-      data: { globalAiSupportEnabled: setting.value },
+      data: { globalAiSupportEnabled: isEnabled },
     });
   } catch (error) {
     next(error);
@@ -99,12 +107,12 @@ exports.processChat = async (req, res, next) => {
 
     const conversationId = conversation ? conversation.conversationId : (reqConvId || `CONV_${user._id ? user._id : Date.now()}`);
 
-    // Check Global AI Support Setting (Admin around vs Admin away)
+    // Check Master Global AI Support Setting
     let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
     const globalAiEnabled = setting ? Boolean(setting.value) : true;
 
-    // If Admin turned off AI, conversation MUST remain in HUMAN mode permanently
-    const isHumanMode = !globalAiEnabled || (conversation && conversation.supportMode === 'HUMAN');
+    // Global AI setting strictly controls whether AI or Human mode is active
+    const isHumanMode = !globalAiEnabled;
 
     // Save or update Conversation
     if (!conversation) {
@@ -120,10 +128,8 @@ exports.processChat = async (req, res, next) => {
       if (user && user._id && !conversation.userId) {
         conversation.userId = user._id;
       }
-      if (isHumanMode) {
-        conversation.supportMode = 'HUMAN';
-        conversation.isEscalated = true;
-      }
+      conversation.supportMode = isHumanMode ? 'HUMAN' : 'AI';
+      conversation.isEscalated = isHumanMode;
       conversation.updatedAt = new Date();
       await conversation.save();
     }
