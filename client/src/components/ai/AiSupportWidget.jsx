@@ -173,7 +173,7 @@ export default function AiSupportWidget() {
 
     toast.loading('Connecting to Live Human Support...', { id: 'human-toast' });
     try {
-      const res = await API.post('/api/ai/escalate', {
+      const res = await API.post('/ai/escalate', {
         conversationId: conversationId || `CONV_${Date.now()}`,
         pageContext: location.pathname,
       });
