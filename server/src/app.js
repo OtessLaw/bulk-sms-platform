@@ -31,13 +31,34 @@ app.use(
     frameguard: { action: 'deny' }, // Clickjacking protection
     noSniff: true, // MIME-type sniffing protection
     xssFilter: true, // XSS filter protection
+    hsts: {
+      maxAge: 31536000, // 1 year HTTPS enforcement
+      includeSubDomains: true,
+      preload: true,
+    },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   })
 );
 
-// 2. CORS Security Policy
+// 2. CORS Security Policy — Only allow FasReach frontend origins
+const allowedOrigins = [
+  'https://bulk-sms-platform.vercel.app',
+  'https://fasreach.com',
+  'https://www.fasreach.com',
+  'http://localhost:5173',
+  'http://localhost:3000',
+];
+
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      // Allow server-to-server calls (no origin) and whitelisted frontends
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('CORS: Request origin not allowed'));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],

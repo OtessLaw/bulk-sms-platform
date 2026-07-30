@@ -1,7 +1,12 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bulk_sms_jwt_secret_key_2026';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '1d';
+
+if (!JWT_SECRET) {
+  throw new Error('[FATAL] JWT_SECRET environment variable is not set. Server cannot start securely.');
+}
+
 
 const generateAccessToken = (payload) => {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRE });
