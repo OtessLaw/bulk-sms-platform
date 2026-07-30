@@ -56,7 +56,7 @@ export default function AiSupportWidget() {
       const welcomeMsg = {
         id: 'welcome_1',
         sender: 'assistant',
-        content: `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`,
+        content: `Hello 👋\n\nI am Perincle, your FasReach AI Assistant.\n\nHow can I help you today?`,
         pageContext: location.pathname,
       };
       setMessages([welcomeMsg]);
@@ -213,7 +213,7 @@ export default function AiSupportWidget() {
           className="group relative bg-gradient-to-r from-[#D4AF6A] via-[#E7D3A4] to-[#B88E3E] text-black p-3.5 rounded-full shadow-[0_10px_25px_rgba(212,175,106,0.4)] hover:scale-105 transition-all flex items-center space-x-2.5 font-bold text-xs"
         >
           <Bot className="w-6 h-6 shrink-0 animate-bounce" />
-          <span className="hidden sm:inline font-bold pr-1">FasReach Support AI</span>
+          <span className="hidden sm:inline font-bold pr-1">Perincle AI Support</span>
           {hasUnread && (
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-ping" />
           )}
@@ -235,7 +235,7 @@ export default function AiSupportWidget() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  FasReach Support AI <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
+                  Perincle AI Support <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
                 </h3>
                 <span className="text-[10px] text-[#AEB4BC] flex items-center gap-1">
                   <Compass className="w-3 h-3 text-[#D4AF6A]" /> Page: {location.pathname}
@@ -321,7 +321,7 @@ export default function AiSupportWidget() {
                         <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce [animation-delay:-0.15s]" />
                         <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce" />
                       </div>
-                      <span className="text-xs font-semibold text-[#D4AF6A]">Nova is typing...</span>
+                      <span className="text-xs font-semibold text-[#D4AF6A]">Perincle is typing...</span>
                     </div>
                   </div>
                 )}
