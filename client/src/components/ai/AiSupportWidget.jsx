@@ -472,7 +472,7 @@ export default function AiSupportWidget() {
                     value={inputPrompt}
                     onChange={(e) => setInputPrompt(e.target.value)}
                     placeholder={supportMode === 'HUMAN' ? 'Type message to Live Human Support...' : 'Ask Live Chat... (Alt + K)'}
-                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                   />
 
                   <button
