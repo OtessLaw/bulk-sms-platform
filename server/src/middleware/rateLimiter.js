@@ -1,21 +1,22 @@
 const rateLimit = require('express-rate-limit');
 
-// 1. General API Rate Limiter (Max 100 requests per 15 minutes per IP)
+// 1. General API Rate Limiter (High limit to allow live support polling without blocking users/admins)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100,
+  max: 5000,
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => req.originalUrl && req.originalUrl.includes('/api/ai'),
   message: {
     success: false,
-    message: 'Too many requests from this IP. Please try again after 15 minutes.',
+    message: 'Too many requests from this IP. Please try again after a few minutes.',
   },
 });
 
-// 2. Strict Auth Rate Limiter (Max 20 login/register attempts per 15 minutes)
+// 2. Strict Auth Rate Limiter (Max 100 login/register attempts per 15 minutes)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -24,15 +25,15 @@ const authLimiter = rateLimit({
   },
 });
 
-// 3. SMS Dispatch Rate Limiter (Max 30 SMS dispatches per minute per IP)
+// 3. SMS Dispatch Rate Limiter (Max 120 SMS dispatches per minute per IP)
 const smsLimiter = rateLimit({
   windowMs: 1 * 60 * 1000, // 1 minute
-  max: 30,
+  max: 120,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'SMS dispatch rate limit exceeded. Maximum 30 broadcasts per minute permitted.',
+    message: 'SMS dispatch rate limit exceeded. Maximum 120 broadcasts per minute permitted.',
   },
 });
 
