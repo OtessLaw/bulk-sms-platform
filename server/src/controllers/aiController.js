@@ -238,17 +238,16 @@ exports.adminReplyToUser = async (req, res, next) => {
   }
 };
 
-// @desc    Get All Live Escalated Chats for Admin Inbox
+// @desc    Get All Live Chats & User Support Conversations for Admin Control Panel
 // @route   GET /api/admin/ai/live-chats
 exports.getLiveSupportChats = async (req, res, next) => {
   try {
-    const escalatedConvs = await AiConversation.find({
-      $or: [{ supportMode: 'HUMAN' }, { isEscalated: true }, { status: 'Escalated' }],
-    })
+    const allConvs = await AiConversation.find()
       .populate('userId', 'name email mobileNumber')
-      .sort({ updatedAt: -1 });
+      .sort({ supportMode: -1, isEscalated: -1, updatedAt: -1 })
+      .limit(50);
 
-    res.status(200).json({ success: true, data: escalatedConvs });
+    res.status(200).json({ success: true, data: allConvs });
   } catch (error) {
     next(error);
   }

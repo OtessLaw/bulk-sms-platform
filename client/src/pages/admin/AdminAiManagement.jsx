@@ -21,6 +21,7 @@ import {
   ToggleLeft,
   ToggleRight,
   UserCheck,
+  Search,
 } from 'lucide-react';
 
 export default function AdminAiManagement() {
@@ -41,6 +42,7 @@ export default function AdminAiManagement() {
   const [chatMessages, setChatMessages] = useState([]);
   const [replyText, setReplyText] = useState('');
   const [replying, setReplying] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   const [showDocModal, setShowDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({
@@ -53,7 +55,7 @@ export default function AdminAiManagement() {
 
   useEffect(() => {
     fetchAiData();
-    const interval = setInterval(fetchAiData, 8000);
+    const interval = setInterval(fetchAiData, 6000);
     return () => clearInterval(interval);
   }, []);
 
@@ -173,6 +175,21 @@ export default function AdminAiManagement() {
     }
   };
 
+  const filteredChats = liveChats.filter((c) => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return true;
+    const name = c.userId?.name || '';
+    const email = c.userId?.email || '';
+    const mobile = c.userId?.mobileNumber || '';
+    const title = c.title || '';
+    return (
+      name.toLowerCase().includes(term) ||
+      email.toLowerCase().includes(term) ||
+      mobile.toLowerCase().includes(term) ||
+      title.toLowerCase().includes(term)
+    );
+  });
+
   return (
     <div className="space-y-6 max-w-full overflow-hidden font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -203,9 +220,9 @@ export default function AdminAiManagement() {
 
         <div className="bg-[#2A3038]/70 border border-emerald-500/25 rounded-2xl p-4 space-y-1">
           <span className="text-[11px] text-emerald-400 uppercase font-semibold flex items-center gap-1">
-            <Headphones className="w-3.5 h-3.5 text-emerald-400" /> Live Escalated Chats
+            <Headphones className="w-3.5 h-3.5 text-emerald-400" /> Active Customer Chats
           </span>
-          <span className="text-xl font-extrabold text-emerald-400">{analytics.liveEscalatedCount || liveChats.length || 0}</span>
+          <span className="text-xl font-extrabold text-emerald-400">{liveChats.length || 0}</span>
         </div>
 
         <div className="bg-[#2A3038]/70 border border-yellow-500/25 rounded-2xl p-4 space-y-1">
@@ -227,7 +244,7 @@ export default function AdminAiManagement() {
       <div className="bg-[#2A3038]/70 backdrop-blur-md border border-emerald-500/30 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
         <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Headphones className="w-4 h-4 text-emerald-400" /> Super Admin Live Chat Control Panel ({liveChats.length})
+            <Headphones className="w-4 h-4 text-emerald-400" /> Super Admin Live Chat Control Panel ({filteredChats.length})
           </h3>
           <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Bridge Active
@@ -235,11 +252,22 @@ export default function AdminAiManagement() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Active Conversations List */}
+          {/* Active Conversations List with Search Bar */}
           <div className="bg-[#1E232B] rounded-2xl p-3 border border-[rgba(212,175,106,0.15)] space-y-2 max-h-96 overflow-y-auto">
-            <h4 className="text-xs font-bold text-[#AEB4BC] uppercase tracking-wider mb-2">Escalated Customer Chats</h4>
-            {liveChats.length > 0 ? (
-              liveChats.map((c) => (
+            <div className="flex items-center gap-1.5 bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-2.5 py-1.5 mb-2">
+              <Search className="w-3.5 h-3.5 text-[#AEB4BC] shrink-0" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search customer (e.g. Lawrence)..."
+                className="w-full bg-transparent text-xs text-white focus:outline-none placeholder-[#AEB4BC]"
+              />
+            </div>
+
+            <h4 className="text-[11px] font-bold text-[#AEB4BC] uppercase tracking-wider mb-2">Customer Conversations</h4>
+            {filteredChats.length > 0 ? (
+              filteredChats.map((c) => (
                 <div
                   key={c._id}
                   onClick={() => setSelectedChat(c)}
@@ -266,7 +294,7 @@ export default function AdminAiManagement() {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[#AEB4BC] p-4 text-center">No escalated customer chats active right now.</p>
+              <p className="text-xs text-[#AEB4BC] p-4 text-center">No matching customer conversations found.</p>
             )}
           </div>
 
@@ -340,7 +368,7 @@ export default function AdminAiManagement() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-[#AEB4BC] space-y-2">
                 <Headphones className="w-8 h-8 text-[#D4AF6A] opacity-60 animate-pulse" />
-                <p className="text-xs">Select an escalated chat from the left panel to reply live to a customer.</p>
+                <p className="text-xs">Select a customer conversation from the left panel (or search "Lawrence") to reply live.</p>
               </div>
             )}
           </div>
