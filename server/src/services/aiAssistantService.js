@@ -5,16 +5,18 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 
-// System Instructions: Act 100% like ChatGPT with Chat History & Full Sentences
-const SYSTEM_PROMPT = `You are Perincle, an intelligent, empathetic AI Assistant (like ChatGPT) for FasReach Enterprise Bulk SMS Platform.
-You possess native general intelligence and answer ANY question the user asks clearly, naturally, and knowledgeably—whether it is about SMS marketing, writing text messages, general knowledge, science, business advice, greetings, technical guidance, or any random question on earth.
+// System Instructions: Act 100% like a Warm, Empathetic Human Support Expert (ChatGPT)
+const SYSTEM_PROMPT = `You are Perincle, a warm, highly empathetic, and intelligent Human Customer Support Representative for FasReach Enterprise Bulk SMS Platform (fasreach.com).
+You communicate with human warmth, emotional intelligence, and clarity—just like a friendly, expert colleague typing in a live support chat.
 
 =======================================================
-NAME & CONVERSATION RULES
+HUMAN CONVERSATIONAL TRAITS & TONE
 =======================================================
-1. NAME MENTION RULE: Do NOT repeat the user's name in every single message response! Mention the user's name ONLY ONCE at the very beginning of a conversation or when introducing yourself. In follow-up messages, respond directly without repeating their name.
-2. FULL SENTENCE COMPLETION: ALWAYS complete your sentences fully. Never stop mid-sentence or cut off thoughts. Write complete, well-formed paragraphs.
-3. CONVERSATIONAL MEMORY: Pay close attention to previous chat history messages in the conversation to maintain multi-turn context (e.g. pronoun references like "it", "they", "that").
+1. ADAPTIVE HUMAN TONE: Communicate naturally and warmly. Use natural human conversational openers like "Got it!", "Ah, good question!", "No problem at all!", or "I'd be happy to help with that!" when appropriate.
+2. EMPATHY & CLARITY: If the user seems confused or asks for guidance, be extra patient, encouraging, and clear.
+3. SINGLE NAME MENTION RULE: Mention the user's name ONLY ONCE at the start of a conversation or when introducing yourself. In follow-up messages, respond directly without repeating their name.
+4. FULL SENTENCE COMPLETION: ALWAYS complete your sentences fully. Never stop mid-sentence or cut off thoughts.
+5. CONVERSATIONAL MEMORY: Pay close attention to previous chat history messages in the conversation to maintain multi-turn context (e.g. pronoun references like "it", "they", "that").
 
 =======================================================
 DATABASE PRIVACY & SCOPING RULES
@@ -34,11 +36,9 @@ FASREACH PLATFORM KNOWLEDGE BASE
 - Developer REST API: Generate secret API keys for HTTP POST /api/sms/send dispatches.
 
 =======================================================
-BEHAVIORAL RULES
+SECURITY RULES
 =======================================================
-1. Answer ANY question in natural, helpful plain text (like ChatGPT).
-2. Never sound canned, robotic, or pre-scripted.
-3. STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."`;
+STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."`;
 
 exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId, history = [] }) => {
   const cleanPrompt = (prompt || '').trim();
@@ -111,6 +111,15 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     content: h.content || '',
   }));
 
+  // Determine Time-Aware Greeting context
+  const currentHour = new Date().getHours();
+  let timeOfDay = 'day';
+  if (currentHour < 12) timeOfDay = 'morning';
+  else if (currentHour < 17) timeOfDay = 'afternoon';
+  else timeOfDay = 'evening';
+
+  const contextSystemMessage = `${SYSTEM_PROMPT}\n\n${databaseContext}\n[Current Page]: ${currentPage}\n[Time Context]: Good ${timeOfDay}`;
+
   // 3. Remote LLM API Call Pipeline (Google Gemini / Groq / OpenAI)
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const groqApiKey = process.env.GROQ_API_KEY;
@@ -121,12 +130,9 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     for (const modelName of candidateModels) {
       try {
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
-
-        // Construct Gemini Contents Array with Multi-turn Conversation Memory
         const contents = [
-          { role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${databaseContext}\n\n[Current Page]: ${currentPage}` }] },
+          { role: 'user', parts: [{ text: contextSystemMessage }] },
         ];
-
         for (const h of historyMessages) {
           contents.push({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] });
         }
@@ -150,7 +156,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     for (const groqModel of candidateGroqModels) {
       try {
         const messagesPayload = [
-          { role: 'system', content: `${SYSTEM_PROMPT}\n\n${databaseContext}\n[Current Page]: ${currentPage}` },
+          { role: 'system', content: contextSystemMessage },
           ...historyMessages,
           { role: 'user', content: cleanPrompt },
         ];
@@ -174,7 +180,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
   if (openaiApiKey) {
     try {
       const messagesPayload = [
-        { role: 'system', content: `${SYSTEM_PROMPT}\n\n${databaseContext}\n[Current Page]: ${currentPage}` },
+        { role: 'system', content: contextSystemMessage },
         ...historyMessages,
         { role: 'user', content: cleanPrompt },
       ];
@@ -194,11 +200,10 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     } catch (e) {}
   }
 
-  // 4. Universal High-Capability ChatGPT Synthesizer for ALL Prompts
+  // 4. Dynamic Fallback Synthesizer
   let responseText = '';
   let actionButtons = [];
 
-  // A. Platform Purpose Query: "what is this site for" / "what is this platform"
   if (
     lower.includes('site for') ||
     lower.includes('what is this site') ||
@@ -213,7 +218,6 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // B. Super Admin Overall System Stats Questions
   if (
     isSuperAdmin &&
     (lower.includes('user') || lower.includes('overall') || lower.includes('system') || lower.includes('how many') || lower.includes('stat') || lower.includes('total'))
@@ -224,7 +228,6 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // C. Profile & User Identity (No repetitive name calling)
   if (lower.includes('know me') || lower.includes('who am i') || lower.includes('my profile')) {
     if (user && user._id) {
       responseText = `Yes! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance, ${userSenderIdsList.length} registered Sender IDs, and ${userSmsCount} dispatches sent.`;
@@ -234,7 +237,6 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // D. Introductions
   if (lower.startsWith('am ') || lower.startsWith('i am ') || lower.includes('my name is') || lower.includes('call me')) {
     const namePart = cleanPrompt.replace(/^(am|i am|my name is|call me)\s+/i, '').trim();
     const capName = namePart ? namePart.charAt(0).toUpperCase() + namePart.slice(1) : userName;
@@ -242,20 +244,17 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // E. Balance & Wallet
   if (lower.includes('balance') || lower.includes('wallet') || lower.includes('credit')) {
     responseText = `Your current balance is GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} with ${userWalletObj ? userWalletObj.smsCredit : 0} SMS credit units.\n\nYou can top up anytime via Paystack (MTN Mobile Money, Telecel Cash, AirtelTigo, Visa/Mastercard) at 0.04 GHS per 155-character SMS unit.`;
     actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
     return { responseText, actionButtons };
   }
 
-  // F. Greetings
   if (lower === 'hi' || lower === 'hello' || lower === 'hey' || lower === 'good morning' || lower === 'good afternoon' || lower === 'good evening') {
-    responseText = `Hello 👋\n\nWelcome to FasReach.\n\nHow can I help you today?`;
+    responseText = `Hello 👋 Good ${timeOfDay}!\n\nWelcome to FasReach. How can I help you today?`;
     return { responseText, actionButtons };
   }
 
-  // G. Universal Conversational ChatGPT Synthesizer for ANY General Knowledge or Random Question
   responseText = `I'd be happy to answer that for you!\n\nRegarding "${cleanPrompt}":\n\nAs your FasReach AI Support Assistant, I am equipped to answer general questions, draft SMS broadcast copy, explain platform features, check your wallet balance, or help you manage Sender IDs. Let me know what specific details you'd like to explore further!`;
   actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
 

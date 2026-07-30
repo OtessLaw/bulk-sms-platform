@@ -53,10 +53,12 @@ export default function AiSupportWidget() {
   // Initial Welcome Message
   useEffect(() => {
     if (messages.length === 0) {
+      const hour = new Date().getHours();
+      const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
       const welcomeMsg = {
         id: 'welcome_1',
         sender: 'assistant',
-        content: `Hello 👋\n\nI am Perincle, your FasReach AI Assistant.\n\nHow can I help you today?`,
+        content: `Hello 👋 ${timeGreeting}!\n\nI am Perincle, your FasReach AI Assistant.\n\nHow can I help you today?`,
         pageContext: location.pathname,
       };
       setMessages([welcomeMsg]);
