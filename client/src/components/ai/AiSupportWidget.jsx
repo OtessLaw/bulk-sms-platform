@@ -277,7 +277,7 @@ export default function AiSupportWidget() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 font-sans">
+    <div className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-50 font-sans">
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button
@@ -285,12 +285,12 @@ export default function AiSupportWidget() {
             setIsOpen(true);
             setHasUnread(false);
           }}
-          className="group relative bg-gradient-to-r from-[#D4AF6A] via-[#E7D3A4] to-[#B88E3E] text-black p-3.5 rounded-full shadow-[0_10px_25px_rgba(212,175,106,0.4)] hover:scale-105 transition-all flex items-center space-x-2.5 font-bold text-xs"
+          className="group relative bg-gradient-to-r from-[#D4AF6A] via-[#E7D3A4] to-[#B88E3E] text-black p-3 sm:p-3.5 rounded-full shadow-[0_10px_25px_rgba(212,175,106,0.4)] hover:scale-105 transition-all flex items-center space-x-2 font-bold text-xs"
         >
-          <Bot className="w-6 h-6 shrink-0 animate-bounce" />
+          <Bot className="w-5 h-5 sm:w-6 sm:h-6 shrink-0 animate-bounce" />
           <span className="hidden sm:inline font-bold pr-1">Live Support Chat</span>
           {hasUnread && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-ping" />
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 bg-red-500 rounded-full border-2 border-black animate-ping" />
           )}
         </button>
       )}
@@ -299,7 +299,7 @@ export default function AiSupportWidget() {
       {isOpen && (
         <div
           className={`bg-[#1E232B]/95 backdrop-blur-xl border border-[rgba(212,175,106,0.4)] rounded-3xl shadow-[0_25px_50px_rgba(0,0,0,0.8)] flex flex-col transition-all overflow-hidden ${
-            isMinimized ? 'w-80 h-16' : 'w-80 sm:w-96 h-[560px]'
+            isMinimized ? 'w-72 sm:w-80 h-14' : 'w-[calc(100vw-1.5rem)] sm:w-96 max-w-[380px] h-[80vh] max-h-[560px]'
           }`}
         >
           {/* Header Bar */}
