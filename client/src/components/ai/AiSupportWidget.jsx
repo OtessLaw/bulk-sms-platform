@@ -84,11 +84,17 @@ export default function AiSupportWidget() {
     setLoading(true);
 
     try {
-      // Call Real Backend Generative AI Agent Endpoint
+      // Call Real Backend Generative AI Agent Endpoint with Chat History
+      const recentHistory = messages.slice(-8).map((m) => ({
+        role: m.sender === 'user' ? 'user' : 'assistant',
+        content: m.content,
+      }));
+
       const res = await API.post('/ai/chat', {
         prompt: queryText,
         currentPage: location.pathname,
         conversationId,
+        history: recentHistory,
       });
 
       if (res.data && res.data.data?.message) {
@@ -235,7 +241,7 @@ export default function AiSupportWidget() {
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
-                  Perincle AI Support <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
+                  Live Chat <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
                 </h3>
                 <span className="text-[10px] text-[#AEB4BC] flex items-center gap-1">
                   <Compass className="w-3 h-3 text-[#D4AF6A]" /> Page: {location.pathname}

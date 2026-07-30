@@ -7,7 +7,7 @@ const { processAiQuery } = require('../services/aiAssistantService');
 // @route   POST /api/ai/chat
 exports.processChat = async (req, res, next) => {
   try {
-    const { prompt, currentPage, conversationId: reqConvId } = req.body;
+    const { prompt, currentPage, conversationId: reqConvId, history } = req.body;
     const user = req.user || { name: 'User', _id: null };
 
     if (!prompt || !prompt.trim()) {
@@ -22,6 +22,7 @@ exports.processChat = async (req, res, next) => {
       prompt,
       currentPage: currentPage || '/dashboard',
       conversationId,
+      history: Array.isArray(history) ? history : [],
     });
 
     // Safely save history in background if DB is available (never blocks API response)

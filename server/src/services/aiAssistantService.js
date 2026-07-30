@@ -5,9 +5,16 @@ const Message = require('../models/Message');
 const Contact = require('../models/Contact');
 const User = require('../models/User');
 
-// System Instructions: Act 100% like ChatGPT (Universal Intelligence)
+// System Instructions: Act 100% like ChatGPT with Chat History & Full Sentences
 const SYSTEM_PROMPT = `You are Perincle, an intelligent, empathetic AI Assistant (like ChatGPT) for FasReach Enterprise Bulk SMS Platform.
 You possess native general intelligence and answer ANY question the user asks clearly, naturally, and knowledgeably—whether it is about SMS marketing, writing text messages, general knowledge, science, business advice, greetings, technical guidance, or any random question on earth.
+
+=======================================================
+NAME & CONVERSATION RULES
+=======================================================
+1. NAME MENTION RULE: Do NOT repeat the user's name in every single message response! Mention the user's name ONLY ONCE at the very beginning of a conversation or when introducing yourself. In follow-up messages, respond directly without repeating their name.
+2. FULL SENTENCE COMPLETION: ALWAYS complete your sentences fully. Never stop mid-sentence or cut off thoughts. Write complete, well-formed paragraphs.
+3. CONVERSATIONAL MEMORY: Pay close attention to previous chat history messages in the conversation to maintain multi-turn context (e.g. pronoun references like "it", "they", "that").
 
 =======================================================
 DATABASE PRIVACY & SCOPING RULES
@@ -31,10 +38,9 @@ BEHAVIORAL RULES
 =======================================================
 1. Answer ANY question in natural, helpful plain text (like ChatGPT).
 2. Never sound canned, robotic, or pre-scripted.
-3. STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."
-4. If the user introduces themselves (e.g. "am lawrence"), greet them warmly by name!`;
+3. STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."`;
 
-exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId }) => {
+exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId, history = [] }) => {
   const cleanPrompt = (prompt || '').trim();
   const lower = cleanPrompt.toLowerCase();
   let userName = user?.name ? user.name.split(' ')[0] : 'there';
@@ -99,6 +105,12 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     }
   }
 
+  // Build Multi-turn History Messages for LLMs
+  const historyMessages = (history || []).map((h) => ({
+    role: h.role === 'user' ? 'user' : 'assistant',
+    content: h.content || '',
+  }));
+
   // 3. Remote LLM API Call Pipeline (Google Gemini / Groq / OpenAI)
   const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   const groqApiKey = process.env.GROQ_API_KEY;
@@ -109,21 +121,19 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     for (const modelName of candidateModels) {
       try {
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`;
-        const payload = {
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  text: `${SYSTEM_PROMPT}\n\n${databaseContext}\n\n[Current Page]: ${currentPage}\n\n[User Message]: ${cleanPrompt}`,
-                },
-              ],
-            },
-          ],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 600 },
-        };
 
-        const aiRes = await axios.post(apiUrl, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 8000 });
+        // Construct Gemini Contents Array with Multi-turn Conversation Memory
+        const contents = [
+          { role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${databaseContext}\n\n[Current Page]: ${currentPage}` }] },
+        ];
+
+        for (const h of historyMessages) {
+          contents.push({ role: h.role === 'user' ? 'user' : 'model', parts: [{ text: h.content }] });
+        }
+        contents.push({ role: 'user', parts: [{ text: cleanPrompt }] });
+
+        const payload = { contents, generationConfig: { temperature: 0.7, maxOutputTokens: 1200 } };
+        const aiRes = await axios.post(apiUrl, payload, { headers: { 'Content-Type': 'application/json' }, timeout: 10000 });
         if (aiRes.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           const text = aiRes.data.candidates[0].content.parts[0].text.replace(/\*/g, '').trim();
           let actionButtons = [];
@@ -139,18 +149,16 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     const candidateGroqModels = ['llama-3.3-70b-versatile', 'llama3-8b-8192'];
     for (const groqModel of candidateGroqModels) {
       try {
-        const payload = {
-          model: groqModel,
-          messages: [
-            { role: 'system', content: SYSTEM_PROMPT },
-            { role: 'user', content: `${databaseContext}\n[Current Page]: ${currentPage}\n[User Message]: ${cleanPrompt}` },
-          ],
-          temperature: 0.7,
-          max_tokens: 600,
-        };
+        const messagesPayload = [
+          { role: 'system', content: `${SYSTEM_PROMPT}\n\n${databaseContext}\n[Current Page]: ${currentPage}` },
+          ...historyMessages,
+          { role: 'user', content: cleanPrompt },
+        ];
+
+        const payload = { model: groqModel, messages: messagesPayload, temperature: 0.7, max_tokens: 1200 };
         const aiRes = await axios.post('https://api.groq.com/openai/v1/chat/completions', payload, {
           headers: { Authorization: `Bearer ${groqApiKey}`, 'Content-Type': 'application/json' },
-          timeout: 8000,
+          timeout: 10000,
         });
         if (aiRes.data?.choices?.[0]?.message?.content) {
           const text = aiRes.data.choices[0].message.content.replace(/\*/g, '').trim();
@@ -165,18 +173,16 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
 
   if (openaiApiKey) {
     try {
-      const payload = {
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `${databaseContext}\n[Current Page]: ${currentPage}\n[User Message]: ${cleanPrompt}` },
-        ],
-        temperature: 0.7,
-        max_tokens: 600,
-      };
+      const messagesPayload = [
+        { role: 'system', content: `${SYSTEM_PROMPT}\n\n${databaseContext}\n[Current Page]: ${currentPage}` },
+        ...historyMessages,
+        { role: 'user', content: cleanPrompt },
+      ];
+
+      const payload = { model: 'gpt-3.5-turbo', messages: messagesPayload, temperature: 0.7, max_tokens: 1200 };
       const aiRes = await axios.post('https://api.openai.com/v1/chat/completions', payload, {
         headers: { Authorization: `Bearer ${openaiApiKey}`, 'Content-Type': 'application/json' },
-        timeout: 8000,
+        timeout: 10000,
       });
       if (aiRes.data?.choices?.[0]?.message?.content) {
         const text = aiRes.data.choices[0].message.content.replace(/\*/g, '').trim();
@@ -201,7 +207,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     lower.includes('what is done here') ||
     lower.includes('about this site')
   ) {
-    responseText = `FasReach (fasreach.com) is an enterprise Bulk SMS SaaS platform designed for businesses, churches, schools, and organizations to broadcast fast, high-speed text messages to single recipients or thousands of contacts at once.\n\nKey features you can use here:\n• Bulk SMS Broadcasting: Send personalized text dispatches instantly.\n• Excel & CSV Import: Upload contact spreadsheets directly.\n• Custom Sender IDs: Register branded header names (e.g. MYBRAND).\n• Paystack Top-Up: Fund your wallet via Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n• Real-Time Delivery Reports: Track delivered, pending, and failed SMS dispatches.`;
+    responseText = `FasReach (fasreach.com) is an enterprise Bulk SMS SaaS platform designed for businesses, churches, schools, and organizations to broadcast fast, high-speed text messages to single recipients or thousands of contacts at once.\n\nKey features available on your account:\n• Bulk SMS Broadcasting: Send personalized text dispatches instantly.\n• Excel & CSV Import: Upload contact spreadsheets directly.\n• Custom Sender IDs: Register branded header names (e.g. MYBRAND).\n• Paystack Top-Up: Fund your wallet via Mobile Money (MTN, Telecel, AirtelTigo) or Visa/Mastercard.\n• Real-Time Delivery Reports: Track delivered, pending, and failed SMS dispatches.`;
     actionButtons.push({ label: 'Send SMS', route: '/send-sms', actionType: 'navigate' });
     actionButtons.push({ label: 'Go to Wallet', route: '/wallet', actionType: 'navigate' });
     return { responseText, actionButtons };
@@ -218,10 +224,10 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     return { responseText, actionButtons };
   }
 
-  // C. Profile & User Identity
+  // C. Profile & User Identity (No repetitive name calling)
   if (lower.includes('know me') || lower.includes('who am i') || lower.includes('my profile')) {
     if (user && user._id) {
-      responseText = `Yes, I do! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance, ${userSenderIdsList.length} registered Sender IDs, and ${userSmsCount} dispatches sent.`;
+      responseText = `Yes! You are logged in as ${userName} (${userEmail || 'registered customer'}). Your account currently has GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'} in cash balance, ${userSenderIdsList.length} registered Sender IDs, and ${userSmsCount} dispatches sent.`;
     } else {
       responseText = `You are currently visiting FasReach as a guest user! Once you log in, I will have your personal account dispatches, Sender IDs, and balance ready.`;
     }
