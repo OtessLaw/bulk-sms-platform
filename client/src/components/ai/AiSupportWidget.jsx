@@ -53,6 +53,21 @@ export default function AiSupportWidget() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Lock background webpage scrolling on mobile when Live Chat window is open
+  useEffect(() => {
+    if (isOpen && !isMinimized && window.innerWidth < 640) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
+    };
+  }, [isOpen, isMinimized]);
+
   // Persistent 5-Day Chat Thread Initialization
   useEffect(() => {
     const storedConvId = localStorage.getItem('fasreach_chat_conv_id');
@@ -353,7 +368,7 @@ export default function AiSupportWidget() {
           {!isMinimized && (
             <>
               {/* Message List */}
-              <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
+              <div className="flex-1 p-4 overflow-y-auto overscroll-contain touch-pan-y space-y-4 text-xs" style={{ overscrollBehavior: 'contain' }}>
                 {messages.map((m) => {
                   const isUser = m.sender === 'user';
                   const isHumanAdmin = m.sender === 'human_admin';
@@ -485,7 +500,7 @@ export default function AiSupportWidget() {
                     value={inputPrompt}
                     onChange={(e) => setInputPrompt(e.target.value)}
                     placeholder="Type a message... (Alt + K)"
-                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                   />
 
                   <button
