@@ -329,8 +329,8 @@ export default function AiSupportWidget() {
                       <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Online
                     </span>
                   ) : (
-                    <span className="text-[#AEB4BC] flex items-center gap-1">
-                      <Compass className="w-3 h-3 text-[#D4AF6A]" /> Page: {location.pathname}
+                    <span className="text-[#AEB4BC] flex items-center gap-1 font-medium">
+                      <Sparkles className="w-3 h-3 text-[#D4AF6A]" /> Powered by OTECH IQ
                     </span>
                   )}
                 </span>
