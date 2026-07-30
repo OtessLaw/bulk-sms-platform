@@ -435,7 +435,7 @@ export default function AiSupportWidget() {
                         <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce" />
                       </div>
                       <span className="text-xs font-semibold text-[#D4AF6A]">
-                        {supportMode === 'HUMAN' ? 'Admin support is typing...' : 'Perincle is typing...'}
+                        {supportMode === 'HUMAN' ? 'Support is typing...' : 'Perincle is typing...'}
                       </span>
                     </div>
                   </div>
