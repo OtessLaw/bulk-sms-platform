@@ -495,11 +495,6 @@ export default function AiSupportWidget() {
                   >
                     <Send className="w-4 h-4" />
                   </button>
-                </form>
-
-                <div className="flex justify-between items-center text-[10px] text-[#AEB4BC] px-1">
-                  <span>{supportMode === 'HUMAN' ? '🟢 Live Admin Support Online' : '🤖 Perincle AI Active'}</span>
-                </div>
               </div>
             </>
           )}
