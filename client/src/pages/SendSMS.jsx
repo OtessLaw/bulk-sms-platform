@@ -26,6 +26,8 @@ export default function SendSMS() {
   const [loading, setLoading] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [generatingAi, setGeneratingAi] = useState(false);
+  const [aiTemplatesList, setAiTemplatesList] = useState([]);
+  const [aiIndex, setAiIndex] = useState(-1);
 
   useEffect(() => {
     fetchInitialData();
