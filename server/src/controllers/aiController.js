@@ -1,7 +1,53 @@
 const AiConversation = require('../models/AiConversation');
 const AiMessage = require('../models/AiMessage');
 const KnowledgeDocument = require('../models/KnowledgeDocument');
+const SystemSetting = require('../models/SystemSetting');
 const { processAiQuery } = require('../services/aiAssistantService');
+
+// @desc    Get Global AI Support System Status (ON vs OFF)
+// @route   GET /api/ai/system-status
+exports.getSystemStatus = async (req, res, next) => {
+  try {
+    let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
+    const isEnabled = setting ? Boolean(setting.value) : true;
+
+    res.status(200).json({
+      success: true,
+      data: { globalAiSupportEnabled: isEnabled },
+    });
+  } catch (error) {
+    res.status(200).json({ success: true, data: { globalAiSupportEnabled: true } });
+  }
+};
+
+// @desc    Toggle Global AI Support System (Admin around vs Admin away)
+// @route   POST /api/admin/ai/toggle-global-ai
+exports.toggleGlobalAiSupport = async (req, res, next) => {
+  try {
+    const { enabled } = req.body;
+    let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
+    if (!setting) {
+      setting = await SystemSetting.create({
+        key: 'globalAiSupportEnabled',
+        value: Boolean(enabled),
+        description: 'Global AI Support status (ON when admin is away, OFF when admin is around for live human support)',
+      });
+    } else {
+      setting.value = Boolean(enabled);
+      await setting.save();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: setting.value
+        ? 'AI Support turned ON (Perincle AI will handle questions while you are away)!'
+        : 'AI Support turned OFF (You are online! Customer messages will route directly to you for live human replies)',
+      data: { globalAiSupportEnabled: setting.value },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 // @desc    Process AI Support Chat Prompt or Live Human Mode
 // @route   POST /api/ai/chat
@@ -16,39 +62,59 @@ exports.processChat = async (req, res, next) => {
 
     const conversationId = reqConvId || `CONV_${Date.now()}`;
 
-    // Check if conversation is in Human Support Mode
+    // Check Global AI Support Setting (Admin around vs Admin away)
+    let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
+    const globalAiEnabled = setting ? Boolean(setting.value) : true;
+
     let conversation = null;
-    if (user && user._id) {
-      try {
-        conversation = await AiConversation.findOne({ conversationId });
-      } catch (e) {}
+    try {
+      conversation = await AiConversation.findOne({ conversationId });
+    } catch (e) {}
+
+    // Save or update Conversation
+    if (!conversation) {
+      conversation = await AiConversation.create({
+        userId: user._id || null,
+        conversationId,
+        currentPage: currentPage || '/dashboard',
+        title: prompt.substring(0, 30),
+        supportMode: globalAiEnabled ? 'AI' : 'HUMAN',
+        isEscalated: !globalAiEnabled,
+      });
+    } else {
+      if (!globalAiEnabled) {
+        conversation.supportMode = 'HUMAN';
+        conversation.isEscalated = true;
+      }
+      conversation.updatedAt = new Date();
+      await conversation.save();
     }
 
-    // If conversation is in Live Human Mode, do not call AI; store user message for Admin
-    if (conversation && conversation.supportMode === 'HUMAN') {
-      await AiMessage.create({
-        conversationId,
-        userId: user._id,
-        sender: 'user',
-        content: prompt,
-        pageContext: currentPage || '/dashboard',
-        escalatedToHuman: true,
-      });
+    // Always Save User Message
+    await AiMessage.create({
+      conversationId,
+      userId: user._id || null,
+      sender: 'user',
+      content: prompt,
+      pageContext: currentPage || '/dashboard',
+    });
 
+    // IF AI IS TURNED OFF (Admin is around for live human support)
+    if (!globalAiEnabled || conversation.supportMode === 'HUMAN') {
       return res.status(200).json({
         success: true,
         data: {
           conversationId,
           supportMode: 'HUMAN',
           message: {
-            content: `Your message has been sent directly to Live Human Support. An Admin representative will reply right here in this chat window!`,
+            content: `Admin Live Support is currently online! Your message has been received and an admin representative will reply right here in this chat window.`,
             sender: 'system',
           },
         },
       });
     }
 
-    // Generate AI Answer via Gemini / Groq / Neural Synthesizer
+    // IF AI IS TURNED ON (Admin is away): Generate AI Answer
     const aiResult = await processAiQuery({
       user,
       prompt,
@@ -57,40 +123,17 @@ exports.processChat = async (req, res, next) => {
       history: Array.isArray(history) ? history : [],
     });
 
-    // Save message history in background
-    if (user && user._id) {
-      try {
-        if (!conversation) {
-          conversation = await AiConversation.create({
-            userId: user._id,
-            conversationId,
-            currentPage: currentPage || '/dashboard',
-            title: prompt.substring(0, 30),
-          });
-        }
-
-        await AiMessage.create({
-          conversationId,
-          userId: user._id,
-          sender: 'user',
-          content: prompt,
-          pageContext: currentPage || '/dashboard',
-        });
-
-        await AiMessage.create({
-          conversationId,
-          userId: user._id,
-          sender: 'assistant',
-          content: aiResult.responseText,
-          pageContext: currentPage || '/dashboard',
-          actionButtons: aiResult.actionButtons || [],
-          tutorialSteps: aiResult.tutorialSteps || [],
-          confidenceScore: aiResult.confidenceScore || 0.98,
-        });
-      } catch (errDb) {
-        console.warn('[AI DB History Notice]', errDb.message);
-      }
-    }
+    // Save Assistant Response
+    await AiMessage.create({
+      conversationId,
+      userId: user._id || null,
+      sender: 'assistant',
+      content: aiResult.responseText,
+      pageContext: currentPage || '/dashboard',
+      actionButtons: aiResult.actionButtons || [],
+      tutorialSteps: aiResult.tutorialSteps || [],
+      confidenceScore: aiResult.confidenceScore || 0.98,
+    });
 
     return res.status(200).json({
       success: true,
@@ -124,58 +167,7 @@ exports.processChat = async (req, res, next) => {
   }
 };
 
-// @desc    Escalate Chat to Live Human Support Mode
-// @route   POST /api/ai/escalate
-exports.escalateToHuman = async (req, res, next) => {
-  try {
-    const { conversationId, pageContext } = req.body;
-    const user = req.user;
-
-    if (!user || !user._id) {
-      return res.status(401).json({ success: false, message: 'Please log in to connect with Live Human Support' });
-    }
-
-    let conversation = await AiConversation.findOne({ conversationId });
-    if (!conversation) {
-      conversation = await AiConversation.create({
-        userId: user._id,
-        conversationId: conversationId || `CONV_${Date.now()}`,
-        currentPage: pageContext || '/dashboard',
-        title: 'Live Human Support Request',
-        supportMode: 'HUMAN',
-        status: 'Escalated',
-        isEscalated: true,
-      });
-    } else {
-      conversation.supportMode = 'HUMAN';
-      conversation.status = 'Escalated';
-      conversation.isEscalated = true;
-      await conversation.save();
-    }
-
-    await AiMessage.create({
-      conversationId: conversation.conversationId,
-      userId: user._id,
-      sender: 'system',
-      content: `🔔 User ${user.name} (${user.mobileNumber || user.email}) requested Live Human Support.`,
-      pageContext: pageContext || '/dashboard',
-      escalatedToHuman: true,
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Connected to Live Human Support! Your messages will be delivered directly to our live admin support desk.',
-      data: {
-        conversationId: conversation.conversationId,
-        supportMode: 'HUMAN',
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Get Latest Messages for a Conversation (Allows Widget to receive Live Admin replies)
+// @desc    Get Latest Messages for a Conversation (Allows Widget to receive Live Admin replies cleanly)
 // @route   GET /api/ai/messages/:conversationId
 exports.getConversationMessages = async (req, res, next) => {
   try {
@@ -199,7 +191,7 @@ exports.getConversationMessages = async (req, res, next) => {
 // @route   POST /api/admin/ai/reply
 exports.adminReplyToUser = async (req, res, next) => {
   try {
-    const { conversationId, replyText, switchMode } = req.body;
+    const { conversationId, replyText } = req.body;
     const adminUser = req.user;
 
     if (!replyText || !replyText.trim()) {
@@ -214,23 +206,20 @@ exports.adminReplyToUser = async (req, res, next) => {
     // Save Admin Message
     const adminMessage = await AiMessage.create({
       conversationId,
-      userId: conversation.userId._id,
+      userId: conversation.userId?._id || null,
       sender: 'human_admin',
       content: replyText,
       pageContext: conversation.currentPage,
       escalatedToHuman: true,
     });
 
-    // Update conversation mode if specified
-    if (switchMode && ['AI', 'HUMAN'].includes(switchMode)) {
-      conversation.supportMode = switchMode;
-    }
+    conversation.supportMode = 'HUMAN';
     conversation.updatedAt = new Date();
     await conversation.save();
 
     res.status(200).json({
       success: true,
-      message: `Reply sent live to customer ${conversation.userId.name}!`,
+      message: `Reply sent live to customer ${conversation.userId?.name || 'User'}!`,
       data: adminMessage,
     });
   } catch (error) {
@@ -244,40 +233,10 @@ exports.getLiveSupportChats = async (req, res, next) => {
   try {
     const allConvs = await AiConversation.find()
       .populate('userId', 'name email mobileNumber')
-      .sort({ supportMode: -1, isEscalated: -1, updatedAt: -1 })
+      .sort({ updatedAt: -1 })
       .limit(50);
 
     res.status(200).json({ success: true, data: allConvs });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// @desc    Toggle Support Mode (AI vs HUMAN) for a Conversation
-// @route   POST /api/admin/ai/toggle-mode
-exports.toggleSupportMode = async (req, res, next) => {
-  try {
-    const { conversationId, mode } = req.body;
-    const conversation = await AiConversation.findOne({ conversationId });
-    if (!conversation) {
-      return res.status(404).json({ success: false, message: 'Conversation not found' });
-    }
-
-    conversation.supportMode = mode === 'HUMAN' ? 'HUMAN' : 'AI';
-    if (mode === 'AI') {
-      conversation.isEscalated = false;
-      conversation.status = 'Active';
-    } else {
-      conversation.isEscalated = true;
-      conversation.status = 'Escalated';
-    }
-    await conversation.save();
-
-    res.status(200).json({
-      success: true,
-      message: `Support mode updated to ${conversation.supportMode} Mode`,
-      data: conversation,
-    });
   } catch (error) {
     next(error);
   }
@@ -338,23 +297,17 @@ exports.getAdminAnalytics = async (req, res, next) => {
   try {
     const totalConversations = await AiConversation.countDocuments();
     const totalDocs = await KnowledgeDocument.countDocuments();
-    const liveEscalatedCount = await AiConversation.countDocuments({ supportMode: 'HUMAN' });
+    let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
+    const globalAiEnabled = setting ? Boolean(setting.value) : true;
 
     res.status(200).json({
       success: true,
       data: {
         totalQuestions: totalConversations,
-        liveEscalatedCount,
+        globalAiEnabled,
         satisfactionRate: '98.4%',
         avgResponseTime: '1.1s',
-        escalationRate: '1.6%',
         totalKnowledgeDocs: totalDocs,
-        topTopics: [
-          { topic: 'Excel/CSV Bulk Import', count: 142 },
-          { topic: 'Sender ID Rules & Approvals', count: 98 },
-          { topic: 'Paystack Mobile Money Top-Up', count: 85 },
-          { topic: 'Developer API Keys', count: 46 },
-        ],
       },
     });
   } catch (error) {

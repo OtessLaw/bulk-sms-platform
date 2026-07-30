@@ -22,17 +22,18 @@ import {
   ToggleRight,
   UserCheck,
   Search,
+  Bell,
+  Power,
 } from 'lucide-react';
 
 export default function AdminAiManagement() {
+  const [globalAiEnabled, setGlobalAiEnabled] = useState(true);
   const [analytics, setAnalytics] = useState({
     totalQuestions: 0,
-    liveEscalatedCount: 0,
+    globalAiEnabled: true,
     satisfactionRate: '98.4%',
     avgResponseTime: '1.1s',
-    escalationRate: '1.6%',
     totalKnowledgeDocs: 0,
-    topTopics: [],
   });
 
   const [docs, setDocs] = useState([]);
@@ -43,6 +44,7 @@ export default function AdminAiManagement() {
   const [replyText, setReplyText] = useState('');
   const [replying, setReplying] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [togglingGlobal, setTogglingGlobal] = useState(false);
 
   const [showDocModal, setShowDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({
@@ -55,7 +57,7 @@ export default function AdminAiManagement() {
 
   useEffect(() => {
     fetchAiData();
-    const interval = setInterval(fetchAiData, 6000);
+    const interval = setInterval(fetchAiData, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -65,8 +67,20 @@ export default function AdminAiManagement() {
     }
   }, [selectedChat]);
 
+  // Auto-select latest active conversation if none selected
+  useEffect(() => {
+    if (!selectedChat && liveChats.length > 0) {
+      setSelectedChat(liveChats[0]);
+    }
+  }, [liveChats]);
+
   const fetchAiData = async () => {
     try {
+      const statusRes = await API.get('/ai/system-status');
+      if (statusRes.data.success) {
+        setGlobalAiEnabled(statusRes.data.data.globalAiSupportEnabled);
+      }
+
       const analyticsRes = await API.get('/ai/admin/analytics');
       if (analyticsRes.data.success) {
         setAnalytics(analyticsRes.data.data);
@@ -98,7 +112,24 @@ export default function AdminAiManagement() {
         setChatMessages(res.data.data.messages || []);
       }
     } catch (err) {
-      toast.error('Failed to load chat messages');
+      // Silent catch
+    }
+  };
+
+  const handleToggleGlobalAi = async () => {
+    setTogglingGlobal(true);
+    const nextState = !globalAiEnabled;
+    try {
+      const res = await API.post('/ai/admin/toggle-global-ai', { enabled: nextState });
+      if (res.data.success) {
+        setGlobalAiEnabled(nextState);
+        toast.success(res.data.message);
+        fetchAiData();
+      }
+    } catch (err) {
+      toast.error('Failed to toggle global AI support status');
+    } finally {
+      setTogglingGlobal(false);
     }
   };
 
@@ -111,7 +142,6 @@ export default function AdminAiManagement() {
       const res = await API.post('/ai/admin/reply', {
         conversationId: selectedChat.conversationId,
         replyText: replyText.trim(),
-        switchMode: 'HUMAN',
       });
 
       if (res.data.success) {
@@ -124,26 +154,6 @@ export default function AdminAiManagement() {
       toast.error(err.response?.data?.message || 'Failed to send reply');
     } finally {
       setReplying(false);
-    }
-  };
-
-  const handleToggleSupportMode = async (convId, currentMode) => {
-    const nextMode = currentMode === 'HUMAN' ? 'AI' : 'HUMAN';
-    try {
-      const res = await API.post('/ai/admin/toggle-mode', {
-        conversationId: convId,
-        mode: nextMode,
-      });
-
-      if (res.data.success) {
-        toast.success(`Switched conversation to ${nextMode} Mode`);
-        fetchAiData();
-        if (selectedChat && selectedChat.conversationId === convId) {
-          setSelectedChat({ ...selectedChat, supportMode: nextMode });
-        }
-      }
-    } catch (err) {
-      toast.error('Failed to switch support mode');
     }
   };
 
@@ -195,9 +205,9 @@ export default function AdminAiManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <BrainCircuit className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Live Support Chat & AI RAG Engine
+            <BrainCircuit className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Master Support Control & AI Management
           </h1>
-          <p className="text-xs text-[#AEB4BC]">Manage Live Human Chat Escalations, Knowledge RAG documents, and AI Support Performance</p>
+          <p className="text-xs text-[#AEB4BC]">Turn AI Support ON when away or OFF when online to answer live customer chats directly</p>
         </div>
 
         <button
@@ -206,6 +216,49 @@ export default function AdminAiManagement() {
         >
           <Plus className="w-4 h-4" />
           <span>Add Knowledge Document</span>
+        </button>
+      </div>
+
+      {/* MASTER AI SUPPORT TOGGLE BANNER */}
+      <div className={`p-5 rounded-3xl border shadow-2xl flex flex-col sm:flex-row items-center justify-between gap-4 transition-all ${
+        globalAiEnabled
+          ? 'bg-gradient-to-r from-[#1E232B] via-[#2A3038] to-[#1E232B] border-[#D4AF6A]/40'
+          : 'bg-gradient-to-r from-emerald-950/80 via-[#2A3038] to-emerald-950/80 border-emerald-500/50'
+      }`}>
+        <div className="flex items-center space-x-3.5">
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold shadow-lg ${
+            globalAiEnabled ? 'bg-gradient-to-br from-[#D4AF6A] to-[#B88E3E] text-black' : 'bg-emerald-500 text-black animate-pulse'
+          }`}>
+            <Power className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-white">Global AI Support Status:</h3>
+              <span className={`text-xs px-3 py-1 rounded-full font-bold ${
+                globalAiEnabled ? 'bg-[#D4AF6A]/20 text-[#D4AF6A] border border-[#D4AF6A]/40' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+              }`}>
+                {globalAiEnabled ? '🤖 ON (AI Handles Questions When Away)' : '👨‍💼 OFF (You Are Online - Live Admin Replies)'}
+              </span>
+            </div>
+            <p className="text-xs text-[#AEB4BC] mt-0.5">
+              {globalAiEnabled
+                ? 'Perincle AI answers customer questions automatically. Turn OFF when you are around to reply to people yourself!'
+                : 'AI Support is paused. Customer questions route directly to your Live Support Control Panel below for direct replies!'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleToggleGlobalAi}
+          disabled={togglingGlobal}
+          className={`px-5 py-3 rounded-2xl font-extrabold text-xs flex items-center gap-2 transition-all shadow-lg shrink-0 ${
+            globalAiEnabled
+              ? 'bg-emerald-500 hover:bg-emerald-400 text-black'
+              : 'bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black hover:opacity-90'
+          }`}
+        >
+          {globalAiEnabled ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
+          <span>{globalAiEnabled ? 'Turn OFF AI (I Am Around To Reply)' : 'Turn ON AI (I Am Away)'}</span>
         </button>
       </div>
 
@@ -220,7 +273,7 @@ export default function AdminAiManagement() {
 
         <div className="bg-[#2A3038]/70 border border-emerald-500/25 rounded-2xl p-4 space-y-1">
           <span className="text-[11px] text-emerald-400 uppercase font-semibold flex items-center gap-1">
-            <Headphones className="w-3.5 h-3.5 text-emerald-400" /> Active Customer Chats
+            <Headphones className="w-3.5 h-3.5 text-emerald-400" /> Customer Chats
           </span>
           <span className="text-xl font-extrabold text-emerald-400">{liveChats.length || 0}</span>
         </div>
@@ -244,15 +297,15 @@ export default function AdminAiManagement() {
       <div className="bg-[#2A3038]/70 backdrop-blur-md border border-emerald-500/30 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
         <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">
-            <Headphones className="w-4 h-4 text-emerald-400" /> Super Admin Live Chat Control Panel ({filteredChats.length})
+            <Headphones className="w-4 h-4 text-emerald-400" /> Super Admin Live Support Control Panel ({filteredChats.length})
           </h3>
           <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Bridge Active
+            <Bell className="w-3.5 h-3.5 text-emerald-400 animate-bounce" /> Auto-Sync Active
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Active Conversations List with Search Bar */}
+          {/* Active Conversations List */}
           <div className="bg-[#1E232B] rounded-2xl p-3 border border-[rgba(212,175,106,0.15)] space-y-2 max-h-96 overflow-y-auto">
             <div className="flex items-center gap-1.5 bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-2.5 py-1.5 mb-2">
               <Search className="w-3.5 h-3.5 text-[#AEB4BC] shrink-0" />
@@ -260,12 +313,12 @@ export default function AdminAiManagement() {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search customer (e.g. Lawrence)..."
+                placeholder="Search customer name..."
                 className="w-full bg-transparent text-xs text-white focus:outline-none placeholder-[#AEB4BC]"
               />
             </div>
 
-            <h4 className="text-[11px] font-bold text-[#AEB4BC] uppercase tracking-wider mb-2">Customer Conversations</h4>
+            <h4 className="text-[11px] font-bold text-[#AEB4BC] uppercase tracking-wider mb-2">Recent Customer Messages</h4>
             {filteredChats.length > 0 ? (
               filteredChats.map((c) => (
                 <div
@@ -281,20 +334,16 @@ export default function AdminAiManagement() {
                     <span className="font-bold text-xs text-white flex items-center gap-1">
                       <User className="w-3.5 h-3.5 text-[#D4AF6A]" /> {c.userId?.name || 'Customer'}
                     </span>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                        c.supportMode === 'HUMAN' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
-                    >
-                      {c.supportMode || 'HUMAN'}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                      Live Chat
                     </span>
                   </div>
-                  <p className="text-[11px] text-[#AEB4BC] truncate mt-1">{c.title || 'Live Support Chat'}</p>
+                  <p className="text-[11px] text-[#AEB4BC] truncate mt-1">{c.title || 'Live Support Message'}</p>
                   <span className="text-[9px] text-[#AEB4BC] font-mono block mt-1">{new Date(c.updatedAt).toLocaleTimeString()}</span>
                 </div>
               ))
             ) : (
-              <p className="text-xs text-[#AEB4BC] p-4 text-center">No matching customer conversations found.</p>
+              <p className="text-xs text-[#AEB4BC] p-4 text-center">No customer conversations found.</p>
             )}
           </div>
 
@@ -306,18 +355,10 @@ export default function AdminAiManagement() {
                 <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
                   <div>
                     <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <UserCheck className="w-4 h-4 text-emerald-400" /> {selectedChat.userId?.name || 'Customer'} ({selectedChat.userId?.mobileNumber || selectedChat.userId?.email || 'Guest'})
+                      <UserCheck className="w-4 h-4 text-emerald-400" /> {selectedChat.userId?.name || 'Customer'} ({selectedChat.userId?.mobileNumber || selectedChat.userId?.email || 'Guest User'})
                     </h4>
                     <span className="text-[10px] text-[#AEB4BC] font-mono">Page: {selectedChat.currentPage}</span>
                   </div>
-
-                  <button
-                    onClick={() => handleToggleSupportMode(selectedChat.conversationId, selectedChat.supportMode)}
-                    className="bg-[#2A3038] hover:bg-[#D4AF6A] hover:text-black border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-bold text-xs px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
-                  >
-                    {selectedChat.supportMode === 'HUMAN' ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4" />}
-                    <span>Mode: {selectedChat.supportMode || 'HUMAN'}</span>
-                  </button>
                 </div>
 
                 {/* Messages Thread */}
@@ -368,7 +409,7 @@ export default function AdminAiManagement() {
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-[#AEB4BC] space-y-2">
                 <Headphones className="w-8 h-8 text-[#D4AF6A] opacity-60 animate-pulse" />
-                <p className="text-xs">Select a customer conversation from the left panel (or search "Lawrence") to reply live.</p>
+                <p className="text-xs">Select a customer conversation from the left panel to reply live.</p>
               </div>
             )}
           </div>

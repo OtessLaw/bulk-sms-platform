@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   processChat,
-  escalateToHuman,
+  getSystemStatus,
   getConversationMessages,
   analyzeImage,
   getConversations,
@@ -11,7 +11,7 @@ const {
   getAllUserChatLogs,
   adminReplyToUser,
   getLiveSupportChats,
-  toggleSupportMode,
+  toggleGlobalAiSupport,
   getKnowledgeDocs,
   createKnowledgeDoc,
   deleteKnowledgeDoc,
@@ -28,9 +28,9 @@ const optionalProtect = (req, res, next) => {
 };
 
 // User AI & Live Support Routes
+router.get('/system-status', optionalProtect, getSystemStatus);
 router.post('/chat', optionalProtect, processChat);
-router.post('/escalate', protect, escalateToHuman);
-router.get('/messages/:conversationId', protect, getConversationMessages);
+router.get('/messages/:conversationId', optionalProtect, getConversationMessages);
 router.post('/analyze-image', optionalProtect, analyzeImage);
 router.get('/conversations', protect, getConversations);
 router.post('/feedback', protect, submitFeedback);
@@ -40,7 +40,7 @@ router.get('/admin/analytics', protect, authorize('Super Admin', 'Admin'), getAd
 router.get('/admin/user-logs', protect, authorize('Super Admin', 'Admin'), getAllUserChatLogs);
 router.get('/admin/live-chats', protect, authorize('Super Admin', 'Admin'), getLiveSupportChats);
 router.post('/admin/reply', protect, authorize('Super Admin', 'Admin'), adminReplyToUser);
-router.post('/admin/toggle-mode', protect, authorize('Super Admin', 'Admin'), toggleSupportMode);
+router.post('/admin/toggle-global-ai', protect, authorize('Super Admin', 'Admin'), toggleGlobalAiSupport);
 
 // Super Admin RAG Knowledge Base Routes
 router.get('/admin/knowledge', protect, authorize('Super Admin', 'Admin'), getKnowledgeDocs);

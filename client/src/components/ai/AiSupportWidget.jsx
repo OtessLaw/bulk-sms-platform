@@ -15,7 +15,6 @@ import {
   Image as ImageIcon,
   ChevronRight,
   Compass,
-  Headphones,
   Maximize2,
   Minimize2,
   UserCheck,
@@ -32,7 +31,7 @@ export default function AiSupportWidget() {
   const [inputPrompt, setInputPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
-  const [supportMode, setSupportMode] = useState('AI'); // 'AI' or 'HUMAN'
+  const [supportMode, setSupportMode] = useState('AI');
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
@@ -67,10 +66,10 @@ export default function AiSupportWidget() {
     }
   }, []);
 
-  // Live Polling for Admin Replies when in HUMAN Support Mode
+  // Live Polling for Admin Replies
   useEffect(() => {
     let interval = null;
-    if (isOpen && conversationId && supportMode === 'HUMAN') {
+    if (isOpen && conversationId) {
       interval = setInterval(async () => {
         try {
           const res = await API.get(`/ai/messages/${conversationId}`);
@@ -78,7 +77,7 @@ export default function AiSupportWidget() {
             const dbMsgs = res.data.data.messages.map((m) => ({
               id: m._id || `msg_${Date.now()}_${Math.random()}`,
               sender: m.sender,
-              content: m.content.replace(/\*/g, ''),
+              content: (m.content || '').replace(/\*/g, ''),
               actionButtons: m.actionButtons || [],
             }));
             setMessages(dbMsgs);
@@ -86,13 +85,15 @@ export default function AiSupportWidget() {
               setSupportMode(res.data.data.supportMode);
             }
           }
-        } catch (err) {}
+        } catch (err) {
+          // Silent catch to prevent toast error spam
+        }
       }, 3500);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isOpen, conversationId, supportMode]);
+  }, [isOpen, conversationId]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -160,42 +161,6 @@ export default function AiSupportWidget() {
       ]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Request Live Human Support Escalation
-  const handleConnectHuman = async () => {
-    if (!user) {
-      toast.error('Please log in to connect with Live Human Support');
-      navigate('/login');
-      return;
-    }
-
-    toast.loading('Connecting to Live Human Support...', { id: 'human-toast' });
-    try {
-      const res = await API.post('/ai/escalate', {
-        conversationId: conversationId || `CONV_${Date.now()}`,
-        pageContext: location.pathname,
-      });
-
-      if (res.data && res.data.success) {
-        toast.success('Connected to Live Human Support!', { id: 'human-toast' });
-        setSupportMode('HUMAN');
-        if (res.data.data?.conversationId) {
-          setConversationId(res.data.data.conversationId);
-        }
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `human_connected_${Date.now()}`,
-            sender: 'system',
-            content: `Connected to Live Human Support! Your messages are delivered directly to our live Admin desk. An admin representative will reply right here.`,
-          },
-        ]);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to connect to Live Human Support', { id: 'human-toast' });
     }
   };
 
@@ -299,7 +264,7 @@ export default function AiSupportWidget() {
       {isOpen && (
         <div
           className={`bg-[#1E232B]/95 backdrop-blur-xl border border-[rgba(212,175,106,0.4)] rounded-3xl shadow-[0_25px_50px_rgba(0,0,0,0.8)] flex flex-col transition-all overflow-hidden ${
-            isMinimized ? 'w-72 sm:w-80 h-14' : 'w-[calc(100vw-1.5rem)] sm:w-96 max-w-[380px] h-[80vh] max-h-[560px]'
+            isMinimized ? 'w-72 sm:w-80 h-14' : 'w-80 sm:w-96 h-[540px]'
           }`}
         >
           {/* Header Bar */}
@@ -315,7 +280,7 @@ export default function AiSupportWidget() {
                 <span className="text-[10px] text-[#AEB4BC] flex items-center gap-1">
                   {supportMode === 'HUMAN' ? (
                     <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Admin Connected
+                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Connected
                     </span>
                   ) : (
                     <span className="text-[#AEB4BC] flex items-center gap-1">
@@ -423,7 +388,9 @@ export default function AiSupportWidget() {
                         <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce [animation-delay:-0.15s]" />
                         <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce" />
                       </div>
-                      <span className="text-xs font-semibold text-[#D4AF6A]">Perincle is typing...</span>
+                      <span className="text-xs font-semibold text-[#D4AF6A]">
+                        {supportMode === 'HUMAN' ? 'Admin is typing...' : 'Perincle is typing...'}
+                      </span>
                     </div>
                   </div>
                 )}
@@ -471,8 +438,8 @@ export default function AiSupportWidget() {
                     type="text"
                     value={inputPrompt}
                     onChange={(e) => setInputPrompt(e.target.value)}
-                    placeholder={supportMode === 'HUMAN' ? 'Type message to Live Human Support...' : 'Ask Live Chat... (Alt + K)'}
-                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+                    placeholder="Type a message... (Alt + K)"
+                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                   />
 
                   <button
@@ -485,15 +452,7 @@ export default function AiSupportWidget() {
                 </form>
 
                 <div className="flex justify-between items-center text-[10px] text-[#AEB4BC] px-1">
-                  <span>{supportMode === 'HUMAN' ? '🟢 Live Human Mode' : '🤖 Perincle AI Active'}</span>
-                  {supportMode !== 'HUMAN' && (
-                    <button
-                      onClick={handleConnectHuman}
-                      className="text-[#D4AF6A] hover:underline font-semibold flex items-center gap-0.5"
-                    >
-                      <Headphones className="w-3 h-3" /> Connect Human Support
-                    </button>
-                  )}
+                  <span>{supportMode === 'HUMAN' ? '🟢 Live Admin Support Online' : '🤖 Perincle AI Active'}</span>
                 </div>
               </div>
             </>
