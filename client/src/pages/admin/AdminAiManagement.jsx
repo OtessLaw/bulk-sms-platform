@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
 import {
@@ -46,6 +46,7 @@ export default function AdminAiManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [togglingGlobal, setTogglingGlobal] = useState(false);
 
+  const selectedChatRef = useRef(null);
   const [showDocModal, setShowDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({
     title: '',
@@ -55,17 +56,25 @@ export default function AdminAiManagement() {
     content: '',
   });
 
+  // Keep selectedChatRef synchronized with selectedChat state
   useEffect(() => {
-    fetchAiData();
-    const interval = setInterval(fetchAiData, 4000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
+    selectedChatRef.current = selectedChat;
     if (selectedChat) {
       fetchChatMessages(selectedChat.conversationId);
     }
   }, [selectedChat]);
+
+  // Master Polling Loop for Live Messages (Every 3 seconds)
+  useEffect(() => {
+    fetchAiData();
+    const interval = setInterval(() => {
+      fetchAiData();
+      if (selectedChatRef.current) {
+        fetchChatMessages(selectedChatRef.current.conversationId);
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Auto-select latest active conversation if none selected
   useEffect(() => {
@@ -243,7 +252,7 @@ export default function AdminAiManagement() {
             <p className="text-xs text-[#AEB4BC] mt-0.5">
               {globalAiEnabled
                 ? 'Perincle AI answers customer questions automatically. Turn OFF when you are around to reply to people yourself!'
-                : 'AI Support is paused. Customer questions route directly to your Live Support Control Panel below for direct replies!'}
+                : 'AI Support is paused. All customer messages route directly to your Live Support Control Panel below for live replies!'}
             </p>
           </div>
         </div>
@@ -300,7 +309,7 @@ export default function AdminAiManagement() {
             <Headphones className="w-4 h-4 text-emerald-400" /> Super Admin Live Support Control Panel ({filteredChats.length})
           </h3>
           <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
-            <Bell className="w-3.5 h-3.5 text-emerald-400 animate-bounce" /> Auto-Sync Active
+            <Bell className="w-3.5 h-3.5 text-emerald-400 animate-bounce" /> Live Stream Syncing
           </span>
         </div>
 

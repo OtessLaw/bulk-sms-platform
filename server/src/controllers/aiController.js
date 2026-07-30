@@ -119,23 +119,12 @@ exports.processChat = async (req, res, next) => {
 
     // IF IN HUMAN MODE (Admin is online or conversation is escalated to human): DO NOT CALL AI!
     if (isHumanMode) {
-      const ackMsg = await AiMessage.create({
-        conversationId,
-        userId: user._id || null,
-        sender: 'system',
-        content: `Your message has been delivered to Live Support. Admin is online and will reply right here!`,
-        pageContext: currentPage || '/dashboard',
-      });
-
       return res.status(200).json({
         success: true,
         data: {
           conversationId,
           supportMode: 'HUMAN',
-          message: {
-            content: ackMsg.content,
-            sender: 'system',
-          },
+          message: null,
         },
       });
     }
