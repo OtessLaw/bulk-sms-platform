@@ -33,7 +33,7 @@ router.post('/chat', optionalProtect, processChat);
 router.get('/messages/:conversationId', optionalProtect, getConversationMessages);
 router.post('/analyze-image', optionalProtect, analyzeImage);
 router.get('/conversations', protect, getConversations);
-router.post('/feedback', protect, submitFeedback);
+router.post('/feedback', optionalProtect, submitFeedback);
 
 // Super Admin AI & Live Human Chat Management Routes
 router.get('/admin/analytics', protect, authorize('Super Admin', 'Admin'), getAdminAnalytics);
