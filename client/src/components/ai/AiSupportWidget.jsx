@@ -465,7 +465,7 @@ export default function AiSupportWidget() {
                     e.preventDefault();
                     handleSend();
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-1.5 sm:gap-2"
                 >
                   <input
                     type="file"
@@ -479,7 +479,7 @@ export default function AiSupportWidget() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     title="Upload Screenshot for AI Diagnosis"
-                    className="text-[#AEB4BC] hover:text-[#D4AF6A] p-1.5 rounded-xl border border-[rgba(212,175,106,0.2)] bg-[#1E232B]"
+                    className="text-[#AEB4BC] hover:text-[#D4AF6A] p-1.5 rounded-xl border border-[rgba(212,175,106,0.2)] bg-[#1E232B] shrink-0"
                   >
                     <ImageIcon className="w-4 h-4" />
                   </button>
@@ -488,7 +488,7 @@ export default function AiSupportWidget() {
                     type="button"
                     onClick={handleVoiceInput}
                     title="Voice Input (Speech-to-Text)"
-                    className={`p-1.5 rounded-xl border border-[rgba(212,175,106,0.2)] ${
+                    className={`p-1.5 rounded-xl border border-[rgba(212,175,106,0.2)] shrink-0 ${
                       isListening ? 'bg-red-500 text-white animate-pulse' : 'bg-[#1E232B] text-[#AEB4BC] hover:text-[#D4AF6A]'
                     }`}
                   >
@@ -499,14 +499,15 @@ export default function AiSupportWidget() {
                     type="text"
                     value={inputPrompt}
                     onChange={(e) => setInputPrompt(e.target.value)}
-                    placeholder="Type a message... (Alt + K)"
-                    className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+                    placeholder="Type a message..."
+                    className="flex-1 min-w-0 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-2.5 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                   />
 
                   <button
                     type="submit"
                     disabled={loading || !inputPrompt.trim()}
-                    className="bg-[#D4AF6A] text-black font-bold p-2 rounded-xl disabled:opacity-50"
+                    className="bg-[#D4AF6A] hover:bg-[#E7D3A4] text-black font-extrabold p-2.5 rounded-xl disabled:opacity-40 shrink-0 shadow-md flex items-center justify-center"
+                    title="Send Message"
                   >
                     <Send className="w-4 h-4" />
                   </button>
