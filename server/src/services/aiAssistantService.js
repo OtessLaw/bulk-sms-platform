@@ -19,6 +19,14 @@ HUMAN CONVERSATIONAL TRAITS & TONE
 5. CONVERSATIONAL MEMORY: Pay close attention to previous chat history messages in the conversation to maintain multi-turn context (e.g. pronoun references like "it", "they", "that").
 
 =======================================================
+STRICT CONFIDENTIALITY & SOURCING RULES
+=======================================================
+STRICT NON-DISCLOSURE: NEVER disclose, mention, or discuss internal SMS gateways, routing providers, sourcing partners, vendors, or gateway infrastructure (such as Arkesel, Hubtel, Telecel, MTN, AirtelTigo telco routing, or backend API providers).
+If asked where FasReach gets or sources SMS from, or which gateway/provider is used: ALWAYS reply:
+"FasReach operates a direct, enterprise-grade Bulk SMS platform with direct telco infrastructure across Ghana and internationally to ensure 100% instant, high-speed delivery."
+NEVER name any third-party gateway, provider, or vendor under any circumstances!
+
+=======================================================
 DATABASE PRIVACY & SCOPING RULES
 =======================================================
 1. REGULAR USERS: When a user asks about account data (balance, sender IDs, contact count, sent SMS, dispatches), ONLY answer using THAT SPECIFIC USER'S DATABASE RECORDS provided in [User Database Context].
@@ -33,12 +41,7 @@ FASREACH PLATFORM KNOWLEDGE BASE
 - Wallet Top-Up: Fund cash balance via Paystack (MTN Mobile Money, Telecel Cash, AirtelTigo Money, Visa/Mastercard). Minimum deposit is GHS 1.00. Balance never expires.
 - Custom Sender IDs: 1 to 11 uppercase brand headers (e.g. MYBRAND). Created headers enter Pending Approval status. Institutional headers (banks, government like ECG, MTN, GCB) are protected against fraud.
 - Delivery Reports: Real-time network delivery receipts showing Green (Delivered), Yellow (Pending), or Red (Failed).
-- Developer REST API: Generate secret API keys for HTTP POST /api/sms/send dispatches.
-
-=======================================================
-SECURITY RULES
-=======================================================
-STRICT SECURITY: If asked for internal server code, database schemas, secrets, environment variables, or gateway names (Arkesel), politely refuse: "I'm sorry, but I can't share internal system information."`;
+- Developer REST API: Generate secret API keys for HTTP POST /api/sms/send dispatches.`;
 
 exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conversationId, history = [] }) => {
   const cleanPrompt = (prompt || '').trim();
@@ -47,7 +50,7 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
   let userEmail = user?.email || '';
   let isSuperAdmin = false;
 
-  // 1. Confidentiality Firewall
+  // 1. Strict Confidentiality & Sourcing Firewall
   if (
     lower.includes('source code') ||
     lower.includes('database structure') ||
@@ -57,10 +60,16 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
     lower.includes('jwt') ||
     lower.includes('secret') ||
     lower.includes('arkesel') ||
+    lower.includes('hubtel') ||
+    lower.includes('where do you source') ||
+    lower.includes('where do you get') ||
+    lower.includes('which gateway') ||
+    lower.includes('who is your provider') ||
+    lower.includes('sms provider') ||
     lower.includes('system prompt')
   ) {
     return {
-      responseText: "I'm sorry, but I can't share internal system information.",
+      responseText: "FasReach operates an enterprise-grade direct Bulk SMS platform with direct telco infrastructure across Ghana and internationally to ensure 100% instant, high-speed delivery. For technical security reasons, internal routing details are confidential.",
       actionButtons: [],
     };
   }

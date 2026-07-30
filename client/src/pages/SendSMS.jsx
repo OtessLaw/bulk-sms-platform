@@ -207,11 +207,14 @@ export default function SendSMS() {
     setGeneratingAi(true);
     try {
       const res = await API.post('/sms/ai-templates', { category: 'Marketing', keywords: [aiPrompt] });
-      if (res.data.success && res.data.data && res.data.data.length > 0) {
-        const item = res.data.data[0];
-        const generatedText = typeof item === 'string' ? item : item.content;
-        setFormData((prev) => ({ ...prev, content: generatedText }));
-        toast.success('AI Template generated & inserted!');
+      if (res.data.success && Array.isArray(res.data.data) && res.data.data.length > 0) {
+        const list = res.data.data.map((item) => (typeof item === 'string' ? item : item.content));
+        setAiTemplatesList(list);
+
+        const nextIdx = (aiIndex + 1) % list.length;
+        setAiIndex(nextIdx);
+        setFormData((prev) => ({ ...prev, content: list[nextIdx] }));
+        toast.success(`Inserted AI Variation #${nextIdx + 1}! Click again for more variations.`);
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'AI Generation failed');
