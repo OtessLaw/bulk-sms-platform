@@ -172,22 +172,27 @@ export default function AiSupportWidget() {
         history: recentHistory,
       });
 
-      if (res.data && res.data.data?.message) {
-        const msgDoc = res.data.data.message;
+      if (res.data && res.data.data) {
         if (res.data.data.supportMode) {
           setSupportMode(res.data.data.supportMode);
         }
+        if (res.data.data.conversationId) {
+          setConversationId(res.data.data.conversationId);
+        }
 
-        const cleanContent = (msgDoc.content || '').replace(/\*/g, '');
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `msg_${Date.now()}`,
-            sender: msgDoc.sender || (supportMode === 'HUMAN' ? 'system' : 'assistant'),
-            content: cleanContent,
-            actionButtons: msgDoc.actionButtons || [],
-          },
-        ]);
+        if (res.data.data.message && res.data.data.message.content) {
+          const msgDoc = res.data.data.message;
+          const cleanContent = (msgDoc.content || '').replace(/\*/g, '');
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: `msg_${Date.now()}`,
+              sender: msgDoc.sender || 'assistant',
+              content: cleanContent,
+              actionButtons: msgDoc.actionButtons || [],
+            },
+          ]);
+        }
       }
     } catch (err) {
       console.error('[AI Chat Network Notice]:', err);
@@ -430,7 +435,7 @@ export default function AiSupportWidget() {
                         <span className="w-1.5 h-1.5 bg-[#D4AF6A] rounded-full animate-bounce" />
                       </div>
                       <span className="text-xs font-semibold text-[#D4AF6A]">
-                        {supportMode === 'HUMAN' ? 'Admin is typing...' : 'Perincle is typing...'}
+                        {supportMode === 'HUMAN' ? 'Admin support is typing...' : 'Perincle is typing...'}
                       </span>
                     </div>
                   </div>
