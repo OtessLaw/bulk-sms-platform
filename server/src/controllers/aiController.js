@@ -135,12 +135,14 @@ exports.processChat = async (req, res, next) => {
     }
 
     // Always Save User Message
+    const userMsgTime = new Date();
     await AiMessage.create({
       conversationId,
       userId: user._id || null,
       sender: 'user',
       content: prompt,
       pageContext: currentPage || '/dashboard',
+      createdAt: userMsgTime,
     });
 
     // IF IN HUMAN MODE (Admin is online or conversation is escalated to human): DO NOT CALL AI!
@@ -164,7 +166,8 @@ exports.processChat = async (req, res, next) => {
       history: Array.isArray(history) ? history : [],
     });
 
-    // Save Assistant Response
+    // Save Assistant Response strictly 100ms after user message
+    const assistantMsgTime = new Date(userMsgTime.getTime() + 100);
     await AiMessage.create({
       conversationId,
       userId: user._id || null,
@@ -174,6 +177,7 @@ exports.processChat = async (req, res, next) => {
       actionButtons: aiResult.actionButtons || [],
       tutorialSteps: aiResult.tutorialSteps || [],
       confidenceScore: aiResult.confidenceScore || 0.98,
+      createdAt: assistantMsgTime,
     });
 
     return res.status(200).json({

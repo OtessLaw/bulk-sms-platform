@@ -125,6 +125,7 @@ export default function AiSupportWidget() {
     let interval = null;
     if (isOpen && conversationId) {
       interval = setInterval(async () => {
+        if (loading) return; // Skip polling overwrite while sending to prevent UI message flickering
         try {
           const res = await API.get(`/ai/messages/${conversationId}`);
           if (res.data && res.data.data?.messages && res.data.data.messages.length > 0) {
@@ -145,7 +146,7 @@ export default function AiSupportWidget() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isOpen, conversationId]);
+  }, [isOpen, conversationId, loading]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
