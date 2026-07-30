@@ -78,13 +78,30 @@ exports.processChat = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Prompt is required' });
     }
 
-    const conversationId = reqConvId || `CONV_${Date.now()}`;
+    const fiveDaysAgo = new Date(Date.now() - FIVE_DAYS_MS);
+    let conversation = null;
+
+    // 1. Search existing 5-day active conversation by userId for logged in user
+    if (user && user._id) {
+      conversation = await AiConversation.findOne({
+        userId: user._id,
+        createdAt: { $gte: fiveDaysAgo },
+      }).sort({ updatedAt: -1 });
+    }
+
+    // 2. Search by conversationId if not found by userId
+    if (!conversation && reqConvId) {
+      conversation = await AiConversation.findOne({
+        conversationId: reqConvId,
+        createdAt: { $gte: fiveDaysAgo },
+      });
+    }
+
+    const conversationId = conversation ? conversation.conversationId : (reqConvId || `CONV_${user._id ? user._id : Date.now()}`);
 
     // Check Global AI Support Setting (Admin around vs Admin away)
     let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
     const globalAiEnabled = setting ? Boolean(setting.value) : true;
-
-    let conversation = await AiConversation.findOne({ conversationId });
 
     // If Admin turned off AI, conversation MUST remain in HUMAN mode permanently
     const isHumanMode = !globalAiEnabled || (conversation && conversation.supportMode === 'HUMAN');
@@ -100,6 +117,9 @@ exports.processChat = async (req, res, next) => {
         isEscalated: isHumanMode,
       });
     } else {
+      if (user && user._id && !conversation.userId) {
+        conversation.userId = user._id;
+      }
       if (isHumanMode) {
         conversation.supportMode = 'HUMAN';
         conversation.isEscalated = true;
