@@ -20,13 +20,22 @@ const AiConversationSchema = new mongoose.Schema(
       type: String,
       default: '/dashboard',
     },
+    supportMode: {
+      type: String,
+      enum: ['AI', 'HUMAN'],
+      default: 'AI',
+    },
     status: {
       type: String,
       enum: ['Active', 'Escalated', 'Resolved', 'Closed'],
       default: 'Active',
     },
+    isEscalated: {
+      type: Boolean,
+      default: false,
+    },
     satisfactionRating: {
-      type: Number, // 1 to 5 stars
+      type: Number,
       default: null,
     },
     resolutionHelpful: {

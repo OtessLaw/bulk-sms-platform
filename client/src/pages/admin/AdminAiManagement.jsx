@@ -16,11 +16,17 @@ import {
   Layers,
   Save,
   User,
+  Headphones,
+  Send,
+  ToggleLeft,
+  ToggleRight,
+  UserCheck,
 } from 'lucide-react';
 
 export default function AdminAiManagement() {
   const [analytics, setAnalytics] = useState({
     totalQuestions: 0,
+    liveEscalatedCount: 0,
     satisfactionRate: '98.4%',
     avgResponseTime: '1.1s',
     escalationRate: '1.6%',
@@ -30,6 +36,12 @@ export default function AdminAiManagement() {
 
   const [docs, setDocs] = useState([]);
   const [userLogs, setUserLogs] = useState([]);
+  const [liveChats, setLiveChats] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [replyText, setReplyText] = useState('');
+  const [replying, setReplying] = useState(false);
+
   const [showDocModal, setShowDocModal] = useState(false);
   const [newDoc, setNewDoc] = useState({
     title: '',
@@ -41,7 +53,15 @@ export default function AdminAiManagement() {
 
   useEffect(() => {
     fetchAiData();
+    const interval = setInterval(fetchAiData, 8000);
+    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (selectedChat) {
+      fetchChatMessages(selectedChat.conversationId);
+    }
+  }, [selectedChat]);
 
   const fetchAiData = async () => {
     try {
@@ -59,8 +79,69 @@ export default function AdminAiManagement() {
       if (logsRes.data.success) {
         setUserLogs(logsRes.data.data);
       }
+
+      const liveChatsRes = await API.get('/ai/admin/live-chats');
+      if (liveChatsRes.data.success) {
+        setLiveChats(liveChatsRes.data.data);
+      }
     } catch (err) {
       console.error('Failed to load AI analytics', err);
+    }
+  };
+
+  const fetchChatMessages = async (convId) => {
+    try {
+      const res = await API.get(`/ai/messages/${convId}`);
+      if (res.data.success) {
+        setChatMessages(res.data.data.messages || []);
+      }
+    } catch (err) {
+      toast.error('Failed to load chat messages');
+    }
+  };
+
+  const handleAdminReply = async (e) => {
+    e.preventDefault();
+    if (!selectedChat || !replyText.trim()) return;
+
+    setReplying(true);
+    try {
+      const res = await API.post('/ai/admin/reply', {
+        conversationId: selectedChat.conversationId,
+        replyText: replyText.trim(),
+        switchMode: 'HUMAN',
+      });
+
+      if (res.data.success) {
+        toast.success(`Reply sent live to ${selectedChat.userId?.name || 'Customer'}!`);
+        setReplyText('');
+        fetchChatMessages(selectedChat.conversationId);
+        fetchAiData();
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send reply');
+    } finally {
+      setReplying(false);
+    }
+  };
+
+  const handleToggleSupportMode = async (convId, currentMode) => {
+    const nextMode = currentMode === 'HUMAN' ? 'AI' : 'HUMAN';
+    try {
+      const res = await API.post('/ai/admin/toggle-mode', {
+        conversationId: convId,
+        mode: nextMode,
+      });
+
+      if (res.data.success) {
+        toast.success(`Switched conversation to ${nextMode} Mode`);
+        fetchAiData();
+        if (selectedChat && selectedChat.conversationId === convId) {
+          setSelectedChat({ ...selectedChat, supportMode: nextMode });
+        }
+      }
+    } catch (err) {
+      toast.error('Failed to switch support mode');
     }
   };
 
@@ -93,13 +174,13 @@ export default function AdminAiManagement() {
   };
 
   return (
-    <div className="space-y-6 max-w-full overflow-hidden">
+    <div className="space-y-6 max-w-full overflow-hidden font-sans">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
-            <BrainCircuit className="w-6 h-6 text-[#D4AF6A] shrink-0" /> AI Agent Management & RAG Engine
+            <BrainCircuit className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Live Support Chat & AI RAG Engine
           </h1>
-          <p className="text-xs text-[#AEB4BC]">Manage Knowledge Base RAG documents, review user questions, and monitor AI support performance</p>
+          <p className="text-xs text-[#AEB4BC]">Manage Live Human Chat Escalations, Knowledge RAG documents, and AI Support Performance</p>
         </div>
 
         <button
@@ -122,9 +203,9 @@ export default function AdminAiManagement() {
 
         <div className="bg-[#2A3038]/70 border border-emerald-500/25 rounded-2xl p-4 space-y-1">
           <span className="text-[11px] text-emerald-400 uppercase font-semibold flex items-center gap-1">
-            <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" /> Satisfaction Rate
+            <Headphones className="w-3.5 h-3.5 text-emerald-400" /> Live Escalated Chats
           </span>
-          <span className="text-xl font-extrabold text-emerald-400">{analytics.satisfactionRate}</span>
+          <span className="text-xl font-extrabold text-emerald-400">{analytics.liveEscalatedCount || liveChats.length || 0}</span>
         </div>
 
         <div className="bg-[#2A3038]/70 border border-yellow-500/25 rounded-2xl p-4 space-y-1">
@@ -136,13 +217,137 @@ export default function AdminAiManagement() {
 
         <div className="bg-[#2A3038]/70 border border-purple-500/25 rounded-2xl p-4 space-y-1">
           <span className="text-[11px] text-purple-400 uppercase font-semibold flex items-center gap-1">
-            <TrendingUp className="w-3.5 h-3.5 text-purple-400" /> Escalation Rate
+            <ThumbsUp className="w-3.5 h-3.5 text-purple-400" /> Satisfaction Rate
           </span>
-          <span className="text-xl font-extrabold text-purple-400">{analytics.escalationRate}</span>
+          <span className="text-xl font-extrabold text-purple-400">{analytics.satisfactionRate}</span>
         </div>
       </div>
 
-      {/* Admin User AI Questions & Chat Logs Monitor */}
+      {/* Live Human Support Chat Desk */}
+      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-emerald-500/30 rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
+        <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Headphones className="w-4 h-4 text-emerald-400" /> Super Admin Live Chat Control Panel ({liveChats.length})
+          </h3>
+          <span className="text-xs text-emerald-400 font-mono flex items-center gap-1">
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Bridge Active
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Active Conversations List */}
+          <div className="bg-[#1E232B] rounded-2xl p-3 border border-[rgba(212,175,106,0.15)] space-y-2 max-h-96 overflow-y-auto">
+            <h4 className="text-xs font-bold text-[#AEB4BC] uppercase tracking-wider mb-2">Escalated Customer Chats</h4>
+            {liveChats.length > 0 ? (
+              liveChats.map((c) => (
+                <div
+                  key={c._id}
+                  onClick={() => setSelectedChat(c)}
+                  className={`p-3 rounded-xl cursor-pointer transition-all border ${
+                    selectedChat?._id === c._id
+                      ? 'bg-[#2A3038] border-[#D4AF6A] shadow-md'
+                      : 'bg-[#242A32] border-transparent hover:border-[rgba(212,175,106,0.2)]'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="font-bold text-xs text-white flex items-center gap-1">
+                      <User className="w-3.5 h-3.5 text-[#D4AF6A]" /> {c.userId?.name || 'Customer'}
+                    </span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                        c.supportMode === 'HUMAN' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-yellow-500/20 text-yellow-400'
+                      }`}
+                    >
+                      {c.supportMode || 'HUMAN'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#AEB4BC] truncate mt-1">{c.title || 'Live Support Chat'}</p>
+                  <span className="text-[9px] text-[#AEB4BC] font-mono block mt-1">{new Date(c.updatedAt).toLocaleTimeString()}</span>
+                </div>
+              ))
+            ) : (
+              <p className="text-xs text-[#AEB4BC] p-4 text-center">No escalated customer chats active right now.</p>
+            )}
+          </div>
+
+          {/* Live Message Thread & Reply Box */}
+          <div className="md:col-span-2 bg-[#1E232B] rounded-2xl p-4 border border-[rgba(212,175,106,0.15)] flex flex-col justify-between h-96">
+            {selectedChat ? (
+              <>
+                {/* Chat Top Bar */}
+                <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
+                  <div>
+                    <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <UserCheck className="w-4 h-4 text-emerald-400" /> {selectedChat.userId?.name || 'Customer'} ({selectedChat.userId?.mobileNumber || selectedChat.userId?.email || 'Guest'})
+                    </h4>
+                    <span className="text-[10px] text-[#AEB4BC] font-mono">Page: {selectedChat.currentPage}</span>
+                  </div>
+
+                  <button
+                    onClick={() => handleToggleSupportMode(selectedChat.conversationId, selectedChat.supportMode)}
+                    className="bg-[#2A3038] hover:bg-[#D4AF6A] hover:text-black border border-[rgba(212,175,106,0.3)] text-[#D4AF6A] font-bold text-xs px-3 py-1.5 rounded-xl transition-all flex items-center gap-1"
+                  >
+                    {selectedChat.supportMode === 'HUMAN' ? <ToggleRight className="w-4 h-4 text-emerald-400" /> : <ToggleLeft className="w-4 h-4" />}
+                    <span>Mode: {selectedChat.supportMode || 'HUMAN'}</span>
+                  </button>
+                </div>
+
+                {/* Messages Thread */}
+                <div className="flex-1 overflow-y-auto space-y-3 py-3 text-xs">
+                  {chatMessages.map((m) => {
+                    const isUser = m.sender === 'user';
+                    const isAdmin = m.sender === 'human_admin';
+
+                    return (
+                      <div key={m._id} className={`flex ${isAdmin ? 'justify-end' : isUser ? 'justify-start' : 'justify-center'}`}>
+                        <div
+                          className={`max-w-[80%] p-2.5 rounded-xl text-xs space-y-1 ${
+                            isAdmin
+                              ? 'bg-emerald-600 text-white rounded-br-none'
+                              : isUser
+                              ? 'bg-[#D4AF6A] text-black font-semibold rounded-bl-none'
+                              : 'bg-[#2A3038] text-emerald-400 border border-emerald-500/30'
+                          }`}
+                        >
+                          {isAdmin && <span className="text-[9px] block text-emerald-200 font-bold">You (Super Admin)</span>}
+                          {isUser && <span className="text-[9px] block text-black/70 font-bold">{selectedChat.userId?.name || 'Customer'}</span>}
+                          <p className="whitespace-pre-line">{m.content}</p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Reply Form */}
+                <form onSubmit={handleAdminReply} className="flex items-center gap-2 pt-2 border-t border-[rgba(212,175,106,0.15)]">
+                  <input
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder={`Reply live to ${selectedChat.userId?.name || 'customer'}...`}
+                    className="flex-1 bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={replying || !replyText.trim()}
+                    className="bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs px-4 py-2 rounded-xl flex items-center gap-1.5 disabled:opacity-50"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Reply Live</span>
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-[#AEB4BC] space-y-2">
+                <Headphones className="w-8 h-8 text-[#D4AF6A] opacity-60 animate-pulse" />
+                <p className="text-xs">Select an escalated chat from the left panel to reply live to a customer.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Admin User AI Questions & Support Logs Monitor */}
       <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-4 sm:p-6 shadow-2xl space-y-4 max-w-full overflow-hidden">
         <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
           <h3 className="text-sm font-bold text-white flex items-center gap-2">

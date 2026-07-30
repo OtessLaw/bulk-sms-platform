@@ -3,7 +3,7 @@ const AiMessage = require('../models/AiMessage');
 const KnowledgeDocument = require('../models/KnowledgeDocument');
 const { processAiQuery } = require('../services/aiAssistantService');
 
-// @desc    Process AI Support Chat Prompt
+// @desc    Process AI Support Chat Prompt or Live Human Mode
 // @route   POST /api/ai/chat
 exports.processChat = async (req, res, next) => {
   try {
@@ -16,7 +16,39 @@ exports.processChat = async (req, res, next) => {
 
     const conversationId = reqConvId || `CONV_${Date.now()}`;
 
-    // Generate AI Answer (100% Guaranteed Non-blocking)
+    // Check if conversation is in Human Support Mode
+    let conversation = null;
+    if (user && user._id) {
+      try {
+        conversation = await AiConversation.findOne({ conversationId });
+      } catch (e) {}
+    }
+
+    // If conversation is in Live Human Mode, do not call AI; store user message for Admin
+    if (conversation && conversation.supportMode === 'HUMAN') {
+      await AiMessage.create({
+        conversationId,
+        userId: user._id,
+        sender: 'user',
+        content: prompt,
+        pageContext: currentPage || '/dashboard',
+        escalatedToHuman: true,
+      });
+
+      return res.status(200).json({
+        success: true,
+        data: {
+          conversationId,
+          supportMode: 'HUMAN',
+          message: {
+            content: `Your message has been sent directly to Live Human Support. An Admin representative will reply right here in this chat window!`,
+            sender: 'system',
+          },
+        },
+      });
+    }
+
+    // Generate AI Answer via Gemini / Groq / Neural Synthesizer
     const aiResult = await processAiQuery({
       user,
       prompt,
@@ -25,12 +57,11 @@ exports.processChat = async (req, res, next) => {
       history: Array.isArray(history) ? history : [],
     });
 
-    // Safely save history in background if DB is available (never blocks API response)
+    // Save message history in background
     if (user && user._id) {
       try {
-        let conversation = await AiConversation.findOne({ conversationId });
         if (!conversation) {
-          await AiConversation.create({
+          conversation = await AiConversation.create({
             userId: user._id,
             conversationId,
             currentPage: currentPage || '/dashboard',
@@ -61,11 +92,11 @@ exports.processChat = async (req, res, next) => {
       }
     }
 
-    // Always return HTTP 200 with generated AI response
     return res.status(200).json({
       success: true,
       data: {
         conversationId,
+        supportMode: 'AI',
         message: {
           content: aiResult.responseText,
           actionButtons: aiResult.actionButtons || [],
@@ -81,6 +112,7 @@ exports.processChat = async (req, res, next) => {
       success: true,
       data: {
         conversationId: `CONV_${Date.now()}`,
+        supportMode: 'AI',
         message: {
           content: text
             ? `I hear you! How can I best assist you with your question or your FasReach account today?`
@@ -89,6 +121,166 @@ exports.processChat = async (req, res, next) => {
         },
       },
     });
+  }
+};
+
+// @desc    Escalate Chat to Live Human Support Mode
+// @route   POST /api/ai/escalate
+exports.escalateToHuman = async (req, res, next) => {
+  try {
+    const { conversationId, pageContext } = req.body;
+    const user = req.user;
+
+    if (!user || !user._id) {
+      return res.status(401).json({ success: false, message: 'Please log in to connect with Live Human Support' });
+    }
+
+    let conversation = await AiConversation.findOne({ conversationId });
+    if (!conversation) {
+      conversation = await AiConversation.create({
+        userId: user._id,
+        conversationId: conversationId || `CONV_${Date.now()}`,
+        currentPage: pageContext || '/dashboard',
+        title: 'Live Human Support Request',
+        supportMode: 'HUMAN',
+        status: 'Escalated',
+        isEscalated: true,
+      });
+    } else {
+      conversation.supportMode = 'HUMAN';
+      conversation.status = 'Escalated';
+      conversation.isEscalated = true;
+      await conversation.save();
+    }
+
+    await AiMessage.create({
+      conversationId: conversation.conversationId,
+      userId: user._id,
+      sender: 'system',
+      content: `🔔 User ${user.name} (${user.mobileNumber || user.email}) requested Live Human Support.`,
+      pageContext: pageContext || '/dashboard',
+      escalatedToHuman: true,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Connected to Live Human Support! Your messages will be delivered directly to our live admin support desk.',
+      data: {
+        conversationId: conversation.conversationId,
+        supportMode: 'HUMAN',
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get Latest Messages for a Conversation (Allows Widget to receive Live Admin replies)
+// @route   GET /api/ai/messages/:conversationId
+exports.getConversationMessages = async (req, res, next) => {
+  try {
+    const { conversationId } = req.params;
+    const messages = await AiMessage.find({ conversationId }).sort({ createdAt: 1 });
+    const conversation = await AiConversation.findOne({ conversationId });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        supportMode: conversation ? conversation.supportMode : 'AI',
+        messages,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Admin Reply Live to Customer Chat
+// @route   POST /api/admin/ai/reply
+exports.adminReplyToUser = async (req, res, next) => {
+  try {
+    const { conversationId, replyText, switchMode } = req.body;
+    const adminUser = req.user;
+
+    if (!replyText || !replyText.trim()) {
+      return res.status(400).json({ success: false, message: 'Reply message text is required' });
+    }
+
+    const conversation = await AiConversation.findOne({ conversationId }).populate('userId', 'name email mobileNumber');
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    // Save Admin Message
+    const adminMessage = await AiMessage.create({
+      conversationId,
+      userId: conversation.userId._id,
+      sender: 'human_admin',
+      content: replyText,
+      pageContext: conversation.currentPage,
+      escalatedToHuman: true,
+    });
+
+    // Update conversation mode if specified
+    if (switchMode && ['AI', 'HUMAN'].includes(switchMode)) {
+      conversation.supportMode = switchMode;
+    }
+    conversation.updatedAt = new Date();
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Reply sent live to customer ${conversation.userId.name}!`,
+      data: adminMessage,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Get All Live Escalated Chats for Admin Inbox
+// @route   GET /api/admin/ai/live-chats
+exports.getLiveSupportChats = async (req, res, next) => {
+  try {
+    const escalatedConvs = await AiConversation.find({
+      $or: [{ supportMode: 'HUMAN' }, { isEscalated: true }, { status: 'Escalated' }],
+    })
+      .populate('userId', 'name email mobileNumber')
+      .sort({ updatedAt: -1 });
+
+    res.status(200).json({ success: true, data: escalatedConvs });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Toggle Support Mode (AI vs HUMAN) for a Conversation
+// @route   POST /api/admin/ai/toggle-mode
+exports.toggleSupportMode = async (req, res, next) => {
+  try {
+    const { conversationId, mode } = req.body;
+    const conversation = await AiConversation.findOne({ conversationId });
+    if (!conversation) {
+      return res.status(404).json({ success: false, message: 'Conversation not found' });
+    }
+
+    conversation.supportMode = mode === 'HUMAN' ? 'HUMAN' : 'AI';
+    if (mode === 'AI') {
+      conversation.isEscalated = false;
+      conversation.status = 'Active';
+    } else {
+      conversation.isEscalated = true;
+      conversation.status = 'Escalated';
+    }
+    await conversation.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Support mode updated to ${conversation.supportMode} Mode`,
+      data: conversation,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
@@ -147,11 +339,13 @@ exports.getAdminAnalytics = async (req, res, next) => {
   try {
     const totalConversations = await AiConversation.countDocuments();
     const totalDocs = await KnowledgeDocument.countDocuments();
+    const liveEscalatedCount = await AiConversation.countDocuments({ supportMode: 'HUMAN' });
 
     res.status(200).json({
       success: true,
       data: {
         totalQuestions: totalConversations,
+        liveEscalatedCount,
         satisfactionRate: '98.4%',
         avgResponseTime: '1.1s',
         escalationRate: '1.6%',

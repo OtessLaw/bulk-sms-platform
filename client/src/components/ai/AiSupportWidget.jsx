@@ -18,6 +18,7 @@ import {
   Headphones,
   Maximize2,
   Minimize2,
+  UserCheck,
 } from 'lucide-react';
 
 export default function AiSupportWidget() {
@@ -31,6 +32,7 @@ export default function AiSupportWidget() {
   const [inputPrompt, setInputPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
+  const [supportMode, setSupportMode] = useState('AI'); // 'AI' or 'HUMAN'
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
@@ -38,7 +40,7 @@ export default function AiSupportWidget() {
   const messagesEndRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Keyboard Shortcut (Alt + K) to toggle AI Assistant
+  // Keyboard Shortcut (Alt + K) to toggle Live Chat
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.altKey && e.key.toLowerCase() === 'k') {
@@ -58,12 +60,39 @@ export default function AiSupportWidget() {
       const welcomeMsg = {
         id: 'welcome_1',
         sender: 'assistant',
-        content: `Hello 👋 ${timeGreeting}!\n\nI am Perincle, your FasReach AI Assistant.\n\nHow can I help you today?`,
+        content: `Hello 👋 ${timeGreeting}!\n\nI am Perincle, your FasReach AI Assistant. How can I help you today?`,
         pageContext: location.pathname,
       };
       setMessages([welcomeMsg]);
     }
   }, []);
+
+  // Live Polling for Admin Replies when in HUMAN Support Mode
+  useEffect(() => {
+    let interval = null;
+    if (isOpen && conversationId && supportMode === 'HUMAN') {
+      interval = setInterval(async () => {
+        try {
+          const res = await API.get(`/ai/messages/${conversationId}`);
+          if (res.data && res.data.data?.messages) {
+            const dbMsgs = res.data.data.messages.map((m) => ({
+              id: m._id || `msg_${Date.now()}_${Math.random()}`,
+              sender: m.sender,
+              content: m.content.replace(/\*/g, ''),
+              actionButtons: m.actionButtons || [],
+            }));
+            setMessages(dbMsgs);
+            if (res.data.data.supportMode) {
+              setSupportMode(res.data.data.supportMode);
+            }
+          }
+        } catch (err) {}
+      }, 3500);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOpen, conversationId, supportMode]);
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -86,7 +115,6 @@ export default function AiSupportWidget() {
     setLoading(true);
 
     try {
-      // Call Real Backend Generative AI Agent Endpoint with Chat History
       const recentHistory = messages.slice(-8).map((m) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.content,
@@ -104,13 +132,16 @@ export default function AiSupportWidget() {
         if (res.data.data.conversationId) {
           setConversationId(res.data.data.conversationId);
         }
+        if (res.data.data.supportMode) {
+          setSupportMode(res.data.data.supportMode);
+        }
 
         const cleanContent = (msgDoc.content || '').replace(/\*/g, '');
         setMessages((prev) => [
           ...prev,
           {
             id: `ai_${Date.now()}`,
-            sender: 'assistant',
+            sender: msgDoc.sender || 'assistant',
             content: cleanContent,
             actionButtons: msgDoc.actionButtons || [],
           },
@@ -129,6 +160,42 @@ export default function AiSupportWidget() {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Request Live Human Support Escalation
+  const handleConnectHuman = async () => {
+    if (!user) {
+      toast.error('Please log in to connect with Live Human Support');
+      navigate('/login');
+      return;
+    }
+
+    toast.loading('Connecting to Live Human Support...', { id: 'human-toast' });
+    try {
+      const res = await API.post('/api/ai/escalate', {
+        conversationId: conversationId || `CONV_${Date.now()}`,
+        pageContext: location.pathname,
+      });
+
+      if (res.data && res.data.success) {
+        toast.success('Connected to Live Human Support!', { id: 'human-toast' });
+        setSupportMode('HUMAN');
+        if (res.data.data?.conversationId) {
+          setConversationId(res.data.data.conversationId);
+        }
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `human_connected_${Date.now()}`,
+            sender: 'system',
+            content: `Connected to Live Human Support! Your messages are delivered directly to our live Admin desk. An admin representative will reply right here.`,
+          },
+        ]);
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to connect to Live Human Support', { id: 'human-toast' });
     }
   };
 
@@ -221,14 +288,14 @@ export default function AiSupportWidget() {
           className="group relative bg-gradient-to-r from-[#D4AF6A] via-[#E7D3A4] to-[#B88E3E] text-black p-3.5 rounded-full shadow-[0_10px_25px_rgba(212,175,106,0.4)] hover:scale-105 transition-all flex items-center space-x-2.5 font-bold text-xs"
         >
           <Bot className="w-6 h-6 shrink-0 animate-bounce" />
-          <span className="hidden sm:inline font-bold pr-1">Perincle AI Support</span>
+          <span className="hidden sm:inline font-bold pr-1">Live Support Chat</span>
           {hasUnread && (
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-black animate-ping" />
           )}
         </button>
       )}
 
-      {/* Main AI Chat Modal Window */}
+      {/* Main AI & Live Chat Modal Window */}
       {isOpen && (
         <div
           className={`bg-[#1E232B]/95 backdrop-blur-xl border border-[rgba(212,175,106,0.4)] rounded-3xl shadow-[0_25px_50px_rgba(0,0,0,0.8)] flex flex-col transition-all overflow-hidden ${
@@ -239,14 +306,22 @@ export default function AiSupportWidget() {
           <div className="bg-[#2A3038]/90 border-b border-[rgba(212,175,106,0.2)] p-3.5 flex items-center justify-between shrink-0">
             <div className="flex items-center space-x-2.5">
               <div className="w-8 h-8 bg-gradient-to-br from-[#D4AF6A] to-[#B88E3E] rounded-xl flex items-center justify-center text-black font-bold shadow-md">
-                <Bot className="w-5 h-5" />
+                {supportMode === 'HUMAN' ? <UserCheck className="w-5 h-5 text-black" /> : <Bot className="w-5 h-5" />}
               </div>
               <div>
                 <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
                   Live Chat <Sparkles className="w-3.5 h-3.5 text-[#D4AF6A]" />
                 </h3>
                 <span className="text-[10px] text-[#AEB4BC] flex items-center gap-1">
-                  <Compass className="w-3 h-3 text-[#D4AF6A]" /> Page: {location.pathname}
+                  {supportMode === 'HUMAN' ? (
+                    <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Admin Connected
+                    </span>
+                  ) : (
+                    <span className="text-[#AEB4BC] flex items-center gap-1">
+                      <Compass className="w-3 h-3 text-[#D4AF6A]" /> Page: {location.pathname}
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -270,6 +345,18 @@ export default function AiSupportWidget() {
               <div className="flex-1 p-4 overflow-y-auto space-y-4 text-xs">
                 {messages.map((m) => {
                   const isUser = m.sender === 'user';
+                  const isHumanAdmin = m.sender === 'human_admin';
+                  const isSystem = m.sender === 'system';
+
+                  if (isSystem) {
+                    return (
+                      <div key={m.id} className="flex justify-center my-2">
+                        <div className="bg-[#2A3038] text-emerald-400 border border-emerald-500/30 px-3 py-1.5 rounded-xl text-[11px] text-center font-medium">
+                          {m.content}
+                        </div>
+                      </div>
+                    );
+                  }
 
                   return (
                     <div key={m.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -277,9 +364,16 @@ export default function AiSupportWidget() {
                         className={`max-w-[85%] rounded-2xl p-3 space-y-2 shadow-md ${
                           isUser
                             ? 'bg-[#D4AF6A] text-black font-semibold rounded-br-none'
+                            : isHumanAdmin
+                            ? 'bg-emerald-900/80 text-white border border-emerald-500/40 rounded-bl-none'
                             : 'bg-[#2A3038] text-white border border-[rgba(212,175,106,0.2)] rounded-bl-none'
                         }`}
                       >
+                        {isHumanAdmin && (
+                          <span className="text-[10px] text-emerald-400 font-bold block border-b border-emerald-500/20 pb-1">
+                            👨‍💼 Admin Representative
+                          </span>
+                        )}
                         <p className="whitespace-pre-line leading-relaxed">{m.content}</p>
 
                         {/* Read Aloud Button */}
@@ -377,7 +471,7 @@ export default function AiSupportWidget() {
                     type="text"
                     value={inputPrompt}
                     onChange={(e) => setInputPrompt(e.target.value)}
-                    placeholder="Ask FasReach Support... (Alt + K)"
+                    placeholder={supportMode === 'HUMAN' ? 'Type message to Live Human Support...' : 'Ask Live Chat... (Alt + K)'}
                     className="flex-1 bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                   />
 
@@ -391,15 +485,15 @@ export default function AiSupportWidget() {
                 </form>
 
                 <div className="flex justify-between items-center text-[10px] text-[#AEB4BC] px-1">
-                  <span>Customer Support AI</span>
-                  <a
-                    href="https://wa.me/233240000000"
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[#D4AF6A] hover:underline font-semibold flex items-center gap-0.5"
-                  >
-                    <Headphones className="w-3 h-3" /> Human Support
-                  </a>
+                  <span>{supportMode === 'HUMAN' ? '🟢 Live Human Mode' : '🤖 Perincle AI Active'}</span>
+                  {supportMode !== 'HUMAN' && (
+                    <button
+                      onClick={handleConnectHuman}
+                      className="text-[#D4AF6A] hover:underline font-semibold flex items-center gap-0.5"
+                    >
+                      <Headphones className="w-3 h-3" /> Connect Human Support
+                    </button>
+                  )}
                 </div>
               </div>
             </>

@@ -14,7 +14,7 @@ const AiMessageSchema = new mongoose.Schema(
     },
     sender: {
       type: String,
-      enum: ['user', 'assistant', 'system'],
+      enum: ['user', 'assistant', 'system', 'human_admin'],
       required: true,
     },
     content: {
