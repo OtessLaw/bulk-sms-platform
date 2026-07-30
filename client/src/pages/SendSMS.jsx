@@ -373,27 +373,81 @@ export default function SendSMS() {
             )}
 
             {/* AI Generator Helper Box */}
-            <div className="bg-[#1E232B]/60 border border-[rgba(212,175,106,0.15)] rounded-2xl p-3 space-y-2">
-              <span className="text-[11px] font-bold text-[#D4AF6A] flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5" /> AI Template Generator
-              </span>
+            <div className="bg-[#1E232B]/80 border border-[rgba(212,175,106,0.3)] rounded-2xl p-4 space-y-3 shadow-lg">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-bold text-[#D4AF6A] flex items-center gap-1.5">
+                  <Sparkles className="w-4 h-4 text-[#D4AF6A]" /> AI SMS Copy Generator
+                </span>
+                <span className="text-[10px] text-[#AEB4BC]">Instant High-Converting Copy</span>
+              </div>
+
+              {/* Quick Topic Chips */}
+              <div className="flex flex-wrap gap-1.5">
+                {['⚡ Flash Sale', '🎁 Promo Discount', '📢 Event Invitation', '💳 Payment Due', '👋 Welcome SMS'].map((chip) => (
+                  <button
+                    key={chip}
+                    type="button"
+                    onClick={() => {
+                      const topic = chip.replace(/^[^\w\s]+\s*/, '');
+                      setAiPrompt(topic);
+                    }}
+                    className="text-[10px] bg-[#2A3038] hover:bg-[#343C47] text-[#AEB4BC] hover:text-white px-2.5 py-1 rounded-lg border border-[rgba(212,175,106,0.15)] transition-all cursor-pointer"
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="e.g. 20% Discount Sale announcement"
-                  className="flex-1 bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none"
+                  className="flex-1 bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
                 />
                 <button
                   type="button"
-                  onClick={handleGenerateAi}
+                  onClick={() => handleGenerateAi()}
                   disabled={generatingAi}
-                  className="bg-[#D4AF6A] text-black font-bold text-[11px] px-3.5 py-1.5 rounded-xl shrink-0 hover:bg-[#E7D3A4] transition-all disabled:opacity-50"
+                  className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#C9A04E] text-black font-extrabold text-xs px-4 py-2 rounded-xl shrink-0 transition-all disabled:opacity-50 flex items-center gap-1 shadow-md cursor-pointer"
                 >
-                  {generatingAi ? 'Generating...' : 'Generate'}
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>{generatingAi ? 'Generating...' : 'Generate Copy'}</span>
                 </button>
               </div>
+
+              {/* Generated Variations Cards List */}
+              {aiTemplatesList.length > 0 && (
+                <div className="pt-3 space-y-2 border-t border-[rgba(212,175,106,0.15)] animate-fadeIn">
+                  <span className="text-[11px] font-bold text-white block">Generated AI Copy Options (Click to select):</span>
+                  <div className="grid grid-cols-1 gap-2">
+                    {aiTemplatesList.map((tpl, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => {
+                          setFormData((prev) => ({ ...prev, content: tpl }));
+                          setAiIndex(idx);
+                          toast.success(`Selected AI Copy Option #${idx + 1}!`);
+                        }}
+                        className={`p-3 rounded-xl border text-xs cursor-pointer transition-all flex flex-col justify-between ${
+                          formData.content === tpl
+                            ? 'bg-[#2A3038] border-[#D4AF6A] shadow-md ring-1 ring-[#D4AF6A]'
+                            : 'bg-[#1E232B] border-[rgba(212,175,106,0.15)] hover:border-[#D4AF6A]/50'
+                        }`}
+                      >
+                        <p className="text-white font-medium mb-2">"{tpl}"</p>
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span className="text-[#AEB4BC]">{tpl.length} chars</span>
+                          <span className={`font-bold px-2.5 py-0.5 rounded-md ${formData.content === tpl ? 'bg-[#D4AF6A] text-black' : 'bg-[#2A3038] text-[#D4AF6A]'}`}>
+                            {formData.content === tpl ? '✓ Active Message' : 'Use Option'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Message Content */}
