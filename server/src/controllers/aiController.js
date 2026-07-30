@@ -4,6 +4,24 @@ const KnowledgeDocument = require('../models/KnowledgeDocument');
 const SystemSetting = require('../models/SystemSetting');
 const { processAiQuery } = require('../services/aiAssistantService');
 
+// 5 Days Retention Limit in ms (5 days = 432,000,000 ms)
+const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+
+// Helper to cleanup conversations older than 5 days
+const cleanupOldConversations = async () => {
+  try {
+    const fiveDaysAgo = new Date(Date.now() - FIVE_DAYS_MS);
+    const oldConvs = await AiConversation.find({ createdAt: { $lt: fiveDaysAgo } });
+    if (oldConvs.length > 0) {
+      const oldIds = oldConvs.map((c) => c.conversationId);
+      await AiMessage.deleteMany({ conversationId: { $in: oldIds } });
+      await AiConversation.deleteMany({ conversationId: { $in: oldIds } });
+    }
+  } catch (e) {
+    console.warn('[Cleanup Old Conversations Notice]', e.message);
+  }
+};
+
 // @desc    Get Global AI Support System Status (ON vs OFF)
 // @route   GET /api/ai/system-status
 exports.getSystemStatus = async (req, res, next) => {
@@ -41,7 +59,7 @@ exports.toggleGlobalAiSupport = async (req, res, next) => {
       success: true,
       message: setting.value
         ? 'AI Support turned ON (Perincle AI will handle questions while you are away)!'
-        : 'AI Support turned OFF (You are online! Customer messages will route directly to you for live human replies)',
+        : 'AI Support turned OFF (You are online! All customer messages route directly to you for live human replies)',
       data: { globalAiSupportEnabled: setting.value },
     });
   } catch (error) {
@@ -66,10 +84,10 @@ exports.processChat = async (req, res, next) => {
     let setting = await SystemSetting.findOne({ key: 'globalAiSupportEnabled' });
     const globalAiEnabled = setting ? Boolean(setting.value) : true;
 
-    let conversation = null;
-    try {
-      conversation = await AiConversation.findOne({ conversationId });
-    } catch (e) {}
+    let conversation = await AiConversation.findOne({ conversationId });
+
+    // If Admin turned off AI, conversation MUST remain in HUMAN mode permanently
+    const isHumanMode = !globalAiEnabled || (conversation && conversation.supportMode === 'HUMAN');
 
     // Save or update Conversation
     if (!conversation) {
@@ -78,11 +96,11 @@ exports.processChat = async (req, res, next) => {
         conversationId,
         currentPage: currentPage || '/dashboard',
         title: prompt.substring(0, 30),
-        supportMode: globalAiEnabled ? 'AI' : 'HUMAN',
-        isEscalated: !globalAiEnabled,
+        supportMode: isHumanMode ? 'HUMAN' : 'AI',
+        isEscalated: isHumanMode,
       });
     } else {
-      if (!globalAiEnabled) {
+      if (isHumanMode) {
         conversation.supportMode = 'HUMAN';
         conversation.isEscalated = true;
       }
@@ -99,15 +117,23 @@ exports.processChat = async (req, res, next) => {
       pageContext: currentPage || '/dashboard',
     });
 
-    // IF AI IS TURNED OFF (Admin is around for live human support)
-    if (!globalAiEnabled || conversation.supportMode === 'HUMAN') {
+    // IF IN HUMAN MODE (Admin is online or conversation is escalated to human): DO NOT CALL AI!
+    if (isHumanMode) {
+      const ackMsg = await AiMessage.create({
+        conversationId,
+        userId: user._id || null,
+        sender: 'system',
+        content: `Your message has been delivered to Live Support. Admin is online and will reply right here!`,
+        pageContext: currentPage || '/dashboard',
+      });
+
       return res.status(200).json({
         success: true,
         data: {
           conversationId,
           supportMode: 'HUMAN',
           message: {
-            content: `Admin Live Support is currently online! Your message has been received and an admin representative will reply right here in this chat window.`,
+            content: ackMsg.content,
             sender: 'system',
           },
         },
@@ -192,7 +218,6 @@ exports.getConversationMessages = async (req, res, next) => {
 exports.adminReplyToUser = async (req, res, next) => {
   try {
     const { conversationId, replyText } = req.body;
-    const adminUser = req.user;
 
     if (!replyText || !replyText.trim()) {
       return res.status(400).json({ success: false, message: 'Reply message text is required' });
@@ -203,7 +228,7 @@ exports.adminReplyToUser = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Conversation not found' });
     }
 
-    // Save Admin Message
+    // Save Admin Message persistently
     const adminMessage = await AiMessage.create({
       conversationId,
       userId: conversation.userId?._id || null,
@@ -213,7 +238,9 @@ exports.adminReplyToUser = async (req, res, next) => {
       escalatedToHuman: true,
     });
 
+    // Ensure conversation stays strictly in HUMAN mode
     conversation.supportMode = 'HUMAN';
+    conversation.isEscalated = true;
     conversation.updatedAt = new Date();
     await conversation.save();
 
@@ -227,11 +254,14 @@ exports.adminReplyToUser = async (req, res, next) => {
   }
 };
 
-// @desc    Get All Live Chats & User Support Conversations for Admin Control Panel
+// @desc    Get All Live Chats & User Support Conversations for Admin Control Panel (Auto-clean > 5 days)
 // @route   GET /api/admin/ai/live-chats
 exports.getLiveSupportChats = async (req, res, next) => {
   try {
-    const allConvs = await AiConversation.find()
+    await cleanupOldConversations();
+
+    const fiveDaysAgo = new Date(Date.now() - FIVE_DAYS_MS);
+    const allConvs = await AiConversation.find({ createdAt: { $gte: fiveDaysAgo } })
       .populate('userId', 'name email mobileNumber')
       .sort({ updatedAt: -1 })
       .limit(50);

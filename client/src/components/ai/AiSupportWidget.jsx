@@ -20,6 +20,8 @@ import {
   UserCheck,
 } from 'lucide-react';
 
+const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000;
+
 export default function AiSupportWidget() {
   const { user } = useAuth();
   const location = useLocation();
@@ -51,29 +53,66 @@ export default function AiSupportWidget() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initial Welcome Message
+  // Persistent 5-Day Chat Thread Initialization
   useEffect(() => {
-    if (messages.length === 0) {
-      const hour = new Date().getHours();
-      const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-      const welcomeMsg = {
-        id: 'welcome_1',
-        sender: 'assistant',
-        content: `Hello 👋 ${timeGreeting}!\n\nI am Perincle, your FasReach AI Assistant. How can I help you today?`,
-        pageContext: location.pathname,
-      };
-      setMessages([welcomeMsg]);
+    const storedConvId = localStorage.getItem('fasreach_chat_conv_id');
+    const storedTime = localStorage.getItem('fasreach_chat_conv_time');
+    const now = Date.now();
+
+    if (storedConvId && storedTime && now - parseInt(storedTime, 10) < FIVE_DAYS_MS) {
+      setConversationId(storedConvId);
+      loadExistingMessages(storedConvId);
+    } else {
+      const newConvId = `CONV_${now}`;
+      localStorage.setItem('fasreach_chat_conv_id', newConvId);
+      localStorage.setItem('fasreach_chat_conv_time', now.toString());
+      setConversationId(newConvId);
+      initializeWelcome();
     }
   }, []);
 
-  // Live Polling for Admin Replies
+  const initializeWelcome = () => {
+    const hour = new Date().getHours();
+    const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+    const welcomeMsg = {
+      id: 'welcome_1',
+      sender: 'assistant',
+      content: `Hello 👋 ${timeGreeting}!\n\nI am Perincle, your FasReach AI Assistant. How can I help you today?`,
+      pageContext: location.pathname,
+    };
+    setMessages([welcomeMsg]);
+  };
+
+  const loadExistingMessages = async (convId) => {
+    try {
+      const res = await API.get(`/ai/messages/${convId}`);
+      if (res.data && res.data.data?.messages && res.data.data.messages.length > 0) {
+        const dbMsgs = res.data.data.messages.map((m) => ({
+          id: m._id || `msg_${Date.now()}_${Math.random()}`,
+          sender: m.sender,
+          content: (m.content || '').replace(/\*/g, ''),
+          actionButtons: m.actionButtons || [],
+        }));
+        setMessages(dbMsgs);
+        if (res.data.data.supportMode) {
+          setSupportMode(res.data.data.supportMode);
+        }
+      } else {
+        initializeWelcome();
+      }
+    } catch (e) {
+      initializeWelcome();
+    }
+  };
+
+  // Live Sync for Admin Replies (Every 3.5 seconds)
   useEffect(() => {
     let interval = null;
     if (isOpen && conversationId) {
       interval = setInterval(async () => {
         try {
           const res = await API.get(`/ai/messages/${conversationId}`);
-          if (res.data && res.data.data?.messages) {
+          if (res.data && res.data.data?.messages && res.data.data.messages.length > 0) {
             const dbMsgs = res.data.data.messages.map((m) => ({
               id: m._id || `msg_${Date.now()}_${Math.random()}`,
               sender: m.sender,
@@ -85,9 +124,7 @@ export default function AiSupportWidget() {
               setSupportMode(res.data.data.supportMode);
             }
           }
-        } catch (err) {
-          // Silent catch to prevent toast error spam
-        }
+        } catch (err) {}
       }, 3500);
     }
     return () => {
@@ -116,6 +153,13 @@ export default function AiSupportWidget() {
     setLoading(true);
 
     try {
+      const activeConvId = conversationId || `CONV_${Date.now()}`;
+      if (!conversationId) {
+        setConversationId(activeConvId);
+        localStorage.setItem('fasreach_chat_conv_id', activeConvId);
+        localStorage.setItem('fasreach_chat_conv_time', Date.now().toString());
+      }
+
       const recentHistory = messages.slice(-8).map((m) => ({
         role: m.sender === 'user' ? 'user' : 'assistant',
         content: m.content,
@@ -124,15 +168,12 @@ export default function AiSupportWidget() {
       const res = await API.post('/ai/chat', {
         prompt: queryText,
         currentPage: location.pathname,
-        conversationId,
+        conversationId: activeConvId,
         history: recentHistory,
       });
 
       if (res.data && res.data.data?.message) {
         const msgDoc = res.data.data.message;
-        if (res.data.data.conversationId) {
-          setConversationId(res.data.data.conversationId);
-        }
         if (res.data.data.supportMode) {
           setSupportMode(res.data.data.supportMode);
         }
@@ -141,8 +182,8 @@ export default function AiSupportWidget() {
         setMessages((prev) => [
           ...prev,
           {
-            id: `ai_${Date.now()}`,
-            sender: msgDoc.sender || 'assistant',
+            id: `msg_${Date.now()}`,
+            sender: msgDoc.sender || (supportMode === 'HUMAN' ? 'system' : 'assistant'),
             content: cleanContent,
             actionButtons: msgDoc.actionButtons || [],
           },
@@ -153,9 +194,9 @@ export default function AiSupportWidget() {
       setMessages((prev) => [
         ...prev,
         {
-          id: `ai_fallback_${Date.now()}`,
+          id: `fallback_${Date.now()}`,
           sender: 'assistant',
-          content: `Regarding "${queryText}": I am here to help answer any questions, draft SMS dispatches, check your balance, or manage your Sender IDs. How can I assist you further?`,
+          content: `Regarding "${queryText}": How can I best assist you with your question or your FasReach account today?`,
           actionButtons: [{ label: 'Send SMS', route: '/send-sms' }],
         },
       ]);
@@ -280,7 +321,7 @@ export default function AiSupportWidget() {
                 <span className="text-[10px] text-[#AEB4BC] flex items-center gap-1">
                   {supportMode === 'HUMAN' ? (
                     <span className="text-emerald-400 font-semibold flex items-center gap-1">
-                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Connected
+                      <span className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" /> Live Support Online
                     </span>
                   ) : (
                     <span className="text-[#AEB4BC] flex items-center gap-1">
