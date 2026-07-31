@@ -117,6 +117,16 @@ exports.sendSMS = async (req, res, next) => {
       console.warn('[Gateway Notice]', err.message);
     }
 
+    const validStatuses = ['Pending', 'Submitted', 'Sent', 'Delivered', 'Failed', 'Scheduled', 'Processing', 'Queued', 'Success', 'Approved', 'Active'];
+    let finalStatus = 'Submitted';
+    if (gatewayRes.status && validStatuses.includes(gatewayRes.status)) {
+      finalStatus = gatewayRes.status;
+    } else if (String(gatewayRes.status || '').toLowerCase().includes('deliver')) {
+      finalStatus = 'Delivered';
+    } else if (String(gatewayRes.status || '').toLowerCase().includes('fail') || String(gatewayRes.status || '').toLowerCase().includes('reject')) {
+      finalStatus = 'Failed';
+    }
+
     const messageDoc = await Message.create({
       userId,
       senderId: senderId || 'FASREACH',
@@ -126,7 +136,7 @@ exports.sendSMS = async (req, res, next) => {
       costGHS: cashCost,
       gatewayProvider: gatewayRes.provider || 'FasReach Gateway',
       gatewayResponseId: gatewayRes.messageId || `MSG_${Date.now()}`,
-      status: gatewayRes.status || 'Submitted',
+      status: finalStatus,
     });
 
     res.status(200).json({
@@ -138,13 +148,18 @@ exports.sendSMS = async (req, res, next) => {
       sms_id: messageDoc.gatewayResponseId,
       data: {
         messageDoc,
-        remainingCredits: wallet.smsCredit,
-        remainingBalance: wallet.balance,
+        remainingCredits: wallet ? wallet.smsCredit : 0,
+        remainingBalance: wallet ? wallet.balance : 0,
       },
     });
   } catch (error) {
     console.error('[sendSMS Controller Error]', error);
-    res.status(400).json({ success: false, message: error.message || 'SMS dispatch failed' });
+    res.status(400).json({
+      success: false,
+      code: 400,
+      status: 'error',
+      message: error.message || 'SMS dispatch failed. Check parameters and try again.',
+    });
   }
 };
 
@@ -253,13 +268,24 @@ exports.sendBulkSMS = async (req, res, next) => {
     }
 
     // 2. Immediate Bulk Dispatch
+    const validStatuses = ['Pending', 'Submitted', 'Sent', 'Delivered', 'Failed', 'Scheduled', 'Processing', 'Queued', 'Success', 'Approved', 'Active'];
     const createdDocs = [];
+
     for (const phone of recipients) {
       let gatewayRes = { success: true, provider: 'FasReach Gateway', messageId: `MSG_${Date.now()}`, status: 'Submitted' };
       try {
         gatewayRes = await sendMultiSms({ senderId: senderId || 'FASREACH', recipientPhone: phone, content });
       } catch (err) {
         console.warn('[Bulk Gateway Notice]', err.message);
+      }
+
+      let finalStatus = 'Submitted';
+      if (gatewayRes.status && validStatuses.includes(gatewayRes.status)) {
+        finalStatus = gatewayRes.status;
+      } else if (String(gatewayRes.status || '').toLowerCase().includes('deliver')) {
+        finalStatus = 'Delivered';
+      } else if (String(gatewayRes.status || '').toLowerCase().includes('fail') || String(gatewayRes.status || '').toLowerCase().includes('reject')) {
+        finalStatus = 'Failed';
       }
 
       const doc = await Message.create({
@@ -271,23 +297,30 @@ exports.sendBulkSMS = async (req, res, next) => {
         costGHS: Number((unitsPerMessage * RATE_PER_UNIT).toFixed(2)),
         gatewayProvider: gatewayRes.provider || 'FasReach Gateway',
         gatewayResponseId: gatewayRes.messageId || `MSG_${Date.now()}`,
-        status: gatewayRes.status || 'Submitted',
+        status: finalStatus,
       });
       createdDocs.push(doc);
     }
 
     res.status(200).json({
       success: true,
+      code: 100,
+      status: 'success',
       message: `Bulk SMS broadcast of ${totalRecipients} messages dispatched! (Paid via ${paymentType})`,
       data: {
         totalDispatched: totalRecipients,
-        remainingCredits: wallet.smsCredit,
-        remainingBalance: wallet.balance,
+        remainingCredits: wallet ? wallet.smsCredit : 0,
+        remainingBalance: wallet ? wallet.balance : 0,
       },
     });
   } catch (error) {
     console.error('[sendBulkSMS Controller Error]', error);
-    res.status(400).json({ success: false, message: error.message || 'Bulk SMS dispatch failed' });
+    res.status(400).json({
+      success: false,
+      code: 400,
+      status: 'error',
+      message: error.message || 'Bulk SMS dispatch failed. Check parameters and try again.',
+    });
   }
 };
 

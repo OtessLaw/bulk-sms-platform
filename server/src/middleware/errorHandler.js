@@ -1,8 +1,8 @@
 const errorHandler = (err, req, res, next) => {
   console.error('[Error Handler]', err);
 
-  let statusCode = res.statusCode === 200 ? 500 : res.statusCode;
-  let message = err.message || 'Internal Server Error';
+  let statusCode = res.statusCode === 200 ? 400 : res.statusCode;
+  let message = err.message || 'Request processing failed. Please check your payload.';
 
   if (err.name === 'ValidationError') {
     statusCode = 400;
@@ -16,8 +16,9 @@ const errorHandler = (err, req, res, next) => {
 
   res.status(statusCode).json({
     success: false,
+    code: statusCode,
+    status: 'error',
     message,
-    stack: process.env.NODE_ENV === 'production' ? null : err.stack,
   });
 };
 
