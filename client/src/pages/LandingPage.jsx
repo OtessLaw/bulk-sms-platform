@@ -62,13 +62,13 @@ export default function LandingPage() {
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </nav>
 
-          <div className="flex items-center space-x-3">
-            <Link to="/login" className="text-xs font-bold text-white hover:text-[#D4AF6A] px-3 py-2">
+          <div className="flex items-center space-x-1.5 sm:space-x-3">
+            <Link to="/login" className="text-[11px] sm:text-xs font-semibold text-[#AEB4BC] hover:text-[#D4AF6A] px-2 py-1.5 transition-colors">
               Sign In
             </Link>
             <Link
               to="/register"
-              className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-extrabold text-xs px-5 py-2.5 rounded-xl shadow-lg hover:opacity-90"
+              className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] text-black font-bold text-[11px] sm:text-xs px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg sm:rounded-xl shadow-md hover:opacity-90 transition-all shrink-0"
             >
               Get Started Free
             </Link>

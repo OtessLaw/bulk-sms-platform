@@ -46,7 +46,7 @@ export default function Register() {
       <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-[#B88E3E]/10 rounded-full blur-3xl pointer-events-none" />
 
       {/* Card Content */}
-      <div className="w-full max-w-md bg-[#2A3038]/90 backdrop-blur-xl border border-[rgba(212,175,106,0.25)] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 relative z-10 my-10">
+      <div className="w-full max-w-md bg-[#2A3038]/90 backdrop-blur-xl border border-[rgba(212,175,106,0.25)] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 relative z-10 mt-12 sm:mt-0 mb-6">
         <div className="text-center space-y-1.5">
           <img src="/logo.jpg" alt="FasReach Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl mx-auto object-cover border-2 border-[#D4AF6A]/50 shadow-2xl" />
           <h1 className="text-2xl font-extrabold text-white tracking-wider">Create FasReach Account</h1>
