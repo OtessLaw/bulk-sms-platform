@@ -200,30 +200,50 @@ exports.registerArkeselSenderId = async ({ senderId, purpose }) => {
   return { success: true, status: 'Approved' };
 };
 
-// Fetch Live Sender ID Status List from Arkesel Gateway
+// Fetch Live Sender ID Status List from Arkesel Gateway (Multi-endpoint v2 & v1 API query)
 exports.fetchArkeselApprovedSenderIds = async () => {
   const arkeselApiKey = await getArkeselApiKey();
   if (!arkeselApiKey || arkeselApiKey === 'mock_arkesel_key') {
     return [];
   }
 
+  const results = [];
+
+  // 1. Query Arkesel v2 GET /api/v2/sender-id
   try {
-    const res = await axios.get('https://sms.arkesel.com/api/v2/sender-id', {
+    const resV2 = await axios.get('https://sms.arkesel.com/api/v2/sender-id', {
       headers: {
         'api-key': arkeselApiKey,
       },
+      params: { page: 1, per_page: 100 },
     });
 
-    let list = [];
-    if (res.data?.data && Array.isArray(res.data.data)) {
-      list = res.data.data;
-    } else if (Array.isArray(res.data)) {
-      list = res.data;
+    console.log('[Arkesel v2 Sender ID Response]', JSON.stringify(resV2.data));
+    const dataV2 = resV2.data?.data?.data || resV2.data?.data || resV2.data;
+    if (Array.isArray(dataV2)) {
+      results.push(...dataV2);
     }
-
-    return list;
-  } catch (err) {
-    console.warn('[Fetch Arkesel Sender IDs Warning]', err.response?.data || err.message);
-    return [];
+  } catch (errV2) {
+    console.warn('[Arkesel v2 Sender ID Warning]', errV2.response?.data || errV2.message);
   }
+
+  // 2. Query Arkesel v1 GET /sms/api?action=senderid-list
+  try {
+    const resV1 = await axios.get('https://sms.arkesel.com/sms/api', {
+      params: {
+        action: 'senderid-list',
+        api_key: arkeselApiKey,
+      },
+    });
+
+    console.log('[Arkesel v1 Sender ID Response]', JSON.stringify(resV1.data));
+    const dataV1 = resV1.data?.data || resV1.data?.senderids || resV1.data;
+    if (Array.isArray(dataV1)) {
+      results.push(...dataV1);
+    }
+  } catch (errV1) {
+    console.warn('[Arkesel v1 Sender ID Warning]', errV1.response?.data || errV1.message);
+  }
+
+  return results;
 };

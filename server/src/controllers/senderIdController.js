@@ -22,17 +22,40 @@ const syncArkeselStatuses = async (filter) => {
     const gatewayList = await fetchArkeselApprovedSenderIds();
 
     for (const doc of pendingDocs) {
-      const match = gatewayList.find(
-        (g) =>
-          String(g.sender_id || g.senderid || g.sender || '').toUpperCase() === doc.senderId.toUpperCase()
-      );
+      const targetHeader = doc.senderId.trim().toUpperCase();
+
+      const match = gatewayList.find((g) => {
+        const h = String(
+          g.sender_id || g.senderid || g.sender || g.name || g.header || g.title || ''
+        ).trim().toUpperCase();
+        return h === targetHeader;
+      });
 
       if (match) {
-        const gwStatus = String(match.status || '').toLowerCase();
-        if (gwStatus.includes('approved') || gwStatus.includes('active') || gwStatus === 'success') {
+        const rawGwStatus = String(
+          match.status || match.state || match.approval_status || match.verification_status || ''
+        ).toLowerCase();
+
+        const isApprovedStatus =
+          rawGwStatus.includes('approved') ||
+          rawGwStatus.includes('active') ||
+          rawGwStatus.includes('verified') ||
+          rawGwStatus.includes('enabled') ||
+          rawGwStatus.includes('success') ||
+          rawGwStatus.includes('passed') ||
+          rawGwStatus === '1' ||
+          rawGwStatus === 'true';
+
+        const isRejectedStatus =
+          rawGwStatus.includes('rejected') ||
+          rawGwStatus.includes('declined') ||
+          rawGwStatus.includes('failed') ||
+          rawGwStatus.includes('denied');
+
+        if (isApprovedStatus) {
           doc.status = 'Approved';
           await doc.save();
-        } else if (gwStatus.includes('rejected') || gwStatus.includes('failed')) {
+        } else if (isRejectedStatus) {
           doc.status = 'Rejected';
           await doc.save();
         }
