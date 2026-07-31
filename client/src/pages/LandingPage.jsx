@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API from '../services/api';
 import {
   Send,
   Zap,
@@ -16,6 +17,10 @@ import {
   Clock,
   MessageCircle,
   Mail,
+  Phone,
+  Instagram,
+  Facebook,
+  Twitter,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -23,6 +28,31 @@ export default function LandingPage() {
   const costPerSms = 0.04;
   const estimatedCost = (calculatorUnits * costPerSms).toFixed(2);
   const [openFaq, setOpenFaq] = useState(null);
+
+  const [contactInfo, setContactInfo] = useState({
+    phone: '+233 24 111 2233',
+    whatsapp: '+233 24 111 2233',
+    email: 'support@fasreach.com',
+    instagram: 'https://instagram.com/fasreach',
+    facebook: 'https://facebook.com/fasreach',
+    twitter: 'https://x.com/fasreach',
+    address: 'Accra, Ghana',
+  });
+
+  useEffect(() => {
+    fetchContact();
+  }, []);
+
+  const fetchContact = async () => {
+    try {
+      const res = await API.get('/settings/contact');
+      if (res.data.success) {
+        setContactInfo(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load landing contact info', err);
+    }
+  };
 
   const toggleFaq = (index) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -303,34 +333,73 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <div className="pt-6 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <a
-              href="https://wa.me/233240001122"
-              target="_blank"
-              rel="noreferrer"
-              className="w-full sm:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-6 py-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-2"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Chat on WhatsApp</span>
-            </a>
-            <a
-              href="mailto:support@fasreach.com"
-              className="w-full sm:w-auto bg-[#2A3038] text-[#D4AF6A] border border-[rgba(212,175,106,0.3)] px-6 py-3 rounded-xl text-xs font-bold flex items-center justify-center space-x-2"
-            >
-              <Mail className="w-4 h-4" />
-              <span>Email Support</span>
-            </a>
+          {/* Live Dynamic Contact Buttons */}
+          <div className="pt-6 flex flex-wrap items-center justify-center gap-3">
+            {contactInfo.whatsapp && (
+              <a
+                href={`https://wa.me/${contactInfo.whatsapp?.replace(/[^0-9]/g, '')}`}
+                target="_blank"
+                rel="noreferrer"
+                className="w-full sm:w-auto bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 hover:bg-emerald-500/30 transition-colors"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>WhatsApp Us</span>
+              </a>
+            )}
+
+            {contactInfo.phone && (
+              <a
+                href={`tel:${contactInfo.phone}`}
+                className="w-full sm:w-auto bg-[#2A3038] text-white border border-[rgba(212,175,106,0.3)] px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 hover:border-[#D4AF6A] transition-colors"
+              >
+                <Phone className="w-4 h-4 text-[#D4AF6A]" />
+                <span>Call {contactInfo.phone}</span>
+              </a>
+            )}
+
+            {contactInfo.email && (
+              <a
+                href={`mailto:${contactInfo.email}`}
+                className="w-full sm:w-auto bg-[#2A3038] text-[#D4AF6A] border border-[rgba(212,175,106,0.3)] px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center space-x-2 hover:border-[#D4AF6A] transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                <span>{contactInfo.email}</span>
+              </a>
+            )}
           </div>
         </div>
       </section>
 
       {/* Footer */}
       <footer className="bg-[#101318] border-t border-[rgba(212,175,106,0.15)] py-8 text-xs text-[#AEB4BC]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center space-x-2">
-            <img src="/logo.jpg" alt="FasReach" className="w-7 h-7 rounded-lg object-cover" />
-            <span className="font-bold text-white">FasReach Platform © 2026</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center space-x-3">
+            <img src="/logo.jpg" alt="FasReach" className="w-8 h-8 rounded-xl object-cover border border-[#D4AF6A]/40" />
+            <div>
+              <span className="font-bold text-white block">FasReach Enterprise Platform</span>
+              <span className="text-[10px] text-[#AEB4BC] block">{contactInfo.address || 'Accra, Ghana'}</span>
+            </div>
           </div>
+
+          {/* Social Links */}
+          <div className="flex items-center space-x-4 text-[#AEB4BC]">
+            {contactInfo.instagram && (
+              <a href={contactInfo.instagram} target="_blank" rel="noreferrer" className="hover:text-pink-400 transition-colors p-2 bg-[#1E232B] rounded-xl border border-[rgba(212,175,106,0.1)]">
+                <Instagram className="w-4 h-4" />
+              </a>
+            )}
+            {contactInfo.facebook && (
+              <a href={contactInfo.facebook} target="_blank" rel="noreferrer" className="hover:text-blue-400 transition-colors p-2 bg-[#1E232B] rounded-xl border border-[rgba(212,175,106,0.1)]">
+                <Facebook className="w-4 h-4" />
+              </a>
+            )}
+            {contactInfo.twitter && (
+              <a href={contactInfo.twitter} target="_blank" rel="noreferrer" className="hover:text-sky-400 transition-colors p-2 bg-[#1E232B] rounded-xl border border-[rgba(212,175,106,0.1)]">
+                <Twitter className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+
           <div className="flex space-x-6 text-[11px]">
             <a href="#features" className="hover:text-white">Features</a>
             <a href="#pricing" className="hover:text-white">Pricing</a>

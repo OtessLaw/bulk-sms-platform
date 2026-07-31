@@ -15,11 +15,18 @@ const {
   getCoupons,
   createCoupon,
   deleteCoupon,
+  getContactSettings,
+  saveContactSettings,
 } = require('../controllers/adminController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/rbacMiddleware');
 
 router.use(protect);
+
+// Public / Authenticated route to read contact settings
+router.get('/public-contact', getContactSettings);
+
+// Admin-only routes
 router.use(authorize('Super Admin', 'Admin'));
 
 router.get('/stats', getAdminStats);
@@ -36,5 +43,7 @@ router.post('/reset-demo-balances', resetDemoBalances);
 router.get('/coupons', getCoupons);
 router.post('/coupons', createCoupon);
 router.delete('/coupons/:id', deleteCoupon);
+router.get('/contact-settings', getContactSettings);
+router.post('/contact-settings', saveContactSettings);
 
 module.exports = router;

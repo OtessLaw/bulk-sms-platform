@@ -103,11 +103,15 @@ exports.processAiQuery = async ({ user, prompt, currentPage = '/dashboard', conv
       userContactsCount = await Contact.countDocuments({ userId: user._id });
       userSenderIdsList = userSenderIds.map((s) => `${s.senderId} (${s.status})`);
 
+      const SystemSetting = require('../models/SystemSetting');
+      let contactSettingDoc = await SystemSetting.findOne({ key: 'CONTACT_SETTINGS' });
+      const contactVal = contactSettingDoc?.value || { phone: '+233 24 111 2233', email: 'support@fasreach.com', instagram: 'https://instagram.com/fasreach', facebook: 'https://facebook.com/fasreach', twitter: 'https://x.com/fasreach' };
+
       if (isSuperAdmin) {
-        databaseContext = `[Admin System Database Context]: User Role=Super Admin, Total Platform Users=${totalUsersCount}, Total System SMS Sent=${totalSystemSmsCount}, Pending Sender IDs Needing Review=${pendingSenderIdsCount}, Admin Personal Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}.`;
+        databaseContext = `[Admin System Database Context]: User Role=Super Admin, Total Platform Users=${totalUsersCount}, Total System SMS Sent=${totalSystemSmsCount}, Pending Sender IDs Needing Review=${pendingSenderIdsCount}, Admin Personal Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}, Official Support Phone=${contactVal.phone}, Support Email=${contactVal.email}, Instagram=${contactVal.instagram}, Facebook=${contactVal.facebook}, Twitter=${contactVal.twitter}.`;
       } else {
         const senderIdStr = userSenderIdsList.join(', ') || 'None registered yet';
-        databaseContext = `[User Database Context]: User Name=${userName}, Email=${userEmail}, Cash Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}, SMS Credit Units=${userWalletObj ? userWalletObj.smsCredit : 0}, Registered Sender IDs=[${senderIdStr}], Total Dispatches Sent=${userSmsCount}, Saved Contacts=${userContactsCount}.`;
+        databaseContext = `[User Database Context]: User Name=${userName}, Email=${userEmail}, Cash Balance=GHS ${userWalletObj ? userWalletObj.balance.toFixed(2) : '0.00'}, SMS Credit Units=${userWalletObj ? userWalletObj.smsCredit : 0}, Registered Sender IDs=[${senderIdStr}], Total Dispatches Sent=${userSmsCount}, Saved Contacts=${userContactsCount}, Official Support Phone=${contactVal.phone}, Support Email=${contactVal.email}, Instagram=${contactVal.instagram}, Facebook=${contactVal.facebook}, Twitter=${contactVal.twitter}.`;
       }
     } catch (e) {
       console.warn('[AI DB Fetch Notice]:', e.message);

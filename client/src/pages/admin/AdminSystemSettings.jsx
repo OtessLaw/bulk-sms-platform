@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
-import { Sliders, Power, Ticket, Plus, Trash2, CheckCircle2 } from 'lucide-react';
+import { Sliders, Power, Ticket, Plus, Trash2, CheckCircle2, Phone, Mail, Instagram, Facebook, Twitter, MapPin, MessageCircle, Save } from 'lucide-react';
 
 export default function AdminSystemSettings() {
   const [maintenance, setMaintenance] = useState(false);
@@ -9,9 +9,47 @@ export default function AdminSystemSettings() {
   const [newCoupon, setNewCoupon] = useState({ code: '', bonusUnits: 100, maxUses: 50 });
   const [loadingCoupon, setLoadingCoupon] = useState(false);
 
+  const [contactForm, setContactForm] = useState({
+    phone: '',
+    whatsapp: '',
+    email: '',
+    instagram: '',
+    facebook: '',
+    twitter: '',
+    address: '',
+  });
+  const [savingContact, setSavingContact] = useState(false);
+
   useEffect(() => {
     fetchCoupons();
+    fetchContactSettings();
   }, []);
+
+  const fetchContactSettings = async () => {
+    try {
+      const res = await API.get('/admin/contact-settings');
+      if (res.data.success) {
+        setContactForm(res.data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load contact settings', err);
+    }
+  };
+
+  const handleSaveContact = async (e) => {
+    e.preventDefault();
+    setSavingContact(true);
+    try {
+      const res = await API.post('/admin/contact-settings', contactForm);
+      if (res.data.success) {
+        toast.success('Support channels and social handles updated live!');
+      }
+    } catch (err) {
+      toast.error('Failed to update contact settings');
+    } finally {
+      setSavingContact(false);
+    }
+  };
 
   const fetchCoupons = async () => {
     try {
@@ -103,7 +141,128 @@ export default function AdminSystemSettings() {
         </div>
       </div>
 
-      {/* 2. Promo Coupon Generator & Management */}
+      {/* 2. Official Support Channels & Social Media Handles */}
+      <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4">
+        <div>
+          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+            <Phone className="w-4 h-4 text-[#D4AF6A]" /> Official Support Channels & Social Handles
+          </h3>
+          <p className="text-xs text-[#AEB4BC] mt-1">Configure your official phone numbers, email, WhatsApp, and social media handles shown to customers across the site and AI assistant.</p>
+        </div>
+
+        <form onSubmit={handleSaveContact} className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+          <div>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Support Phone Number (Call Line)</label>
+            <div className="relative">
+              <Phone className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="text"
+                value={contactForm.phone}
+                onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
+                placeholder="+233 24 111 2233"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">WhatsApp Support Line</label>
+            <div className="relative">
+              <MessageCircle className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="text"
+                value={contactForm.whatsapp}
+                onChange={(e) => setContactForm({ ...contactForm, whatsapp: e.target.value })}
+                placeholder="+233 24 111 2233"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Support Email Address</label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="email"
+                value={contactForm.email}
+                onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
+                placeholder="support@fasreach.com"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Instagram Link / Handle</label>
+            <div className="relative">
+              <Instagram className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="text"
+                value={contactForm.instagram}
+                onChange={(e) => setContactForm({ ...contactForm, instagram: e.target.value })}
+                placeholder="https://instagram.com/fasreach"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Facebook Link / Page</label>
+            <div className="relative">
+              <Facebook className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="text"
+                value={contactForm.facebook}
+                onChange={(e) => setContactForm({ ...contactForm, facebook: e.target.value })}
+                placeholder="https://facebook.com/fasreach"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Twitter / X Link</label>
+            <div className="relative">
+              <Twitter className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="text"
+                value={contactForm.twitter}
+                onChange={(e) => setContactForm({ ...contactForm, twitter: e.target.value })}
+                placeholder="https://x.com/fasreach"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Physical Office Address / Location</label>
+            <div className="relative">
+              <MapPin className="w-4 h-4 text-[#D4AF6A] absolute left-3 top-3" />
+              <input
+                type="text"
+                value={contactForm.address}
+                onChange={(e) => setContactForm({ ...contactForm, address: e.target.value })}
+                placeholder="Accra, Ghana"
+                className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl pl-10 pr-3 py-2 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
+              />
+            </div>
+          </div>
+
+          <div className="md:col-span-2 flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={savingContact}
+              className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-extrabold text-xs px-5 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+            >
+              <Save className="w-4 h-4" />
+              <span>{savingContact ? 'Saving Channels...' : 'Save Support & Social Channels'}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* 3. Promo Coupon Generator & Management */}
       <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4">
         <h3 className="text-sm font-bold text-white flex items-center gap-2 border-b border-[rgba(212,175,106,0.15)] pb-3">
           <Ticket className="w-4 h-4 text-[#D4AF6A]" /> Generate New Promo Coupon Code

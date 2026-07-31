@@ -356,3 +356,66 @@ exports.getAuditLogs = async (req, res, next) => {
     next(error);
   }
 };
+
+// @desc    Get System Contact & Social Settings (Public/Admin)
+// @route   GET /api/admin/contact-settings
+exports.getContactSettings = async (req, res, next) => {
+  try {
+    let setting = await SystemSetting.findOne({ key: 'CONTACT_SETTINGS' });
+    const defaultContact = {
+      phone: '+233 24 111 2233',
+      whatsapp: '+233 24 111 2233',
+      email: 'support@fasreach.com',
+      instagram: 'https://instagram.com/fasreach',
+      facebook: 'https://facebook.com/fasreach',
+      twitter: 'https://x.com/fasreach',
+      address: 'Accra, Ghana',
+    };
+
+    if (!setting) {
+      setting = await SystemSetting.create({
+        key: 'CONTACT_SETTINGS',
+        value: defaultContact,
+        description: 'Official Support Phone, Email & Social Media Handles',
+      });
+    }
+
+    res.status(200).json({ success: true, data: { ...defaultContact, ...(setting.value || {}) } });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Save/Update System Contact & Social Settings (Super Admin / Admin)
+// @route   POST /api/admin/contact-settings
+exports.saveContactSettings = async (req, res, next) => {
+  try {
+    const { phone, whatsapp, email, instagram, facebook, twitter, address } = req.body;
+
+    const contactData = {
+      phone: phone || '+233 24 111 2233',
+      whatsapp: whatsapp || '+233 24 111 2233',
+      email: email || 'support@fasreach.com',
+      instagram: instagram || 'https://instagram.com/fasreach',
+      facebook: facebook || 'https://facebook.com/fasreach',
+      twitter: twitter || 'https://x.com/fasreach',
+      address: address || 'Accra, Ghana',
+    };
+
+    const setting = await SystemSetting.findOneAndUpdate(
+      { key: 'CONTACT_SETTINGS' },
+      { value: contactData, description: 'Official Support Phone, Email & Social Media Handles' },
+      { new: true, upsert: true }
+    );
+
+    await AuditLog.create({
+      userId: req.user._id,
+      action: 'UPDATE_CONTACT_SETTINGS',
+      details: `Admin updated platform support phone (${contactData.phone}) & email (${contactData.email})`,
+    });
+
+    res.status(200).json({ success: true, message: 'Support channels and social settings updated live!', data: setting.value });
+  } catch (error) {
+    next(error);
+  }
+};
