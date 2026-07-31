@@ -4,28 +4,38 @@ const ApiKey = require('../models/ApiKey');
 const SystemSetting = require('../models/SystemSetting');
 
 const protect = async (req, res, next) => {
-  // Extract API key from headers, query params, or body (common in external integrations)
+  // Extract API key from all possible headers, query params, or body fields
   const apiKeyCandidate =
     req.headers['x-api-key'] ||
     req.headers['X-API-KEY'] ||
+    req.headers['api-key'] ||
+    req.headers['API-KEY'] ||
+    req.headers['apikey'] ||
+    req.headers['APIKEY'] ||
     req.headers['x-api-token'] ||
+    req.headers['key'] ||
     req.query?.api_key ||
     req.query?.apiKey ||
     req.query?.key ||
+    req.query?.token ||
+    req.query?.access_token ||
     req.body?.api_key ||
     req.body?.apiKey ||
-    req.body?.key;
+    req.body?.key ||
+    req.body?.token ||
+    req.body?.access_token;
 
   let token;
   if (req.headers.authorization) {
-    if (req.headers.authorization.startsWith('Bearer ')) {
-      token = req.headers.authorization.substring(7).trim();
+    const authHeader = String(req.headers.authorization).trim();
+    if (authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7).trim();
     } else {
-      token = req.headers.authorization.trim();
+      token = authHeader;
     }
   }
 
-  const rawKey = apiKeyCandidate || token;
+  const rawKey = String(apiKeyCandidate || token || '').trim();
 
   // Handle API Key authentication
   if (rawKey && (rawKey.startsWith('bms_live_') || apiKeyCandidate)) {
