@@ -101,6 +101,8 @@ app.use('/api/ai', aiRoutes);
 
 // Developer API v1 Aliases for external client integrations
 app.use('/api/v1/sms', smsLimiter, smsRoutes);
+app.use('/api/send', smsLimiter, smsRoutes);
+app.use('/api/v1/send', smsLimiter, smsRoutes);
 app.use('/api/v1/wallet', walletRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 

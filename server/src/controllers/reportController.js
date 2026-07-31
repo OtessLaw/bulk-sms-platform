@@ -5,9 +5,12 @@ const { checkArkeselDeliveryStatus } = require('../services/multiSmsService');
 // @route   GET /api/reports
 exports.getReports = async (req, res, next) => {
   try {
+    const isAdmin = ['Super Admin', 'Admin'].includes(req.user.role);
+    const filter = isAdmin ? {} : { userId: req.user._id };
+
     // 1. Live Sync Pending / Submitted Messages with Arkesel
     const pendingMessages = await Message.find({
-      userId: req.user._id,
+      ...filter,
       status: { $in: ['Pending', 'Submitted'] },
     }).limit(20);
 
@@ -24,11 +27,11 @@ exports.getReports = async (req, res, next) => {
     }
 
     // 2. Fetch Latest Messages & Delivery Stats
-    const messages = await Message.find({ userId: req.user._id }).sort({ createdAt: -1 }).limit(100);
-    const totalSent = await Message.countDocuments({ userId: req.user._id });
-    const deliveredCount = await Message.countDocuments({ userId: req.user._id, status: 'Delivered' });
-    const pendingCount = await Message.countDocuments({ userId: req.user._id, status: { $in: ['Pending', 'Submitted'] } });
-    const failedCount = await Message.countDocuments({ userId: req.user._id, status: 'Failed' });
+    const messages = await Message.find(filter).sort({ createdAt: -1 }).limit(100);
+    const totalSent = await Message.countDocuments(filter);
+    const deliveredCount = await Message.countDocuments({ ...filter, status: 'Delivered' });
+    const pendingCount = await Message.countDocuments({ ...filter, status: { $in: ['Pending', 'Submitted'] } });
+    const failedCount = await Message.countDocuments({ ...filter, status: 'Failed' });
 
     res.status(200).json({
       success: true,

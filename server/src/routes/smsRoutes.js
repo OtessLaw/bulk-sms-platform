@@ -16,7 +16,11 @@ router.post('/ai-templates', optionalProtect, getAiTemplates);
 
 // Protected Dispatch Routes
 router.use(protect);
+router.post('/', sendSMS);
 router.post('/send', sendSMS);
+router.post('/send-sms', sendSMS);
+router.post('/dispatch', sendSMS);
 router.post('/bulk', sendBulkSMS);
+router.post('/bulk-send', sendBulkSMS);
 
 module.exports = router;
