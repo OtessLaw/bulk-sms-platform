@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
+import { Lock, Mail, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -32,6 +32,15 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-[#1E232B] flex items-center justify-center p-4 relative overflow-hidden font-sans">
+      {/* Back to Home Button */}
+      <Link
+        to="/"
+        className="absolute top-6 left-6 inline-flex items-center space-x-2 text-xs font-semibold text-[#AEB4BC] hover:text-[#D4AF6A] bg-[#2A3038]/60 hover:bg-[#2A3038] border border-[rgba(212,175,106,0.2)] px-3.5 py-2 rounded-xl backdrop-blur-md transition-all z-20 group shadow-lg"
+      >
+        <ArrowLeft className="w-4 h-4 text-[#D4AF6A] group-hover:-translate-x-1 transition-transform" />
+        <span>Back to Home</span>
+      </Link>
+
       {/* Dynamic Background Glow Elements */}
       <div className="absolute -top-32 -left-32 w-96 h-96 bg-[#D4AF6A]/10 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-[#B88E3E]/10 rounded-full blur-3xl pointer-events-none" />
