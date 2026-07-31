@@ -1,5 +1,5 @@
 const SenderId = require('../models/SenderId');
-const { registerArkeselSenderId } = require('../services/multiSmsService');
+const { registerArkeselSenderId, fetchArkeselApprovedSenderIds } = require('../services/multiSmsService');
 
 // Explicit Exact-Match Institutional & Telecom Headers (Anti-Phishing Security Filter)
 const PROTECTED_INSTITUTIONS_EXACT = new Set([
@@ -14,6 +14,35 @@ const PROTECTED_INSTITUTIONS_EXACT = new Set([
   'MILITARY', 'GOVGHANA', 'PARLIAMENT', 'MINISTRY', 'PASSPORT', 'JUDICIARY', 'DVLA', 'COCOBOD',
 ]);
 
+const syncArkeselStatuses = async (filter) => {
+  try {
+    const pendingDocs = await SenderId.find({ ...filter, status: 'Pending' });
+    if (pendingDocs.length === 0) return;
+
+    const gatewayList = await fetchArkeselApprovedSenderIds();
+
+    for (const doc of pendingDocs) {
+      const match = gatewayList.find(
+        (g) =>
+          String(g.sender_id || g.senderid || g.sender || '').toUpperCase() === doc.senderId.toUpperCase()
+      );
+
+      if (match) {
+        const gwStatus = String(match.status || '').toLowerCase();
+        if (gwStatus.includes('approved') || gwStatus.includes('active') || gwStatus === 'success') {
+          doc.status = 'Approved';
+          await doc.save();
+        } else if (gwStatus.includes('rejected') || gwStatus.includes('failed')) {
+          doc.status = 'Rejected';
+          await doc.save();
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[syncArkeselStatuses Error]', err.message);
+  }
+};
+
 // @desc    Get User or All Sender IDs
 // @route   GET /api/sender-ids
 exports.getSenderIds = async (req, res, next) => {
@@ -21,11 +50,36 @@ exports.getSenderIds = async (req, res, next) => {
     const isAdminRole = ['Super Admin', 'Admin'].includes(req.user.role);
     const filter = isAdminRole ? {} : { userId: req.user._id };
 
+    await syncArkeselStatuses(filter);
+
     const senderIds = await SenderId.find(filter)
       .sort({ createdAt: -1 })
       .populate('userId', 'name email');
 
     res.status(200).json({ success: true, data: senderIds });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Sync Sender ID Statuses with Arkesel Gateway
+// @route   POST /api/sender-ids/sync
+exports.syncSenderIdStatuses = async (req, res, next) => {
+  try {
+    const isAdminRole = ['Super Admin', 'Admin'].includes(req.user.role);
+    const filter = isAdminRole ? {} : { userId: req.user._id };
+
+    await syncArkeselStatuses(filter);
+
+    const senderIds = await SenderId.find(filter)
+      .sort({ createdAt: -1 })
+      .populate('userId', 'name email');
+
+    res.status(200).json({
+      success: true,
+      message: 'Sender ID statuses synchronized with Gateway!',
+      data: senderIds,
+    });
   } catch (error) {
     next(error);
   }

@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Megaphone, Calendar, Clock, Plus, X, Send, Users, Trash2, Play, CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function Campaigns() {
+  const { user } = useAuth();
+  const isAdmin = ['Super Admin', 'Admin'].includes(user?.role);
+
   const [campaigns, setCampaigns] = useState([]);
   const [senderIds, setSenderIds] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -15,7 +19,7 @@ export default function Campaigns() {
   const [submitting, setSubmitting] = useState(false);
   const [newCampaign, setNewCampaign] = useState({
     title: '',
-    senderId: 'FASREACH',
+    senderId: isAdmin ? 'FASREACH' : '',
     selectedGroup: 'ALL',
     recipientsText: '',
     content: '',
@@ -32,10 +36,14 @@ export default function Campaigns() {
       // 1. Fetch Sender IDs
       const senderRes = await API.get('/sender-ids');
       if (senderRes.data.success) {
-        const approved = senderRes.data.data.filter((s) => s.status === 'Approved');
-        setSenderIds(approved);
-        if (approved.length > 0) {
-          setNewCampaign((prev) => ({ ...prev, senderId: approved[0].senderId }));
+        const userSenderIds = senderRes.data.data || [];
+        setSenderIds(userSenderIds);
+        if (userSenderIds.length > 0) {
+          setNewCampaign((prev) => ({ ...prev, senderId: userSenderIds[0].senderId }));
+        } else if (isAdmin) {
+          setNewCampaign((prev) => ({ ...prev, senderId: 'FASREACH' }));
+        } else {
+          setNewCampaign((prev) => ({ ...prev, senderId: '' }));
         }
       }
 
@@ -277,14 +285,14 @@ export default function Campaigns() {
                     onChange={(e) => setNewCampaign((prev) => ({ ...prev, senderId: e.target.value }))}
                     className="w-full bg-[#2A3038] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-white focus:outline-none focus:border-[#D4AF6A]"
                   >
-                    {senderIds.length > 0 ? (
-                      senderIds.map((s) => (
-                        <option key={s._id} value={s.senderId}>
-                          {s.senderId}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="FASREACH">FASREACH</option>
+                    {senderIds.map((s) => (
+                      <option key={s._id} value={s.senderId}>
+                        {s.senderId} {s.status === 'Approved' ? '(Active / Approved)' : `(${s.status})`}
+                      </option>
+                    ))}
+                    {isAdmin && <option value="FASREACH">FASREACH (System Admin Default)</option>}
+                    {senderIds.length === 0 && !isAdmin && (
+                      <option value="" disabled>-- No Custom Sender IDs Registered --</option>
                     )}
                   </select>
                 </div>

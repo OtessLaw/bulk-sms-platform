@@ -26,3 +26,21 @@ exports.generateApiKey = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.revokeApiKey = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const apiKey = await ApiKey.findOne({ _id: id, userId: req.user._id });
+
+    if (!apiKey) {
+      return res.status(404).json({ success: false, message: 'API key not found' });
+    }
+
+    apiKey.status = 'Revoked';
+    await apiKey.save();
+
+    res.status(200).json({ success: true, message: 'API Key revoked successfully' });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -4,45 +4,49 @@ const ApiKey = require('../models/ApiKey');
 const SystemSetting = require('../models/SystemSetting');
 
 const protect = async (req, res, next) => {
+  // Extract API key from headers, query params, or body (common in external integrations)
+  const apiKeyCandidate =
+    req.headers['x-api-key'] ||
+    req.headers['X-API-KEY'] ||
+    req.headers['x-api-token'] ||
+    req.query?.api_key ||
+    req.query?.apiKey ||
+    req.query?.key ||
+    req.body?.api_key ||
+    req.body?.apiKey ||
+    req.body?.key;
+
   let token;
-  const apiKeyHeader = req.headers['x-api-key'];
-
-  if (apiKeyHeader) {
-    const keyDoc = await ApiKey.findOne({ key: apiKeyHeader, status: 'Active' });
-    if (!keyDoc) {
-      return res.status(401).json({ success: false, message: 'Invalid or revoked API Key' });
+  if (req.headers.authorization) {
+    if (req.headers.authorization.startsWith('Bearer ')) {
+      token = req.headers.authorization.substring(7).trim();
+    } else {
+      token = req.headers.authorization.trim();
     }
-    keyDoc.lastUsedAt = new Date();
-    await keyDoc.save();
-
-    req.user = await User.findById(keyDoc.userId).select('-password');
-    if (!req.user || req.user.status === 'Suspended') {
-      return res.status(403).json({ success: false, message: 'Account is suspended or invalid' });
-    }
-    return next();
   }
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    token = req.headers.authorization.split(' ')[1];
+  const rawKey = apiKeyCandidate || token;
+
+  // Handle API Key authentication
+  if (rawKey && (rawKey.startsWith('bms_live_') || apiKeyCandidate)) {
+    const keyDoc = await ApiKey.findOne({ key: rawKey, status: 'Active' });
+    if (keyDoc) {
+      keyDoc.lastUsedAt = new Date();
+      await keyDoc.save();
+
+      req.user = await User.findById(keyDoc.userId).select('-password');
+      if (!req.user || req.user.status === 'Suspended') {
+        return res.status(403).json({ success: false, message: 'Account is suspended or invalid' });
+      }
+      return next();
+    }
+    if (apiKeyCandidate || rawKey.startsWith('bms_live_')) {
+      return res.status(401).json({ success: false, message: 'Invalid or revoked API Key' });
+    }
   }
 
   if (!token) {
-    return res.status(401).json({ success: false, message: 'Not authorized. Provide Bearer token or x-api-key header.' });
-  }
-
-  if (token.startsWith('bms_live_')) {
-    const keyDoc = await ApiKey.findOne({ key: token, status: 'Active' });
-    if (!keyDoc) {
-      return res.status(401).json({ success: false, message: 'Invalid or revoked API Key' });
-    }
-    keyDoc.lastUsedAt = new Date();
-    await keyDoc.save();
-
-    req.user = await User.findById(keyDoc.userId).select('-password');
-    if (!req.user || req.user.status === 'Suspended') {
-      return res.status(403).json({ success: false, message: 'Account is suspended or invalid' });
-    }
-    return next();
+    return res.status(401).json({ success: false, message: 'Not authorized. Provide Bearer token or x-api-key header / query param.' });
   }
 
   try {

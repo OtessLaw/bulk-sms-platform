@@ -40,7 +40,7 @@ app.use(
   })
 );
 
-// 2. CORS Security Policy — Only allow FasReach frontend origins
+// 2. CORS Security Policy — Allow FasReach frontends & external API clients
 const allowedOrigins = [
   'https://bulk-sms-platform.vercel.app',
   'https://fasreach.com',
@@ -52,16 +52,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow server-to-server calls (no origin) and whitelisted frontends
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('CORS: Request origin not allowed'));
-      }
+      // Allow server-to-server calls (no origin), whitelisted frontends, and external third-party API clients
+      callback(null, true);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-KEY', 'Accept'],
   })
 );
 
@@ -82,7 +78,7 @@ app.get('/', (req, res) => {
     message: 'FasReach Enterprise Bulk SMS API Gateway Server Running',
     version: '1.0.0',
     status: 'Healthy',
-    security: 'Enhanced Rate-Limiting & NoSQL Sanitization Active',
+    security: 'Enhanced Rate-Limiting & Developer Gateway Active',
   });
 });
 
@@ -102,6 +98,11 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/ai', aiRoutes);
+
+// Developer API v1 Aliases for external client integrations
+app.use('/api/v1/sms', smsLimiter, smsRoutes);
+app.use('/api/v1/wallet', walletRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
 // Global Error Handler
 app.use(errorHandler);

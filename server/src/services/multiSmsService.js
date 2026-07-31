@@ -199,3 +199,31 @@ exports.registerArkeselSenderId = async ({ senderId, purpose }) => {
 
   return { success: true, status: 'Approved' };
 };
+
+// Fetch Live Sender ID Status List from Arkesel Gateway
+exports.fetchArkeselApprovedSenderIds = async () => {
+  const arkeselApiKey = await getArkeselApiKey();
+  if (!arkeselApiKey || arkeselApiKey === 'mock_arkesel_key') {
+    return [];
+  }
+
+  try {
+    const res = await axios.get('https://sms.arkesel.com/api/v2/sender-id', {
+      headers: {
+        'api-key': arkeselApiKey,
+      },
+    });
+
+    let list = [];
+    if (res.data?.data && Array.isArray(res.data.data)) {
+      list = res.data.data;
+    } else if (Array.isArray(res.data)) {
+      list = res.data;
+    }
+
+    return list;
+  } catch (err) {
+    console.warn('[Fetch Arkesel Sender IDs Warning]', err.response?.data || err.message);
+    return [];
+  }
+};

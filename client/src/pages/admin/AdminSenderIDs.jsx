@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import API from '../../services/api';
 import toast from 'react-hot-toast';
-import { CheckCircle2, XCircle, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, XCircle, ShieldCheck, RefreshCw } from 'lucide-react';
 
 export default function AdminSenderIDs() {
   const [senderIds, setSenderIds] = useState([]);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     fetchSenderIds();
@@ -18,6 +19,21 @@ export default function AdminSenderIDs() {
       }
     } catch (err) {
       console.error('Failed to load Sender IDs', err);
+    }
+  };
+
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await API.post('/sender-ids/sync');
+      if (res.data.success) {
+        setSenderIds(res.data.data);
+        toast.success(res.data.message || 'Synced status with Arkesel Gateway!');
+      }
+    } catch (err) {
+      toast.error('Failed to sync statuses');
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -50,11 +66,22 @@ export default function AdminSenderIDs() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <ShieldCheck className="w-6 h-6 text-[#D4AF6A]" /> Sender ID Approval Queue
-        </h1>
-        <p className="text-xs text-[#AEB4BC]">Review and approve or reject user-submitted custom 11-character SMS headers</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <ShieldCheck className="w-6 h-6 text-[#D4AF6A]" /> Sender ID Approval Queue
+          </h1>
+          <p className="text-xs text-[#AEB4BC]">Review and approve or reject user-submitted custom 11-character SMS headers</p>
+        </div>
+
+        <button
+          onClick={handleSync}
+          disabled={syncing}
+          className="bg-[#2A3038] hover:bg-[#343B45] text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl border border-white/10 flex items-center space-x-1.5 transition disabled:opacity-50 shrink-0"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-[#D4AF6A] ${syncing ? 'animate-spin' : ''}`} />
+          <span>{syncing ? 'Syncing...' : 'Sync Gateway Statuses'}</span>
+        </button>
       </div>
 
       <div className="bg-[#2A3038]/70 backdrop-blur-md border border-[rgba(212,175,106,0.2)] rounded-3xl p-6 shadow-2xl space-y-4">

@@ -5,7 +5,9 @@ import toast from 'react-hot-toast';
 import { Send, Clock, Sparkles, Smartphone, Users, Calendar, Layers, FileSpreadsheet } from 'lucide-react';
 
 export default function SendSMS() {
-  const { refreshWallet } = useAuth();
+  const { user, refreshWallet } = useAuth();
+  const isAdmin = ['Super Admin', 'Admin'].includes(user?.role);
+
   const [senderIds, setSenderIds] = useState([]);
   const [contactGroups, setContactGroups] = useState([]);
   const [contacts, setContacts] = useState([]);
@@ -14,7 +16,7 @@ export default function SendSMS() {
   const [dispatchMode, setDispatchMode] = useState('bulk');
 
   const [formData, setFormData] = useState({
-    senderId: 'FASREACH',
+    senderId: isAdmin ? 'FASREACH' : '',
     recipientPhone: '',
     bulkRecipientsText: '',
     selectedGroup: '',
@@ -38,7 +40,15 @@ export default function SendSMS() {
       // Fetch Sender IDs
       const senderRes = await API.get('/sender-ids');
       if (senderRes.data.success) {
-        setSenderIds(senderRes.data.data.filter((s) => s.status === 'Approved'));
+        const allUserSenderIds = senderRes.data.data || [];
+        setSenderIds(allUserSenderIds);
+        if (allUserSenderIds.length > 0) {
+          setFormData((prev) => ({ ...prev, senderId: allUserSenderIds[0].senderId }));
+        } else if (isAdmin) {
+          setFormData((prev) => ({ ...prev, senderId: 'FASREACH' }));
+        } else {
+          setFormData((prev) => ({ ...prev, senderId: '' }));
+        }
       }
 
       // Fetch Contacts & Groups
@@ -285,18 +295,29 @@ export default function SendSMS() {
           <form onSubmit={handleSend} className="space-y-4">
             {/* Sender ID Header Selector */}
             <div>
-              <label className="block text-xs font-semibold text-[#AEB4BC] mb-1">Sender ID Header</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-semibold text-[#AEB4BC]">Sender ID Header</label>
+                <a
+                  href="/sender-ids"
+                  className="text-[11px] font-bold text-[#D4AF6A] hover:underline"
+                >
+                  + Register Custom Sender ID
+                </a>
+              </div>
               <select
                 value={formData.senderId}
                 onChange={(e) => setFormData({ ...formData, senderId: e.target.value })}
                 className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-[#D4AF6A]"
               >
-                <option value="FASREACH">FASREACH (Default Platform Header)</option>
                 {senderIds.map((s) => (
                   <option key={s._id} value={s.senderId}>
-                    {s.senderId}
+                    {s.senderId} {s.status === 'Approved' ? '(Active / Approved)' : `(${s.status})`}
                   </option>
                 ))}
+                {isAdmin && <option value="FASREACH">FASREACH (System Admin Default)</option>}
+                {senderIds.length === 0 && !isAdmin && (
+                  <option value="" disabled>-- No Custom Sender IDs (Register one above) --</option>
+                )}
               </select>
             </div>
 

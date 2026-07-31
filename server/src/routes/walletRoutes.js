@@ -6,6 +6,7 @@ const { protect } = require('../middleware/authMiddleware');
 router.use(protect);
 
 router.get('/', getWallet);
+router.get('/balance', getWallet);
 router.post('/fund', initializeFunding);
 router.post('/verify', verifyFunding);
 router.post('/buy-credits', buyCreditsFromBalance);

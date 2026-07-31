@@ -8,11 +8,51 @@ const { calculateSmsUnits, RATE_PER_UNIT } = require('../utils/costCalculator');
 // @route   POST /api/sms/send
 exports.sendSMS = async (req, res, next) => {
   try {
-    const { senderId, recipientPhone, content, scheduledFor } = req.body;
+    const body = req.body || {};
+    const query = req.query || {};
+
+    const recipientPhone =
+      body.recipientPhone ||
+      body.to ||
+      body.phone ||
+      body.recipient ||
+      body.mobile ||
+      body.destination ||
+      query.recipientPhone ||
+      query.to ||
+      query.phone ||
+      query.recipient ||
+      query.mobile ||
+      query.destination;
+
+    const content =
+      body.content ||
+      body.message ||
+      body.text ||
+      body.body ||
+      body.msg ||
+      query.content ||
+      query.message ||
+      query.text ||
+      query.body ||
+      query.msg;
+
+    const senderId =
+      body.senderId ||
+      body.sender ||
+      body.from ||
+      body.sender_id ||
+      query.senderId ||
+      query.sender ||
+      query.from ||
+      query.sender_id ||
+      'FASREACH';
+
+    const scheduledFor = body.scheduledFor || query.scheduledFor;
     const userId = req.user._id;
 
     if (!recipientPhone || !content) {
-      return res.status(400).json({ success: false, message: 'Recipient phone and message content are required' });
+      return res.status(400).json({ success: false, message: 'Recipient phone (e.g. to/phone/recipientPhone) and message content (e.g. message/content/text) are required' });
     }
 
     const isScheduled = scheduledFor && new Date(scheduledFor) > new Date();
@@ -105,11 +145,46 @@ exports.sendSMS = async (req, res, next) => {
 // @route   POST /api/sms/bulk
 exports.sendBulkSMS = async (req, res, next) => {
   try {
-    const { senderId, recipients, content, scheduledFor } = req.body;
+    const body = req.body || {};
+    const query = req.query || {};
+
+    let rawRecipients = body.recipients || body.to || body.phones || body.recipientsList || query.recipients || query.to || query.phones;
+    const content =
+      body.content ||
+      body.message ||
+      body.text ||
+      body.body ||
+      body.msg ||
+      query.content ||
+      query.message ||
+      query.text ||
+      query.body ||
+      query.msg;
+
+    const senderId =
+      body.senderId ||
+      body.sender ||
+      body.from ||
+      body.sender_id ||
+      query.senderId ||
+      query.sender ||
+      query.from ||
+      query.sender_id ||
+      'FASREACH';
+
+    const scheduledFor = body.scheduledFor || query.scheduledFor;
     const userId = req.user._id;
 
-    if (!recipients || !Array.isArray(recipients) || recipients.length === 0) {
-      return res.status(400).json({ success: false, message: 'Please provide array of recipient phone numbers' });
+    // Normalize recipients array: accept Array or comma/newline/semicolon-separated String
+    let recipients = [];
+    if (Array.isArray(rawRecipients)) {
+      recipients = rawRecipients.map((r) => String(r).trim()).filter(Boolean);
+    } else if (typeof rawRecipients === 'string') {
+      recipients = rawRecipients.split(/[\n,;]+/).map((r) => r.trim()).filter(Boolean);
+    }
+
+    if (recipients.length === 0 || !content) {
+      return res.status(400).json({ success: false, message: 'Recipients list (array or comma-separated numbers) and message content are required' });
     }
 
     const isScheduled = scheduledFor && new Date(scheduledFor) > new Date();
