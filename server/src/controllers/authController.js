@@ -2,6 +2,8 @@ const User = require('../models/User');
 const Wallet = require('../models/Wallet');
 const AuditLog = require('../models/AuditLog');
 const { generateAccessToken } = require('../utils/jwt');
+const crypto = require('crypto');
+const emailService = require('../services/emailService');
 
 // @desc    Register new user
 // @route   POST /api/auth/register
@@ -20,7 +22,19 @@ exports.register = async (req, res, next) => {
       phone,
       password,
       role: 'Regular User',
+      status: 'Pending Verification',
     });
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.emailVerificationCode = verificationCode;
+    user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    await user.save();
+
+    try {
+      await emailService.sendVerificationEmail(user.email, user.name, verificationCode);
+    } catch(err) {
+      console.error('Failed to send verification email:', err);
+    }
 
     // Create Initial Wallet with 10 free SMS units
     const wallet = await Wallet.create({
@@ -39,9 +53,10 @@ exports.register = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
+      message: 'Registration successful. Verification email sent.',
       data: {
         token,
-        user: { id: user._id, name: user.name, email: user.email, role: user.role },
+        user: { id: user._id, name: user.name, email: user.email, role: user.role, isEmailVerified: user.isEmailVerified },
         wallet,
       },
     });
@@ -68,6 +83,19 @@ exports.login = async (req, res, next) => {
 
     if (user.status === 'Suspended') {
       return res.status(403).json({ success: false, message: 'Your account has been suspended' });
+    }
+
+    if (!user.isEmailVerified && !['Super Admin', 'Admin'].includes(user.role)) {
+      const token = generateAccessToken({ id: user._id, role: user.role });
+      return res.status(200).json({ 
+        success: true, 
+        needsVerification: true, 
+        message: 'Please verify your email address',
+        data: {
+          token,
+          user: { id: user._id, name: user.name, email: user.email, role: user.role, isEmailVerified: user.isEmailVerified }
+        }
+      });
     }
 
     user.lastLoginAt = new Date();
@@ -109,6 +137,132 @@ exports.getMe = async (req, res, next) => {
         impersonatorAdmin: req.impersonatorAdmin || null,
       },
     });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Verify email
+// @route   POST /api/auth/verify-email
+exports.verifyEmail = async (req, res, next) => {
+  try {
+    const { email, code } = req.body;
+    
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified' });
+    }
+
+    if (user.emailVerificationCode !== code || user.emailVerificationExpires < new Date()) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired verification code' });
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationCode = null;
+    user.emailVerificationExpires = null;
+    user.status = 'Active';
+    await user.save();
+
+    try {
+      await emailService.sendWelcomeEmail(user.email, user.name);
+    } catch(err) {
+      console.error('Failed to send welcome email:', err);
+    }
+
+    res.status(200).json({ success: true, message: 'Email successfully verified' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Resend verification code
+// @route   POST /api/auth/resend-verification
+exports.resendVerificationCode = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (user.isEmailVerified) {
+      return res.status(400).json({ success: false, message: 'Email is already verified' });
+    }
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.emailVerificationCode = verificationCode;
+    user.emailVerificationExpires = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    try {
+      await emailService.sendVerificationEmail(user.email, user.name, verificationCode);
+    } catch(err) {
+      console.error('Failed to resend verification email:', err);
+    }
+
+    res.status(200).json({ success: true, message: 'Verification code resent successfully' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Forgot password
+// @route   POST /api/auth/forgot-password
+exports.forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = resetToken;
+    user.passwordResetExpires = new Date(Date.now() + 30 * 60 * 1000);
+    await user.save();
+
+    const resetUrl = `${process.env.FRONTEND_URL || 'https://fasreach.com'}/reset-password/${resetToken}`;
+
+    try {
+      await emailService.sendPasswordResetEmail(user.email, user.name, resetToken, resetUrl);
+    } catch(err) {
+      console.error('Failed to send reset email:', err);
+      return res.status(500).json({ success: false, message: 'Error sending email' });
+    }
+
+    res.status(200).json({ success: true, message: 'Password reset email sent' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Reset password
+// @route   POST /api/auth/reset-password
+exports.resetPassword = async (req, res, next) => {
+  try {
+    const { token, newPassword } = req.body;
+    
+    const user = await User.findOne({ 
+      passwordResetToken: token,
+      passwordResetExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid or expired reset token' });
+    }
+
+    user.password = newPassword;
+    user.passwordResetToken = null;
+    user.passwordResetExpires = null;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password has been successfully reset' });
   } catch (error) {
     next(error);
   }

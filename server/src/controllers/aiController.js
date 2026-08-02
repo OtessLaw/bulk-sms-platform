@@ -79,7 +79,7 @@ exports.toggleGlobalAiSupport = async (req, res, next) => {
 // @route   POST /api/ai/chat
 exports.processChat = async (req, res, next) => {
   try {
-    const { prompt, currentPage, conversationId: reqConvId, history } = req.body;
+    const { prompt, currentPage, conversationId: reqConvId, history, locationData } = req.body;
     const user = req.user || { name: 'User', _id: null };
 
     if (!prompt || !prompt.trim()) {
@@ -114,6 +114,17 @@ exports.processChat = async (req, res, next) => {
     // Global AI setting strictly controls whether AI or Human mode is active
     const isHumanMode = !globalAiEnabled;
 
+    const locObj = locationData && typeof locationData === 'object' ? {
+      city: locationData.city || '',
+      region: locationData.region || '',
+      country: locationData.country || '',
+      formatted: locationData.formatted || '',
+      ip: locationData.ip || req.ip || '',
+      lat: locationData.lat || null,
+      lng: locationData.lng || null,
+      device: locationData.device || '',
+    } : null;
+
     // Save or update Conversation
     if (!conversation) {
       conversation = await AiConversation.create({
@@ -123,6 +134,7 @@ exports.processChat = async (req, res, next) => {
         title: prompt.substring(0, 30),
         supportMode: isHumanMode ? 'HUMAN' : 'AI',
         isEscalated: isHumanMode,
+        ...(locObj ? { userLocation: locObj } : {}),
       });
     } else {
       if (user && user._id && !conversation.userId) {
@@ -130,6 +142,9 @@ exports.processChat = async (req, res, next) => {
       }
       conversation.supportMode = isHumanMode ? 'HUMAN' : 'AI';
       conversation.isEscalated = isHumanMode;
+      if (locObj && locObj.formatted) {
+        conversation.userLocation = locObj;
+      }
       conversation.updatedAt = new Date();
       await conversation.save();
     }

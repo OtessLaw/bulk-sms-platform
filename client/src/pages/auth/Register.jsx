@@ -21,8 +21,8 @@ export default function Register() {
 
     try {
       await register(formData);
-      toast.success('Account created! 10 Free SMS credits bonus added!');
-      navigate('/dashboard');
+      toast.success('Account created! Check your email for verification code.');
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
       toast.error(err.response?.data?.message || 'Registration failed.');
     } finally {

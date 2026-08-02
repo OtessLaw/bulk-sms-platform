@@ -153,6 +153,92 @@ export default function AiSupportWidget() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
+  const [detectedLocation, setDetectedLocation] = useState(null);
+
+  useEffect(() => {
+    detectLocation();
+  }, []);
+
+  const detectLocation = async () => {
+    try {
+      const loc = await getUserAccurateLocation();
+      setDetectedLocation(loc);
+    } catch (e) {
+      console.warn('[Location Detection Notice]:', e);
+    }
+  };
+
+  const getUserAccurateLocation = async () => {
+    let info = {
+      city: '',
+      region: '',
+      country: '',
+      formatted: '',
+      ip: '',
+      lat: null,
+      lng: null,
+      device: /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ? 'Mobile Phone' : 'Desktop PC',
+    };
+
+    // Step 1: HTML5 High-Precision Geolocation GPS
+    if ('geolocation' in navigator) {
+      try {
+        const position = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 4000,
+            maximumAge: 0,
+          });
+        });
+
+        if (position && position.coords) {
+          const { latitude, longitude } = position.coords;
+          info.lat = latitude;
+          info.lng = longitude;
+
+          const revRes = await fetch(
+            `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+          );
+          if (revRes.ok) {
+            const geoData = await revRes.json();
+            const city = geoData.locality || geoData.city || geoData.principalSubdivision || '';
+            const region = geoData.principalSubdivision || '';
+            const country = geoData.countryName || '';
+
+            info.city = city;
+            info.region = region;
+            info.country = country;
+            info.formatted = [city, region, country].filter(Boolean).join(', ');
+            if (info.formatted) return info;
+          }
+        }
+      } catch (gpsErr) {
+        console.warn('[GPS Geolocation Notice]:', gpsErr.message);
+      }
+    }
+
+    // Step 2: High-Speed IP Geolocation Fallback
+    try {
+      const ipRes = await fetch('https://ipapi.co/json/');
+      if (ipRes.ok) {
+        const ipData = await ipRes.json();
+        info.city = ipData.city || '';
+        info.region = ipData.region || '';
+        info.country = ipData.country_name || '';
+        info.ip = ipData.ip || '';
+        info.lat = ipData.latitude || null;
+        info.lng = ipData.longitude || null;
+        info.formatted = [ipData.city, ipData.region, ipData.country_name].filter(Boolean).join(', ');
+        if (ipData.ip) info.formatted += ` (IP: ${ipData.ip})`;
+        return info;
+      }
+    } catch (ipErr) {
+      console.warn('[IP Geolocation Notice]:', ipErr.message);
+    }
+
+    return info;
+  };
+
   const handleSend = async (textToSend = null) => {
     const queryText = textToSend || inputPrompt;
     if (!queryText.trim()) return;
@@ -181,11 +267,14 @@ export default function AiSupportWidget() {
         content: m.content,
       }));
 
+      const locData = detectedLocation || (await getUserAccurateLocation());
+
       const res = await API.post('/ai/chat', {
         prompt: queryText,
         currentPage: location.pathname,
         conversationId: activeConvId,
         history: recentHistory,
+        locationData: locData,
       });
 
       if (res.data && res.data.data) {

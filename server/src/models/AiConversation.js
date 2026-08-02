@@ -46,6 +46,16 @@ const AiConversationSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    userLocation: {
+      city: { type: String, default: '' },
+      region: { type: String, default: '' },
+      country: { type: String, default: '' },
+      formatted: { type: String, default: '' },
+      ip: { type: String, default: '' },
+      lat: { type: Number, default: null },
+      lng: { type: Number, default: null },
+      device: { type: String, default: '' },
+    },
   },
   { timestamps: true }
 );

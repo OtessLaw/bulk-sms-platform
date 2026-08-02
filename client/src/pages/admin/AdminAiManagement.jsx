@@ -24,6 +24,7 @@ import {
   Search,
   Bell,
   Power,
+  MapPin,
 } from 'lucide-react';
 
 export default function AdminAiManagement() {
@@ -361,13 +362,26 @@ export default function AdminAiManagement() {
             {selectedChat ? (
               <>
                 {/* Chat Top Bar */}
-                <div className="flex justify-between items-center border-b border-[rgba(212,175,106,0.15)] pb-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[rgba(212,175,106,0.15)] pb-3 gap-2">
                   <div>
                     <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
                       <UserCheck className="w-4 h-4 text-emerald-400" /> {selectedChat.userId?.name || 'Customer'} ({selectedChat.userId?.mobileNumber || selectedChat.userId?.email || 'Guest User'})
                     </h4>
-                    <span className="text-[10px] text-[#AEB4BC] font-mono">Page: {selectedChat.currentPage}</span>
+                    <span className="text-[10px] text-[#AEB4BC] font-mono block">Page: {selectedChat.currentPage}</span>
                   </div>
+
+                  {/* Live Location Badge */}
+                  {selectedChat.userLocation?.formatted ? (
+                    <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.25)] rounded-xl px-3 py-1 text-[10px] text-[#D4AF6A] font-bold flex items-center gap-1 shadow-md shrink-0">
+                      <MapPin className="w-3 h-3 text-[#D4AF6A] animate-pulse" />
+                      <span>📍 {selectedChat.userLocation.formatted} {selectedChat.userLocation.device ? `• ${selectedChat.userLocation.device}` : ''}</span>
+                    </div>
+                  ) : (
+                    <div className="bg-[#2A3038] border border-[rgba(212,175,106,0.15)] rounded-xl px-2.5 py-1 text-[10px] text-[#AEB4BC] flex items-center gap-1 shrink-0">
+                      <MapPin className="w-3 h-3 text-[#AEB4BC]" />
+                      <span>Location: Detecting Live GPS/IP...</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Messages Thread */}
