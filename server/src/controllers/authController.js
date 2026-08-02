@@ -10,10 +10,32 @@ const emailService = require('../services/emailService');
 exports.register = async (req, res, next) => {
   try {
     const { name, email, phone, password } = req.body;
+    const { formatPhoneForArkesel } = require('../utils/phoneFormatter');
 
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-      return res.status(400).json({ success: false, message: 'User with this email already exists' });
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const rawPhone = (phone || '').trim();
+    const cleanPhone = formatPhoneForArkesel(rawPhone);
+    const digitsOnly = rawPhone.replace(/[^0-9]/g, '');
+
+    // 1. Check duplicate Email
+    const existingEmail = await User.findOne({ email: cleanEmail });
+    if (existingEmail) {
+      return res.status(400).json({ success: false, message: 'An account with this email address already exists.' });
+    }
+
+    // 2. Check duplicate Phone Number across formats (e.g. 0241112233, 233241112233, +233241112233)
+    if (rawPhone) {
+      const phoneQueries = [{ phone: rawPhone }];
+      if (cleanPhone) phoneQueries.push({ phone: cleanPhone });
+      if (digitsOnly) phoneQueries.push({ phone: digitsOnly });
+
+      const existingPhone = await User.findOne({ $or: phoneQueries });
+      if (existingPhone) {
+        return res.status(400).json({
+          success: false,
+          message: 'An account with this phone number already exists. Please Sign In instead.',
+        });
+      }
     }
 
     const user = await User.create({
