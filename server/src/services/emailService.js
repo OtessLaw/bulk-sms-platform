@@ -1,30 +1,40 @@
 const axios = require('axios');
 
 const BREVO_API_URL = 'https://api.brevo.com/v3/smtp/email';
-const API_KEY = process.env.BREVO_API_KEY;
-const SENDER_EMAIL = process.env.BREVO_SENDER_EMAIL || 'fasreachSupport@gmail.com';
-const SENDER_NAME = 'FasReach Platform';
 
 const sendEmail = async (to, subject, htmlContent) => {
+  const apiKey = process.env.BREVO_API_KEY;
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || 'fasreachSupport@gmail.com';
+  const senderName = 'FasReach Platform';
+
+  if (!apiKey) {
+    console.error('[Brevo] BREVO_API_KEY is not set in environment variables!');
+    throw new Error('BREVO_API_KEY not configured');
+  }
+
+  console.log(`[Brevo] Sending email to ${JSON.stringify(to)} | Subject: ${subject} | From: ${senderEmail}`);
+
   try {
     const response = await axios.post(
       BREVO_API_URL,
       {
-        sender: { name: SENDER_NAME, email: SENDER_EMAIL },
+        sender: { name: senderName, email: senderEmail },
         to: to,
         subject: subject,
         htmlContent: htmlContent
       },
       {
         headers: {
-          'api-key': API_KEY,
-          'Content-Type': 'application/json'
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
         }
       }
     );
+    console.log('[Brevo] Email sent successfully:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Brevo Email Error:', error.response ? error.response.data : error.message);
+    console.error('[Brevo] Email FAILED:', error.response ? JSON.stringify(error.response.data) : error.message);
     throw error;
   }
 };
