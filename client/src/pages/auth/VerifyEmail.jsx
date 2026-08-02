@@ -93,13 +93,16 @@ export default function VerifyEmail() {
         <div className="text-center space-y-1.5">
           <img src="/logo.jpg" alt="FasReach Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl mx-auto object-cover border-2 border-[#D4AF6A]/50 shadow-2xl" />
           <h1 className="text-2xl font-extrabold text-white tracking-wider">Verify Your Email</h1>
-          <p className="text-xs text-[#AEB4BC]">We sent a 6-digit code to your email</p>
+          <p className="text-xs text-[#AEB4BC]">We sent a 6-digit code to your email & phone number</p>
           {email && (
             <div className="flex items-center justify-center space-x-2 mt-2">
               <Mail className="w-3.5 h-3.5 text-[#D4AF6A]" />
               <span className="text-sm font-medium text-white">{email}</span>
             </div>
           )}
+          <div className="bg-[#D4AF6A]/10 border border-[#D4AF6A]/30 rounded-xl p-2.5 text-[11px] text-[#D4AF6A] text-center font-medium mt-2 leading-relaxed">
+            💡 <strong>Tip:</strong> If not in Inbox, check your <strong>Spam / Promotions</strong> folder, or check your phone SMS!
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">

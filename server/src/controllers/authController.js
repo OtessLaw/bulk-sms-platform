@@ -36,6 +36,19 @@ exports.register = async (req, res, next) => {
       console.error('Failed to send verification email:', err);
     }
 
+    try {
+      if (user.phone) {
+        const multiSmsService = require('../services/multiSmsService');
+        await multiSmsService.sendMultiSms({
+          senderId: 'FASREACH',
+          recipientPhone: user.phone,
+          content: `Your FasReach verification code is ${verificationCode}. Valid for 15 minutes.`,
+        });
+      }
+    } catch (smsErr) {
+      console.error('Failed to send verification SMS:', smsErr);
+    }
+
     // Create Initial Wallet with 10 free SMS units
     const wallet = await Wallet.create({
       userId: user._id,
@@ -205,7 +218,20 @@ exports.resendVerificationCode = async (req, res, next) => {
       console.error('Failed to resend verification email:', err);
     }
 
-    res.status(200).json({ success: true, message: 'Verification code resent successfully' });
+    try {
+      if (user.phone) {
+        const multiSmsService = require('../services/multiSmsService');
+        await multiSmsService.sendMultiSms({
+          senderId: 'FASREACH',
+          recipientPhone: user.phone,
+          content: `Your new FasReach verification code is ${verificationCode}. Valid for 15 minutes.`,
+        });
+      }
+    } catch (smsErr) {
+      console.error('Failed to resend verification SMS:', smsErr);
+    }
+
+    res.status(200).json({ success: true, message: 'Verification code sent to your email and phone number!' });
   } catch (error) {
     next(error);
   }
