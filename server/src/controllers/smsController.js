@@ -1,4 +1,9 @@
+const Message = require('../models/Message');
+const Wallet = require('../models/Wallet');
 const SenderId = require('../models/SenderId');
+const { sendMultiSms } = require('../services/multiSmsService');
+const { generateTemplates } = require('../services/aiTemplateService');
+const { calculateSmsUnits, RATE_PER_UNIT } = require('../utils/costCalculator');
 
 const resolveSenderIdForUser = async (user, rawRequestedSenderId) => {
   const isAdmin = user && ['Super Admin', 'Admin', 'Manager', 'Support Staff'].includes(user.role);
