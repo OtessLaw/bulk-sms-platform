@@ -1,8 +1,49 @@
-const Message = require('../models/Message');
-const Wallet = require('../models/Wallet');
-const { sendMultiSms } = require('../services/multiSmsService');
-const { generateTemplates } = require('../services/aiTemplateService');
-const { calculateSmsUnits, RATE_PER_UNIT } = require('../utils/costCalculator');
+const SenderId = require('../models/SenderId');
+
+const resolveSenderIdForUser = async (user, rawRequestedSenderId) => {
+  const isAdmin = user && ['Super Admin', 'Admin', 'Manager', 'Support Staff'].includes(user.role);
+  const requested = (rawRequestedSenderId || '').trim().toUpperCase();
+
+  // 1. System Admins can use FASREACH or any header
+  if (isAdmin) {
+    return { senderId: requested || 'FASREACH', allowed: true };
+  }
+
+  // 2. Regular Customers trying to use FASREACH or empty header
+  if (!requested || requested === 'FASREACH' || requested === 'FAS REACH') {
+    const approvedDoc = await SenderId.findOne({ userId: user._id, status: 'Approved' });
+    if (approvedDoc) {
+      return { senderId: approvedDoc.senderId, allowed: true };
+    }
+    return {
+      allowed: false,
+      message: 'The official FASREACH Sender ID is reserved for system admins. Please register and request your own approved Sender ID on your account.',
+    };
+  }
+
+  // 3. Regular Customers using a custom header — check if approved on their account
+  const userSenderDoc = await SenderId.findOne({
+    userId: user._id,
+    senderId: requested,
+    status: 'Approved',
+  });
+
+  if (!userSenderDoc) {
+    const pendingDoc = await SenderId.findOne({ userId: user._id, senderId: requested });
+    if (pendingDoc) {
+      return {
+        allowed: false,
+        message: `Your Sender ID '${requested}' is currently ${pendingDoc.status}. Please wait for admin approval before sending.`,
+      };
+    }
+    return {
+      allowed: false,
+      message: `Sender ID '${requested}' is not registered or approved on your account. Please request it on your account first.`,
+    };
+  }
+
+  return { senderId: requested, allowed: true };
+};
 
 // @desc    Send Single SMS (Supports Immediate & Scheduled Dispatch)
 // @route   POST /api/sms/send
@@ -37,7 +78,7 @@ exports.sendSMS = async (req, res, next) => {
       query.body ||
       query.msg;
 
-    const senderId =
+    const rawSenderId =
       body.senderId ||
       body.sender ||
       body.from ||
@@ -46,7 +87,7 @@ exports.sendSMS = async (req, res, next) => {
       query.sender ||
       query.from ||
       query.sender_id ||
-      'FASREACH';
+      '';
 
     const scheduledFor = body.scheduledFor || query.scheduledFor;
     const userId = req.user._id;
@@ -54,6 +95,13 @@ exports.sendSMS = async (req, res, next) => {
     if (!recipientPhone || !content) {
       return res.status(400).json({ success: false, message: 'Recipient phone (e.g. to/phone/recipientPhone) and message content (e.g. message/content/text) are required' });
     }
+
+    // Enforce Sender ID Permission Check
+    const senderResolution = await resolveSenderIdForUser(req.user, rawSenderId);
+    if (!senderResolution.allowed) {
+      return res.status(403).json({ success: false, code: 403, message: senderResolution.message });
+    }
+    const senderId = senderResolution.senderId;
 
     const isScheduled = scheduledFor && new Date(scheduledFor) > new Date();
     const unitsNeeded = calculateSmsUnits(content);
@@ -183,7 +231,7 @@ exports.sendBulkSMS = async (req, res, next) => {
       query.body ||
       query.msg;
 
-    const senderId =
+    const rawSenderId =
       body.senderId ||
       body.sender ||
       body.from ||
@@ -192,10 +240,17 @@ exports.sendBulkSMS = async (req, res, next) => {
       query.sender ||
       query.from ||
       query.sender_id ||
-      'FASREACH';
+      '';
 
     const scheduledFor = body.scheduledFor || query.scheduledFor;
     const userId = req.user._id;
+
+    // Enforce Sender ID Permission Check for Bulk Dispatch
+    const senderResolution = await resolveSenderIdForUser(req.user, rawSenderId);
+    if (!senderResolution.allowed) {
+      return res.status(403).json({ success: false, code: 403, message: senderResolution.message });
+    }
+    const senderId = senderResolution.senderId;
 
     // Normalize recipients array: accept Array or comma/newline/semicolon-separated String
     let recipients = [];
