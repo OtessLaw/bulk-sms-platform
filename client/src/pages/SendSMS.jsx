@@ -3,6 +3,7 @@ import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Send, Clock, Sparkles, Smartphone, Users, Calendar, Layers, FileSpreadsheet } from 'lucide-react';
+import { getSmsUnitDetails } from '../utils/costCalculator';
 
 export default function SendSMS() {
   const { user, refreshWallet } = useAuth();
@@ -146,8 +147,8 @@ export default function SendSMS() {
     : extractPhoneNumbers(formData.bulkRecipientsText);
 
   const recipientCount = parsedRecipients.length;
-  // 155 Characters per SMS unit
-  const smsUnitsPerMsg = Math.ceil(formData.content.length / 155) || 1;
+  const unitDetails = getSmsUnitDetails(formData.content);
+  const smsUnitsPerMsg = unitDetails.units;
   const totalSmsUnitsNeeded = recipientCount * smsUnitsPerMsg;
   const totalCostGHS = (totalSmsUnitsNeeded * 0.04).toFixed(2);
 
@@ -477,8 +478,8 @@ export default function SendSMS() {
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="text-xs font-semibold text-[#AEB4BC]">SMS Message Content</label>
-                <span className="text-[10px] text-[#D4AF6A] font-mono">
-                  {formData.content.length} chars ({smsUnitsPerMsg} unit/msg @ 155 chars)
+                <span className={`text-[10px] font-mono font-bold ${unitDetails.isUnicode ? 'text-amber-400' : 'text-[#D4AF6A]'}`}>
+                  {unitDetails.isUnicode ? '😍 Emoji Detected • ' : ''}{formData.content.length} chars ({smsUnitsPerMsg} {smsUnitsPerMsg === 1 ? 'unit' : 'units'}/msg @ {unitDetails.charsPerUnit} chars/unit)
                 </span>
               </div>
               <textarea

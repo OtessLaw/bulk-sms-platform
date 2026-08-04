@@ -3,6 +3,7 @@ import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import { Megaphone, Calendar, Clock, Plus, X, Send, Users, Trash2, Play, CheckCircle, AlertCircle } from 'lucide-react';
+import { calculateSmsUnits } from '../utils/costCalculator';
 
 export default function Campaigns() {
   const { user } = useAuth();
@@ -89,7 +90,7 @@ export default function Campaigns() {
   };
 
   const recipients = getRecipientList();
-  const smsUnits = Math.ceil((newCampaign.content.length || 0) / 155) || 1;
+  const smsUnits = calculateSmsUnits(newCampaign.content) || 1;
   const estimatedCost = (recipients.length * smsUnits * 0.04).toFixed(2);
 
   const handleCreateCampaign = async (e) => {
