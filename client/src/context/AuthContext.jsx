@@ -68,11 +68,19 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const res = await API.post('/auth/login', { email, password });
     if (res.data?.success) {
-      localStorage.setItem('accessToken', res.data.data.token);
-      localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
-      localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
-      setUser(res.data.data.user);
-      setWallet(res.data.data.wallet);
+      if (res.data.needsVerification) {
+        return res.data;
+      }
+      const token = res.data.data?.token;
+      const userData = res.data.data?.user || null;
+      const walletData = res.data.data?.wallet || null;
+
+      if (token) localStorage.setItem('accessToken', token);
+      if (userData) localStorage.setItem('cachedUser', JSON.stringify(userData));
+      if (walletData) localStorage.setItem('cachedWallet', JSON.stringify(walletData));
+
+      setUser(userData);
+      setWallet(walletData);
       setIsImpersonating(false);
       return res.data;
     }
@@ -81,11 +89,16 @@ export const AuthProvider = ({ children }) => {
   const register = async (formData) => {
     const res = await API.post('/auth/register', formData);
     if (res.data?.success) {
-      localStorage.setItem('accessToken', res.data.data.token);
-      localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
-      localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
-      setUser(res.data.data.user);
-      setWallet(res.data.data.wallet);
+      const token = res.data.data?.token;
+      const userData = res.data.data?.user || null;
+      const walletData = res.data.data?.wallet || null;
+
+      if (token) localStorage.setItem('accessToken', token);
+      if (userData) localStorage.setItem('cachedUser', JSON.stringify(userData));
+      if (walletData) localStorage.setItem('cachedWallet', JSON.stringify(walletData));
+
+      setUser(userData);
+      setWallet(walletData);
       return res.data;
     }
   };

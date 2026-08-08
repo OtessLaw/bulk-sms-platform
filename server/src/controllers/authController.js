@@ -136,7 +136,11 @@ exports.login = async (req, res, next) => {
     user.lastLoginAt = new Date();
     await user.save();
 
-    const wallet = await Wallet.findOne({ userId: user._id });
+    let wallet = await Wallet.findOne({ userId: user._id });
+    if (!wallet) {
+      wallet = await Wallet.create({ userId: user._id, balance: 0.0, smsCredit: 10 });
+    }
+
     const token = generateAccessToken({ id: user._id, role: user.role });
 
     await AuditLog.create({
