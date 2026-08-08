@@ -106,14 +106,31 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide email/phone and password.' });
     }
 
-    const isMatch = await user.matchPassword(password);
+    const cleanInput = String(email).trim().toLowerCase();
+    const rawInput = String(email).trim();
+    const { formatPhoneForArkesel } = require('../utils/phoneFormatter');
+    const formattedPhone = formatPhoneForArkesel(rawInput);
+    const digitsOnly = rawInput.replace(/[^0-9]/g, '');
+
+    const userQueries = [
+      { email: cleanInput },
+      { phone: rawInput },
+    ];
+    if (formattedPhone) userQueries.push({ phone: formattedPhone });
+    if (digitsOnly) userQueries.push({ phone: digitsOnly });
+
+    const user = await User.findOne({ $or: userQueries });
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials. Check your email/phone and password.' });
+    }
+
+    const isMatch = await user.matchPassword(String(password).trim());
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+      return res.status(401).json({ success: false, message: 'Invalid credentials. Check your email/phone and password.' });
     }
 
     if (user.status === 'Suspended') {
