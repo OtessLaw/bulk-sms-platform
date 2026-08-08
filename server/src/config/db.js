@@ -3,7 +3,7 @@ const autoSeed = require('../seeders/autoSeed');
 
 const connectDB = async () => {
   try {
-    const mongoUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/bulk_sms_platform';
+    const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bulk_sms_platform';
     const conn = await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 10000,
     });
