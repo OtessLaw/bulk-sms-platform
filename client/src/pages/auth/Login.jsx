@@ -32,8 +32,12 @@ export default function Login() {
         navigate('/dashboard');
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
-      toast.error(errMsg);
+      if (err.message === 'Network Error' || !err.response) {
+        toast.error('Connecting to FasReach server... Please wait a few seconds while the server wakes up and try again.');
+      } else {
+        const errMsg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+        toast.error(errMsg);
+      }
     } finally {
       setLoading(false);
     }

@@ -24,8 +24,12 @@ export default function Register() {
       toast.success('Account created! Check your email or phone for your 6-digit code.');
       navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || 'Registration failed. Please check your details.';
-      toast.error(errMsg);
+      if (err.message === 'Network Error' || !err.response) {
+        toast.error('Connecting to FasReach server... Please wait a few seconds while the server wakes up and try again.');
+      } else {
+        const errMsg = err.response?.data?.message || err.message || 'Registration failed. Please check your details.';
+        toast.error(errMsg);
+      }
     } finally {
       setLoading(false);
     }

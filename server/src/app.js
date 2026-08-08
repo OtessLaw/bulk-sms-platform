@@ -23,7 +23,18 @@ const app = express();
 // Trust proxy for Render/Vercel reverse proxies to get real client IPs for rate limiting
 app.set('trust proxy', 1);
 
-// 1. Advanced HTTP Security Headers via Helmet
+// 1. CORS Security Policy — Allow all FasReach frontends & external API clients seamlessly
+app.use(
+  cors({
+    origin: true, // Echo request origin dynamically for all frontends & mobile clients
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-KEY', 'Accept', 'Origin', 'X-Requested-With'],
+  })
+);
+app.options('*', cors());
+
+// 2. Advanced HTTP Security Headers via Helmet
 app.use(
   helmet({
     contentSecurityPolicy: false, // Allow inline styles & fonts for React UI
@@ -37,27 +48,6 @@ app.use(
       preload: true,
     },
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-  })
-);
-
-// 2. CORS Security Policy — Allow FasReach frontends & external API clients
-const allowedOrigins = [
-  'https://bulk-sms-platform.vercel.app',
-  'https://fasreach.com',
-  'https://www.fasreach.com',
-  'http://localhost:5173',
-  'http://localhost:3000',
-];
-
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      // Allow server-to-server calls (no origin), whitelisted frontends, and external third-party API clients
-      callback(null, true);
-    },
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-KEY', 'Accept'],
   })
 );
 
