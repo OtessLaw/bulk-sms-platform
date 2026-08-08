@@ -23,16 +23,20 @@ const app = express();
 // Trust proxy for Render/Vercel reverse proxies to get real client IPs for rate limiting
 app.set('trust proxy', 1);
 
-// 1. CORS Security Policy — Allow all FasReach frontends & external API clients seamlessly
+// 1. CORS Security Policy — Browser Specification Compliant Origin Reflection
 app.use(
   cors({
-    origin: true, // Echo request origin dynamically for all frontends & mobile clients
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // Reflect exact requesting origin to satisfy W3C CORS credentials specification
+      return callback(null, origin);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization', 'x-api-key', 'X-API-KEY', 'Accept', 'Origin', 'X-Requested-With'],
   })
 );
-app.options('*', cors());
 
 // 2. Advanced HTTP Security Headers via Helmet
 app.use(
