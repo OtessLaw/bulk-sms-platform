@@ -1,10 +1,23 @@
 const mongoose = require('mongoose');
 const autoSeed = require('../seeders/autoSeed');
 
+const getValidMongoUri = () => {
+  const candidates = [process.env.MONGODB_URI, process.env.MONGO_URI];
+  for (let uri of candidates) {
+    if (uri) {
+      const cleaned = String(uri).trim().replace(/^["']|["']$/g, '');
+      if (cleaned.startsWith('mongodb://') || cleaned.startsWith('mongodb+srv://')) {
+        return cleaned;
+      }
+    }
+  }
+  return 'mongodb://127.0.0.1:27017/bulk_sms_platform';
+};
+
 const connectDB = async (retryCount = 0) => {
   try {
-    let rawUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/bulk_sms_platform';
-    const mongoUri = String(rawUri).trim().replace(/^["']|["']$/g, '');
+    const mongoUri = getValidMongoUri();
+    console.log(`[Database] Connecting using URI scheme: ${mongoUri.split('@')[1] ? '***@' + mongoUri.split('@')[1] : mongoUri}`);
 
     const conn = await mongoose.connect(mongoUri, {
       serverSelectionTimeoutMS: 15000,
