@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://bulk-sms-platform.onrender.com/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://fasreach-backend.onrender.com/api',
 });
 
 // Request interceptor to attach JWT token
