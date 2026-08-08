@@ -15,6 +15,7 @@ const autoSeed = async () => {
         password: 'AdminPass123!',
         role: 'Super Admin',
         status: 'Active',
+        isEmailVerified: true,
       });
 
       await Wallet.create({
@@ -31,6 +32,7 @@ const autoSeed = async () => {
         password: 'UserPass123!',
         role: 'Regular User',
         status: 'Active',
+        isEmailVerified: true,
       });
 
       await Wallet.create({

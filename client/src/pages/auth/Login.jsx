@@ -17,14 +17,16 @@ export default function Login() {
 
     try {
       const res = await login(email, password);
-      
-      if (res?.data?.needsVerification) {
+
+      if (res?.needsVerification || res?.data?.needsVerification) {
+        toast.error('Please verify your email address to complete sign in.');
         navigate(`/verify-email?email=${encodeURIComponent(email)}`);
         return;
       }
 
+      const userRole = res?.data?.user?.role || res?.user?.role || res?.data?.role;
       toast.success('Welcome back to FasReach!');
-      if (['Super Admin', 'Admin'].includes(res?.data?.user?.role || res?.user?.role)) {
+      if (['Super Admin', 'Admin'].includes(userRole)) {
         navigate('/admin');
       } else {
         navigate('/dashboard');
