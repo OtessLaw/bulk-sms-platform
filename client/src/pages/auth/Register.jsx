@@ -20,11 +20,12 @@ export default function Register() {
     setLoading(true);
 
     try {
-      await register(formData);
-      toast.success('Account created! Check your email for verification code.');
+      const res = await register(formData);
+      toast.success('Account created! Check your email or phone for your 6-digit code.');
       navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Registration failed.');
+      const errMsg = err.response?.data?.message || err.message || 'Registration failed. Please check your details.';
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }

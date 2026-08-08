@@ -32,7 +32,8 @@ export default function Login() {
         navigate('/dashboard');
       }
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      const errMsg = err.response?.data?.message || err.message || 'Login failed. Please check your credentials.';
+      toast.error(errMsg);
     } finally {
       setLoading(false);
     }
