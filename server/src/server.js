@@ -4,8 +4,8 @@ const initSmsScheduler = require('./cron/smsScheduler');
 
 const PORT = process.env.PORT || 5000;
 
-// Start HTTP server immediately to satisfy cloud health checks
-const server = app.listen(PORT, () => {
+// Start HTTP server immediately on 0.0.0.0 to bind to public network interface
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`=======================================================`);
   console.log(`🚀 FASREACH SAAS BACKEND RUNNING ON PORT: ${PORT}`);
   console.log(`🌟 MODE: ${process.env.NODE_ENV || 'development'}`);

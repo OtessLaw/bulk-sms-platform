@@ -1,7 +1,16 @@
 import axios from 'axios';
 
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  if (envUrl && !envUrl.includes('bulk-sms-platform.onrender.com')) {
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl.replace(/\/$/, '')}/api`;
+  }
+  return 'https://fasreach-backend.onrender.com/api';
+};
+
 const API = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://fasreach-backend.onrender.com/api',
+  baseURL: getApiBaseUrl(),
+  timeout: 30000, // 30s timeout for cold start connections
 });
 
 // Request interceptor to attach JWT token
