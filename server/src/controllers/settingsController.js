@@ -1,9 +1,18 @@
 const ApiKey = require('../models/ApiKey');
+const crypto = require('crypto');
 
 exports.getApiKeys = async (req, res, next) => {
   try {
     const keys = await ApiKey.find({ userId: req.user._id, status: 'Active' }).sort({ createdAt: -1 });
-    res.status(200).json({ success: true, data: keys });
+    const formattedKeys = keys.map(k => ({
+      _id: k._id,
+      name: k.name,
+      keyPrefix: k.keyPrefix || (k.key ? k.key.substring(0, 14) + '...' : 'fr_live_***'),
+      status: k.status,
+      lastUsedAt: k.lastUsedAt,
+      createdAt: k.createdAt,
+    }));
+    res.status(200).json({ success: true, data: formattedKeys });
   } catch (error) {
     next(error);
   }
@@ -12,16 +21,31 @@ exports.getApiKeys = async (req, res, next) => {
 exports.generateApiKey = async (req, res, next) => {
   try {
     const { name } = req.body;
-    const keyString = `bms_live_${Date.now()}_${Math.random().toString(36).substring(2, 12)}`;
+    const randomHex = crypto.randomBytes(24).toString('hex');
+    const rawKey = `fr_live_${randomHex}`;
+    const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+    const keyPrefix = `${rawKey.substring(0, 14)}...`;
 
-    const apiKey = await ApiKey.create({
+    const apiKeyDoc = await ApiKey.create({
       userId: req.user._id,
       name: name || 'Live API Key',
-      key: keyString,
+      keyHash,
+      keyPrefix,
       status: 'Active',
     });
 
-    res.status(201).json({ success: true, message: 'Developer API Key generated!', data: apiKey });
+    res.status(201).json({
+      success: true,
+      message: 'Developer API Key generated successfully! Save this key now as it will not be shown again.',
+      data: {
+        _id: apiKeyDoc._id,
+        name: apiKeyDoc.name,
+        rawKey, // Shown once on creation only
+        keyPrefix,
+        status: apiKeyDoc.status,
+        createdAt: apiKeyDoc.createdAt,
+      },
+    });
   } catch (error) {
     next(error);
   }

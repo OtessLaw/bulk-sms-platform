@@ -37,9 +37,16 @@ const protect = async (req, res, next) => {
 
   const rawKey = String(apiKeyCandidate || token || '').trim();
 
-  // Handle API Key authentication
-  if (rawKey && (rawKey.startsWith('bms_live_') || apiKeyCandidate)) {
-    const keyDoc = await ApiKey.findOne({ key: rawKey, status: 'Active' });
+  // Handle API Key authentication (SHA-256 Hashed or Legacy)
+  if (rawKey && (rawKey.startsWith('fr_live_') || rawKey.startsWith('bms_live_') || apiKeyCandidate)) {
+    const crypto = require('crypto');
+    const calculatedHash = crypto.createHash('sha256').update(rawKey).digest('hex');
+
+    const keyDoc = await ApiKey.findOne({
+      $or: [{ keyHash: calculatedHash }, { key: rawKey }],
+      status: 'Active',
+    });
+
     if (keyDoc) {
       keyDoc.lastUsedAt = new Date();
       await keyDoc.save();
@@ -50,7 +57,7 @@ const protect = async (req, res, next) => {
       }
       return next();
     }
-    if (apiKeyCandidate || rawKey.startsWith('bms_live_')) {
+    if (apiKeyCandidate || rawKey.startsWith('fr_live_') || rawKey.startsWith('bms_live_')) {
       return res.status(401).json({ success: false, message: 'Invalid or revoked API Key' });
     }
   }
