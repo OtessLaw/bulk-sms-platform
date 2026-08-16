@@ -126,10 +126,12 @@ exports.sendSMS = async (req, res, next) => {
       wallet.balance = Number((wallet.balance - cashCost).toFixed(2));
       paymentType = 'Cash Balance';
     } else {
-      // Developer starter auto-grant for API integrations
-      wallet.smsCredit = 50;
-      wallet.smsCredit -= unitsNeeded;
-      paymentType = 'Developer Starter Credits';
+      return res.status(402).json({
+        success: false,
+        code: 402,
+        status: 'error',
+        message: `Insufficient wallet balance or SMS credits. Required: ${unitsNeeded} units (GHS ${cashCost.toFixed(2)}). Available: ${wallet.smsCredit} units, GHS ${wallet.balance.toFixed(2)}. Please top up your wallet.`,
+      });
     }
 
     await wallet.save();
@@ -289,10 +291,12 @@ exports.sendBulkSMS = async (req, res, next) => {
       wallet.balance = Number((wallet.balance - totalCashCost).toFixed(2));
       paymentType = 'Cash Balance';
     } else {
-      // Developer starter auto-grant for bulk API broadcasts
-      wallet.smsCredit = totalUnitsNeeded + 50;
-      wallet.smsCredit -= totalUnitsNeeded;
-      paymentType = 'Developer Starter Credits';
+      return res.status(402).json({
+        success: false,
+        code: 402,
+        status: 'error',
+        message: `Insufficient wallet balance or SMS credits for bulk campaign. Required: ${totalUnitsNeeded} units (GHS ${totalCashCost.toFixed(2)}). Available: ${wallet.smsCredit} units, GHS ${wallet.balance.toFixed(2)}. Please top up your wallet.`,
+      });
     }
 
     await wallet.save();
