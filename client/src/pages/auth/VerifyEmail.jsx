@@ -59,17 +59,23 @@ export default function VerifyEmail() {
         setVerifiedSuccess(true);
         toast.success('Code verified successfully!');
 
-        // If backend returned session token, automatically log user in & open account
-        if (res.data.data?.token) {
-          localStorage.setItem('accessToken', res.data.data.token);
-          if (res.data.data.user) localStorage.setItem('cachedUser', JSON.stringify(res.data.data.user));
-          if (res.data.data.wallet) localStorage.setItem('cachedWallet', JSON.stringify(res.data.data.wallet));
+        const token = res.data.data?.token;
+        const userData = res.data.data?.user;
+        const walletData = res.data.data?.wallet;
 
-          await checkAuth();
+        if (token) {
+          localStorage.setItem('accessToken', token);
+          if (userData) localStorage.setItem('cachedUser', JSON.stringify(userData));
+          if (walletData) localStorage.setItem('cachedWallet', JSON.stringify(walletData));
+
+          try {
+            await checkAuth();
+          } catch (e) {
+            console.warn('Auth check notice after verification:', e);
+          }
 
           setTimeout(() => {
-            const role = res.data.data.user?.role;
-            if (['Super Admin', 'Admin'].includes(role)) {
+            if (userData && ['Super Admin', 'Admin'].includes(userData.role)) {
               navigate('/admin');
             } else {
               navigate('/dashboard');
@@ -85,7 +91,7 @@ export default function VerifyEmail() {
       setLoading(false);
       setCode(['', '', '', '', '', '']);
       if (inputRefs.current[0]) inputRefs.current[0].focus();
-      toast.error(err.response?.data?.message || 'Verification failed. Please check your code.');
+      toast.error(err.response?.data?.message || err.message || 'Verification failed. Please check your code.');
     }
   };
 
