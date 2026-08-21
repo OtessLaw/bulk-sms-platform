@@ -11,23 +11,11 @@ export default function VerifyEmail() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
-  const [revolveStep, setRevolveStep] = useState(0);
   const [resendDisabled, setResendDisabled] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const navigate = useNavigate();
   const inputRefs = useRef([]);
   const { checkAuth } = useAuth();
-
-  // Revolving Numbers Animation Timer
-  useEffect(() => {
-    let interval;
-    if (loading && !verifiedSuccess) {
-      interval = setInterval(() => {
-        setRevolveStep((prev) => (prev + 1) % 6);
-      }, 160); // Revolves numbers around rectangle every 160ms
-    }
-    return () => clearInterval(interval);
-  }, [loading, verifiedSuccess]);
 
   // Resend Countdown Timer
   useEffect(() => {
@@ -80,7 +68,7 @@ export default function VerifyEmail() {
             } else {
               navigate('/dashboard');
             }
-          }, 1400);
+          }, 1500);
         } else {
           setTimeout(() => {
             navigate('/login');
@@ -149,60 +137,32 @@ export default function VerifyEmail() {
     }
   };
 
-  // Map 6 entered digit items to their revolving rectangular perimeter slot index
-  // Perimeter rectangle slots:
-  // Row 1: [Slot 0] [Slot 1] [Slot 2]
-  // Row 2: [Slot 5] [Slot 4] [Slot 3]
-  const getSlotForIndex = (digitIndex) => {
-    if (!loading || verifiedSuccess) return digitIndex; // In normal state, 0..5 linear
-    return (digitIndex + revolveStep) % 6;
-  };
-
-  // Order boxes by their current active slot for grid placement
-  const renderBoxesInRevolvingRectangle = () => {
-    const slots = [null, null, null, null, null, null];
-    code.forEach((digit, i) => {
-      const currentSlot = getSlotForIndex(i);
-      slots[currentSlot] = { digit, originalIndex: i };
-    });
-
+  // Render the whole 6-number rectangle container turning around continuously
+  const renderTurningRectangle = () => {
     return (
-      <div className="flex flex-col items-center space-y-3 py-4">
-        {/* Revolving Rectangular Loop Grid */}
-        <div className="grid grid-cols-3 gap-3 p-4 bg-[#1E232B]/90 rounded-3xl border-2 border-[#D4AF6A]/40 shadow-[0_0_30px_rgba(212,175,106,0.25)] relative transition-all">
-          {/* Top Row: Slots 0, 1, 2 */}
-          {[0, 1, 2].map((slotIdx) => {
-            const item = slots[slotIdx];
-            return (
+      <div className="flex flex-col items-center space-y-5 py-4">
+        {/* The Entire Rectangle Box Turning Around (Spinning 360deg) */}
+        <div className="relative p-5 bg-[#1E232B]/95 rounded-3xl border-2 border-[#D4AF6A] shadow-[0_0_40px_rgba(212,175,106,0.5)] transition-all animate-[spin_2.5s_linear_infinite]">
+          {/* 2x3 Grid of 6 entered numbers forming the rectangle */}
+          <div className="grid grid-cols-3 gap-3">
+            {code.map((digit, idx) => (
               <div
-                key={`slot-${slotIdx}`}
-                className="w-14 h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.4)] transform transition-all duration-200 ease-in-out"
+                key={idx}
+                className="w-13 h-13 sm:w-14 sm:h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.3)]"
               >
-                {item ? item.digit : ''}
+                {/* Number counter-rotates to stay upright while the rectangle spins around */}
+                <span className="animate-[spin_2.5s_linear_infinite_reverse]">{digit || '•'}</span>
               </div>
-            );
-          })}
-
-          {/* Bottom Row: Slots 5, 4, 3 (Reversed for clockwise perimeter loop) */}
-          {[5, 4, 3].map((slotIdx) => {
-            const item = slots[slotIdx];
-            return (
-              <div
-                key={`slot-${slotIdx}`}
-                className="w-14 h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.4)] transform transition-all duration-200 ease-in-out"
-              >
-                {item ? item.digit : ''}
-              </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
 
-        <div className="text-center space-y-1 pt-2">
+        <div className="text-center space-y-1 pt-1">
           <p className="text-sm font-bold text-white tracking-wider animate-pulse flex items-center justify-center space-x-2">
             <Lock className="w-4 h-4 text-[#D4AF6A] animate-bounce" />
-            <span>Verifying Security Code...</span>
+            <span>Verifying Code...</span>
           </p>
-          <p className="text-[11px] text-[#AEB4BC]">Validating numbers against your account</p>
+          <p className="text-[11px] text-[#AEB4BC]">Authenticating your 6-digit verification code</p>
         </div>
       </div>
     );
@@ -253,8 +213,8 @@ export default function VerifyEmail() {
             </div>
           </div>
         ) : loading ? (
-          /* Revolving Numbers Rectangle Animation */
-          renderBoxesInRevolvingRectangle()
+          /* Whole Rectangle Turning Around Continuously Animation */
+          renderTurningRectangle()
         ) : (
           /* Normal 6-Digit Code Input Mode */
           <form onSubmit={handleSubmit} className="space-y-6">
