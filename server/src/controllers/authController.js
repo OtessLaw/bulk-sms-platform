@@ -223,13 +223,28 @@ exports.verifyEmail = async (req, res, next) => {
     user.status = 'Active';
     await user.save();
 
+    let wallet = await Wallet.findOne({ userId: user._id });
+    if (!wallet) {
+      wallet = await Wallet.create({ userId: user._id, balance: 0.0, smsCredit: 10 });
+    }
+
+    const token = generateAccessToken({ id: user._id, role: user.role });
+
     try {
       await emailService.sendWelcomeEmail(user.email, user.name);
     } catch(err) {
       console.error('Failed to send welcome email:', err);
     }
 
-    res.status(200).json({ success: true, message: 'Email successfully verified' });
+    res.status(200).json({
+      success: true,
+      message: 'Email successfully verified',
+      data: {
+        token,
+        user: { id: user._id, name: user.name, email: user.email, role: user.role, isEmailVerified: true },
+        wallet,
+      },
+    });
   } catch (error) {
     next(error);
   }
