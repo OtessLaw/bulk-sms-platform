@@ -11,12 +11,25 @@ export default function VerifyEmail() {
   const [code, setCode] = useState(['', '', '', '', '', '']);
   const [loading, setLoading] = useState(false);
   const [verifiedSuccess, setVerifiedSuccess] = useState(false);
+  const [revolveStep, setRevolveStep] = useState(0);
   const [resendDisabled, setResendDisabled] = useState(false);
   const [countdown, setCountdown] = useState(60);
   const navigate = useNavigate();
   const inputRefs = useRef([]);
   const { checkAuth } = useAuth();
 
+  // Revolving Numbers Animation Timer
+  useEffect(() => {
+    let interval;
+    if (loading && !verifiedSuccess) {
+      interval = setInterval(() => {
+        setRevolveStep((prev) => (prev + 1) % 6);
+      }, 160); // Revolves numbers around rectangle every 160ms
+    }
+    return () => clearInterval(interval);
+  }, [loading, verifiedSuccess]);
+
+  // Resend Countdown Timer
   useEffect(() => {
     let timer;
     if (resendDisabled && countdown > 0) {
@@ -28,7 +41,7 @@ export default function VerifyEmail() {
     return () => clearInterval(timer);
   }, [resendDisabled, countdown]);
 
-  // Focus first input on mount
+  // Auto-focus first input box on mount
   useEffect(() => {
     if (inputRefs.current[0]) {
       inputRefs.current[0].focus();
@@ -41,7 +54,7 @@ export default function VerifyEmail() {
 
     try {
       const res = await API.post('/auth/verify-email', { email, code: fullCode });
-      
+
       if (res.data?.success) {
         setVerifiedSuccess(true);
         toast.success('Code verified successfully!');
@@ -61,11 +74,11 @@ export default function VerifyEmail() {
             } else {
               navigate('/dashboard');
             }
-          }, 1200);
+          }, 1400);
         } else {
           setTimeout(() => {
             navigate('/login');
-          }, 1500);
+          }, 1600);
         }
       }
     } catch (err) {
@@ -130,6 +143,65 @@ export default function VerifyEmail() {
     }
   };
 
+  // Map 6 entered digit items to their revolving rectangular perimeter slot index
+  // Perimeter rectangle slots:
+  // Row 1: [Slot 0] [Slot 1] [Slot 2]
+  // Row 2: [Slot 5] [Slot 4] [Slot 3]
+  const getSlotForIndex = (digitIndex) => {
+    if (!loading || verifiedSuccess) return digitIndex; // In normal state, 0..5 linear
+    return (digitIndex + revolveStep) % 6;
+  };
+
+  // Order boxes by their current active slot for grid placement
+  const renderBoxesInRevolvingRectangle = () => {
+    const slots = [null, null, null, null, null, null];
+    code.forEach((digit, i) => {
+      const currentSlot = getSlotForIndex(i);
+      slots[currentSlot] = { digit, originalIndex: i };
+    });
+
+    return (
+      <div className="flex flex-col items-center space-y-3 py-4">
+        {/* Revolving Rectangular Loop Grid */}
+        <div className="grid grid-cols-3 gap-3 p-4 bg-[#1E232B]/90 rounded-3xl border-2 border-[#D4AF6A]/40 shadow-[0_0_30px_rgba(212,175,106,0.25)] relative transition-all">
+          {/* Top Row: Slots 0, 1, 2 */}
+          {[0, 1, 2].map((slotIdx) => {
+            const item = slots[slotIdx];
+            return (
+              <div
+                key={`slot-${slotIdx}`}
+                className="w-14 h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.4)] transform transition-all duration-200 ease-in-out"
+              >
+                {item ? item.digit : ''}
+              </div>
+            );
+          })}
+
+          {/* Bottom Row: Slots 5, 4, 3 (Reversed for clockwise perimeter loop) */}
+          {[5, 4, 3].map((slotIdx) => {
+            const item = slots[slotIdx];
+            return (
+              <div
+                key={`slot-${slotIdx}`}
+                className="w-14 h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.4)] transform transition-all duration-200 ease-in-out"
+              >
+                {item ? item.digit : ''}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="text-center space-y-1 pt-2">
+          <p className="text-sm font-bold text-white tracking-wider animate-pulse flex items-center justify-center space-x-2">
+            <Lock className="w-4 h-4 text-[#D4AF6A] animate-bounce" />
+            <span>Verifying Security Code...</span>
+          </p>
+          <p className="text-[11px] text-[#AEB4BC]">Validating numbers against your account</p>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-[#1E232B] flex items-center justify-center p-4 relative overflow-hidden font-sans">
       {/* Top Left Back to Home Button */}
@@ -159,10 +231,10 @@ export default function VerifyEmail() {
           )}
         </div>
 
-        {/* Dynamic State Container */}
+        {/* Dynamic Verification State Views */}
         {verifiedSuccess ? (
-          /* Success State - Green/Gold Sparkle Seal */
-          <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in fade-in zoom-in duration-300">
+          /* Verified Success State - Gold/Emerald Seal & Account Opening */
+          <div className="flex flex-col items-center justify-center py-6 space-y-4 animate-in fade-in zoom-in duration-300">
             <div className="relative flex items-center justify-center">
               <div className="w-20 h-20 bg-gradient-to-tr from-[#D4AF6A] to-[#E7D3A4] rounded-2xl flex items-center justify-center shadow-[0_0_40px_rgba(212,175,106,0.6)] animate-pulse">
                 <CheckCircle2 className="w-10 h-10 text-black stroke-[2.5]" />
@@ -170,27 +242,15 @@ export default function VerifyEmail() {
               <Sparkles className="w-6 h-6 text-[#D4AF6A] absolute -top-2 -right-2 animate-bounce" />
             </div>
             <div className="text-center space-y-1">
-              <h3 className="text-lg font-bold text-white tracking-wide">Account Verified!</h3>
-              <p className="text-xs text-[#D4AF6A] animate-pulse">Opening your account dashboard...</p>
+              <h3 className="text-xl font-extrabold text-white tracking-wide">Account Verified!</h3>
+              <p className="text-xs text-[#D4AF6A] font-semibold animate-pulse">Opening your account dashboard...</p>
             </div>
           </div>
         ) : loading ? (
-          /* Rotating Square Loading State */
-          <div className="flex flex-col items-center justify-center py-8 space-y-5 animate-in fade-in duration-300">
-            <div className="relative flex items-center justify-center">
-              {/* Spinning Glow Square Container */}
-              <div className="w-16 h-16 border-4 border-t-[#D4AF6A] border-r-transparent border-b-[#B88E3E] border-l-transparent rounded-2xl animate-spin shadow-[0_0_30px_rgba(212,175,106,0.4)]" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Lock className="w-6 h-6 text-[#D4AF6A] animate-pulse" />
-              </div>
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-sm font-bold text-white tracking-wider animate-pulse">Verifying Code...</p>
-              <p className="text-[11px] text-[#AEB4BC]">Please hold on while we authenticate your session</p>
-            </div>
-          </div>
+          /* Revolving Numbers Rectangle Animation */
+          renderBoxesInRevolvingRectangle()
         ) : (
-          /* Normal 6-Digit Code Input State */
+          /* Normal 6-Digit Code Input Mode */
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="flex justify-between space-x-2" onPaste={handlePaste}>
               {code.map((digit, index) => (
@@ -203,7 +263,7 @@ export default function VerifyEmail() {
                   value={digit}
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
-                  className="w-12 h-14 text-center bg-[#1E232B] border border-[rgba(212,175,106,0.3)] focus:border-[#D4AF6A] rounded-2xl text-2xl font-black text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF6A]/30 transition-all shadow-inner"
+                  className="w-12 h-14 text-center bg-[#1E232B] border border-[rgba(212,175,106,0.3)] focus:border-[#D4AF6A] rounded-2xl text-2xl font-black text-white focus:outline-none focus:ring-2 focus:ring-[#D4AF6A]/40 transition-all shadow-inner"
                 />
               ))}
             </div>
