@@ -137,12 +137,12 @@ export default function VerifyEmail() {
     }
   };
 
-  // Render the whole 6-number rectangle container turning around continuously
+  // Render the whole created 6-number rectangle box turning around in 30 seconds
   const renderTurningRectangle = () => {
     return (
       <div className="flex flex-col items-center space-y-5 py-4">
-        {/* The Entire Rectangle Box Turning Around (Spinning 360deg) */}
-        <div className="relative p-5 bg-[#1E232B]/95 rounded-3xl border-2 border-[#D4AF6A] shadow-[0_0_40px_rgba(212,175,106,0.5)] transition-all animate-[spin_2.5s_linear_infinite]">
+        {/* The Entire Rectangle Box Created Moving Around in 30 Seconds */}
+        <div className="relative p-5 bg-[#1E232B]/95 rounded-3xl border-2 border-[#D4AF6A] shadow-[0_0_40px_rgba(212,175,106,0.5)] transition-all animate-[spin_30s_linear_infinite]">
           {/* 2x3 Grid of 6 entered numbers forming the rectangle */}
           <div className="grid grid-cols-3 gap-3">
             {code.map((digit, idx) => (
@@ -150,8 +150,7 @@ export default function VerifyEmail() {
                 key={idx}
                 className="w-13 h-13 sm:w-14 sm:h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.3)]"
               >
-                {/* Number counter-rotates to stay upright while the rectangle spins around */}
-                <span className="animate-[spin_2.5s_linear_infinite_reverse]">{digit || '•'}</span>
+                <span>{digit || '•'}</span>
               </div>
             ))}
           </div>
