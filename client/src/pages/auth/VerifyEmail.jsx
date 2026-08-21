@@ -41,7 +41,11 @@ export default function VerifyEmail() {
     setLoading(true);
 
     try {
-      const res = await API.post('/auth/verify-email', { email, code: fullCode });
+      // Run API call & smooth 3.5s animation timer concurrently so the fast spinning rectangle box keeps turning for several full loops
+      const [res] = await Promise.all([
+        API.post('/auth/verify-email', { email, code: fullCode }),
+        new Promise((resolve) => setTimeout(resolve, 3500)), // Keeps the fast turning rectangle spinning longer for the user
+      ]);
 
       if (res.data?.success) {
         setVerifiedSuccess(true);
@@ -68,11 +72,11 @@ export default function VerifyEmail() {
             } else {
               navigate('/dashboard');
             }
-          }, 1500);
+          }, 1800);
         } else {
           setTimeout(() => {
             navigate('/login');
-          }, 1600);
+          }, 2000);
         }
       }
     } catch (err) {
@@ -137,18 +141,18 @@ export default function VerifyEmail() {
     }
   };
 
-  // Render the whole created 6-number rectangle box turning around in 30 seconds
+  // Render the whole created 6-number rectangle box turning around faster (1.8s per loop)
   const renderTurningRectangle = () => {
     return (
       <div className="flex flex-col items-center space-y-5 py-4">
-        {/* The Entire Rectangle Box Created Moving Around in 30 Seconds */}
-        <div className="relative p-5 bg-[#1E232B]/95 rounded-3xl border-2 border-[#D4AF6A] shadow-[0_0_40px_rgba(212,175,106,0.5)] transition-all animate-[spin_30s_linear_infinite]">
+        {/* Fast 1.8-second 360° Turning Created Rectangle Box */}
+        <div className="relative p-5 bg-[#1E232B]/95 rounded-3xl border-2 border-[#D4AF6A] shadow-[0_0_40px_rgba(212,175,106,0.6)] transition-all animate-[spin_1.8s_linear_infinite]">
           {/* 2x3 Grid of 6 entered numbers forming the rectangle */}
           <div className="grid grid-cols-3 gap-3">
             {code.map((digit, idx) => (
               <div
                 key={idx}
-                className="w-13 h-13 sm:w-14 sm:h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.3)]"
+                className="w-13 h-13 sm:w-14 sm:h-14 bg-[#2A3038] border-2 border-[#D4AF6A] rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-black text-[#D4AF6A] shadow-[0_0_15px_rgba(212,175,106,0.4)]"
               >
                 <span>{digit || '•'}</span>
               </div>
