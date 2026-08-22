@@ -28,14 +28,17 @@ export default function ProductHub() {
       return;
     }
 
+    const token = localStorage.getItem('accessToken') || '';
+    const ssoQuery = token ? `?sso_token=${encodeURIComponent(token)}` : '';
     const hostname = window.location.hostname.toLowerCase();
+
     if (hostname.includes('fasreach.com')) {
       if (productKey === 'sms') {
-        window.location.href = 'https://sms.fasreach.com';
+        window.location.href = `https://sms.fasreach.com${ssoQuery}`;
         return;
       }
       if (productKey === 'voice') {
-        window.location.href = 'https://voice.fasreach.com';
+        window.location.href = `https://voice.fasreach.com${ssoQuery}`;
         return;
       }
     }

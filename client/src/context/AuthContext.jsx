@@ -31,6 +31,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
+    // Check if token passed via cross-subdomain SSO parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const ssoToken = urlParams.get('sso_token');
+    if (ssoToken) {
+      localStorage.setItem('accessToken', ssoToken);
+      // Clean up sso_token from URL bar seamlessly
+      urlParams.delete('sso_token');
+      const newQuery = urlParams.toString() ? `?${urlParams.toString()}` : '';
+      window.history.replaceState({}, document.title, `${window.location.pathname}${newQuery}`);
+    }
+
     const token = localStorage.getItem('accessToken');
     if (!token) {
       setUser(null);
