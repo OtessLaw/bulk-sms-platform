@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 // Layout & Public Landing
 import DashboardLayout from './components/layout/DashboardLayout';
 import LandingPage from './pages/LandingPage';
+import ProductHub from './pages/ProductHub';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -137,6 +138,8 @@ export default function App() {
         <Routes>
           {/* Public Landing Page */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/products" element={<ProductHub />} />
+          <Route path="/portal" element={<ProductHub />} />
 
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
