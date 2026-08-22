@@ -17,6 +17,7 @@ import {
   HelpCircle,
   ShieldAlert,
   Bot,
+  Sparkles,
   X,
 } from 'lucide-react';
 
@@ -39,6 +40,7 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
   }, [mobileOpen]);
 
   const userLinks = [
+    { name: 'Products Portal Hub', path: '/products', icon: Sparkles },
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Send SMS', path: '/send-sms', icon: Send },
     { name: 'Voice SMS & Calls', path: '/voice-sms', icon: PhoneCall },
