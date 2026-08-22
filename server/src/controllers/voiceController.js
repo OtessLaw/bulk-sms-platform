@@ -59,6 +59,8 @@ exports.sendVoiceCall = async (req, res, next) => {
 
     // Dispatch Voice Calls
     const createdCalls = [];
+    let gatewayFailedMsg = '';
+
     for (const phone of targetPhones) {
       let voiceRes = { success: true, provider: 'FasReach Voice Engine', messageId: `VOICE_${Date.now()}`, status: 'Submitted' };
       try {
@@ -72,6 +74,11 @@ exports.sendVoiceCall = async (req, res, next) => {
         });
       } catch (err) {
         console.warn('[Voice Dispatch Notice]', err.message);
+        voiceRes = { success: false, provider: 'Arkesel Voice Gateway', error: err.message, status: 'Failed' };
+      }
+
+      if (!voiceRes.success && voiceRes.error) {
+        gatewayFailedMsg = voiceRes.error;
       }
 
       const voiceDoc = await VoiceCall.create({
@@ -86,10 +93,26 @@ exports.sendVoiceCall = async (req, res, next) => {
         costGHS: Number((callBlocksPerPhone * VOICE_CALL_RATE_PER_30S).toFixed(2)),
         gatewayProvider: voiceRes.provider || 'FasReach Voice Engine',
         gatewayResponseId: voiceRes.messageId || `VOICE_${Date.now()}`,
-        status: 'Submitted',
+        status: voiceRes.success ? 'Submitted' : 'Failed',
       });
 
       createdCalls.push(voiceDoc);
+    }
+
+    // If Arkesel rejected all calls, refund wallet and return HTTP 400 error
+    if (gatewayFailedMsg && createdCalls.every((c) => c.status === 'Failed')) {
+      if (paymentType === 'SMS Credits') {
+        wallet.smsCredit += requiredSmsUnits;
+      } else {
+        wallet.balance = Number((wallet.balance + totalCostGHS).toFixed(2));
+      }
+      await wallet.save();
+
+      return res.status(400).json({
+        success: false,
+        message: `Arkesel Gateway Error: ${gatewayFailedMsg}. (Your wallet balance has been refunded).`,
+        error: gatewayFailedMsg,
+      });
     }
 
     res.status(200).json({

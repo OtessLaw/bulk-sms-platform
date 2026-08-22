@@ -39,16 +39,19 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
     if (apiKey && apiKey !== 'mock_arkesel_key') {
       let gatewayErrorMsg = '';
 
-      // 1. Text-to-Speech (TTS) Voice Call via Arkesel Voice Engine Endpoint
+      // 1. Text-to-Speech (TTS) Voice Call via Arkesel Voice OTP Engine
       if (type === 'TTS' || !audioUrl || audioUrl.startsWith('blob:')) {
         try {
+          const cleanPrompt = (textPrompt || 'FasReach Voice Broadcast').substring(0, 400);
+          const ttsMessage = cleanPrompt.includes('%otp_code%') ? cleanPrompt : `${cleanPrompt} %otp_code%`;
+
           const resTts = await axios.post(
             'https://sms.arkesel.com/api/otp/generate',
             {
               expiry: 5,
-              length: 6,
+              length: 4,
               medium: 'voice',
-              message: (textPrompt || 'FasReach Voice Broadcast').substring(0, 400),
+              message: ttsMessage,
               number: formattedPhone,
               sender_id: 'FasReach',
               type: 'numeric',
@@ -70,10 +73,12 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
               messageId: resTts.data.id || `VOICE_${Date.now()}`,
               status: 'Submitted',
             };
+          } else {
+            gatewayErrorMsg = resTts.data?.message || 'Arkesel Voice TTS rejected the call';
           }
         } catch (ttsErr) {
           gatewayErrorMsg = ttsErr.response?.data?.message || ttsErr.response?.data?.error || ttsErr.message;
-          console.warn('[Arkesel Voice TTS Gateway Notice]', gatewayErrorMsg);
+          console.warn('[Arkesel Voice TTS Gateway Error]', gatewayErrorMsg);
         }
       }
 
@@ -96,21 +101,23 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
           );
 
           console.log('[Arkesel Voice File Response]', resFile.data);
-          if (resFile.data && (resFile.data.status === 'success' || resFile.data.code === '200')) {
+          if (resFile.data && (resFile.data.status === 'success' || resFile.data.code === '200' || resFile.data.code === 200)) {
             return {
               success: true,
               provider: 'Arkesel Voice Gateway (Voice File)',
               messageId: resFile.data.data?.campaign_id || `VOICE_${Date.now()}`,
               status: 'Submitted',
             };
+          } else {
+            gatewayErrorMsg = resFile.data?.message || 'Arkesel Voice File rejected the call';
           }
         } catch (fileErr) {
           gatewayErrorMsg = fileErr.response?.data?.message || fileErr.response?.data?.error || fileErr.message;
-          console.warn('[Arkesel Voice File Gateway Notice]', gatewayErrorMsg);
+          console.warn('[Arkesel Voice File Gateway Error]', gatewayErrorMsg);
         }
       }
 
-      // If Arkesel returned an authentication or balance error, return gateway details
+      // Return explicit failure if Arkesel rejected the call
       if (gatewayErrorMsg) {
         return {
           success: false,
@@ -121,7 +128,7 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
       }
     }
 
-    // 3. Fallback: High-Reliability FasReach Voice Engine
+    // 3. Fallback: High-Reliability FasReach Engine (Only when no Arkesel key provided)
     console.log(`[FasReach Voice Engine] Dispatching simulated voice call to ${formattedPhone}`);
     return {
       success: true,
@@ -131,6 +138,11 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
     };
   } catch (error) {
     console.error('[Voice Service Error]', error);
-    throw new Error('Voice call dispatch failed: ' + error.message);
+    return {
+      success: false,
+      provider: 'Arkesel Voice Gateway',
+      error: error.message,
+      status: 'Failed',
+    };
   }
 };
