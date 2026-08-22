@@ -25,9 +25,15 @@ export default function Login() {
       }
 
       const userRole = res?.data?.user?.role || res?.user?.role || res?.data?.role;
+      const hostname = window.location.hostname.toLowerCase();
       toast.success('Welcome back to FasReach!');
+
       if (['Super Admin', 'Admin'].includes(userRole)) {
         navigate('/admin');
+      } else if (hostname.startsWith('sms.')) {
+        navigate('/send-sms');
+      } else if (hostname.startsWith('voice.')) {
+        navigate('/voice-sms');
       } else {
         navigate('/products');
       }
