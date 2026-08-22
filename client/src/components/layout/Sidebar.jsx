@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LayoutDashboard,
   Send,
+  PhoneCall,
   Users,
   Megaphone,
   Wallet,
@@ -40,6 +41,7 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
   const userLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Send SMS', path: '/send-sms', icon: Send },
+    { name: 'Voice SMS & Calls', path: '/voice-sms', icon: PhoneCall },
     { name: 'Contacts Directory', path: '/contacts', icon: Users },
     { name: 'Campaigns', path: '/campaigns', icon: Megaphone },
     { name: 'Wallet & Top Up', path: '/wallet', icon: Wallet },

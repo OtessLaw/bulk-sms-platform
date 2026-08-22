@@ -17,6 +17,7 @@ import ResetPassword from './pages/auth/ResetPassword';
 // User Dashboard Pages
 import Dashboard from './pages/dashboard/Dashboard';
 import SendSMS from './pages/SendSMS';
+import VoiceSMS from './pages/VoiceSMS';
 import Contacts from './pages/Contacts';
 import Campaigns from './pages/Campaigns';
 import Wallet from './pages/Wallet';
@@ -158,6 +159,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <SendSMS />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/voice-sms"
+            element={
+              <ProtectedRoute>
+                <VoiceSMS />
               </ProtectedRoute>
             }
           />

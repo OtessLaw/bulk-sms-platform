@@ -16,6 +16,7 @@ const reportRoutes = require('./routes/reportRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
 const teamRoutes = require('./routes/teamRoutes');
 const aiRoutes = require('./routes/aiRoutes');
+const voiceRoutes = require('./routes/voiceRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -92,6 +93,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/team', teamRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/voice', voiceRoutes);
 
 // Developer API v1 Aliases for external client integrations
 app.use('/api/v1/sms', smsLimiter, smsRoutes);
