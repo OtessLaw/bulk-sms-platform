@@ -86,6 +86,22 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
   return <DashboardLayout>{children}</DashboardLayout>;
 };
 
+function SubdomainRootHandler() {
+  const hostname = window.location.hostname.toLowerCase();
+
+  if (hostname.startsWith('sms.')) {
+    return <Navigate to="/send-sms" replace />;
+  }
+  if (hostname.startsWith('voice.')) {
+    return <Navigate to="/voice-sms" replace />;
+  }
+  if (hostname.startsWith('app.') || hostname.startsWith('portal.')) {
+    return <ProductHub />;
+  }
+
+  return <LandingPage />;
+}
+
 export default function App() {
   return (
     <Router>
@@ -96,35 +112,23 @@ export default function App() {
           toastOptions={{
             duration: 4000,
             style: {
-              background: 'rgba(30, 35, 43, 0.95)',
-              color: '#F3F4F6',
-              border: '1px solid rgba(212, 175, 106, 0.4)',
-              borderRadius: '18px',
-              padding: '12px 18px',
-              fontSize: '12.5px',
-              fontWeight: '600',
-              boxShadow: '0 20px 30px -10px rgba(0, 0, 0, 0.7), 0 0 15px rgba(212, 175, 106, 0.15)',
-              backdropFilter: 'blur(16px)',
-              maxWidth: '380px',
+              background: '#2A3038',
+              color: '#FFFFFF',
+              border: '1px solid rgba(212, 175, 106, 0.3)',
+              borderRadius: '12px',
+              fontSize: '13px',
+              fontWeight: '500',
             },
             success: {
               iconTheme: {
                 primary: '#D4AF6A',
                 secondary: '#1A1D24',
               },
-              style: {
-                border: '1px solid rgba(212, 175, 106, 0.7)',
-                boxShadow: '0 10px 25px rgba(212, 175, 106, 0.25)',
-              },
             },
             error: {
               iconTheme: {
                 primary: '#EF4444',
-                secondary: '#1A1D24',
-              },
-              style: {
-                border: '1px solid rgba(239, 68, 68, 0.6)',
-                boxShadow: '0 10px 25px rgba(239, 68, 68, 0.25)',
+                secondary: '#FFFFFF',
               },
             },
             loading: {
@@ -136,8 +140,8 @@ export default function App() {
           }}
         />
         <Routes>
-          {/* Public Landing Page */}
-          <Route path="/" element={<LandingPage />} />
+          {/* Public Landing Page & Subdomain Router */}
+          <Route path="/" element={<SubdomainRootHandler />} />
           <Route path="/products" element={<ProductHub />} />
           <Route path="/portal" element={<ProductHub />} />
 
