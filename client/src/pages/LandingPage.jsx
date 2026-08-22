@@ -118,10 +118,10 @@ export default function LandingPage() {
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8 text-xs font-bold text-[#AEB4BC]">
-            <Link to="/products" className="text-[#D4AF6A] font-extrabold flex items-center space-x-1 hover:underline">
+            <a href="https://app.fasreach.com" className="text-[#D4AF6A] font-extrabold flex items-center space-x-1 hover:underline">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Products Portal</span>
-            </Link>
+            </a>
             <a href="#features" className="hover:text-[#D4AF6A] transition-colors">Features</a>
             <a href="#simulator" className="hover:text-[#D4AF6A] transition-colors">Live Demo</a>
             <a href="#pricing" className="hover:text-[#D4AF6A] transition-colors">Pricing</a>
@@ -132,12 +132,12 @@ export default function LandingPage() {
             <Link to="/login" className="text-xs font-bold text-[#AEB4BC] hover:text-[#D4AF6A] px-3 py-2 transition-colors">
               Sign In
             </Link>
-            <Link
-              to="/products"
+            <a
+              href="https://app.fasreach.com"
               className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-extrabold text-xs px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl shadow-[0_0_20px_rgba(212,175,106,0.3)] hover:scale-105 transition-all shrink-0"
             >
               Select Product Hub
-            </Link>
+            </a>
           </div>
         </div>
       </header>

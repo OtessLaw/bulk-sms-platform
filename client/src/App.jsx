@@ -110,6 +110,16 @@ function SubdomainRootHandler() {
   return <LandingPage />;
 }
 
+function ProductRedirect() {
+  const hostname = window.location.hostname.toLowerCase();
+  if (hostname.includes('fasreach.com') && !hostname.startsWith('app.')) {
+    window.location.href = 'https://app.fasreach.com';
+    return null;
+  }
+  return <ProductHub />;
+}
+
+// Main App Router
 export default function App() {
   return (
     <Router>
@@ -150,8 +160,8 @@ export default function App() {
         <Routes>
           {/* Public Landing Page & Subdomain Router */}
           <Route path="/" element={<SubdomainRootHandler />} />
-          <Route path="/products" element={<ProductHub />} />
-          <Route path="/portal" element={<ProductHub />} />
+          <Route path="/products" element={<ProductRedirect />} />
+          <Route path="/portal" element={<ProductRedirect />} />
 
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />

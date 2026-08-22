@@ -101,6 +101,23 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
             <p className="px-3 text-[10px] font-extrabold uppercase tracking-wider text-[#AEB4BC] mb-2">Main Menu</p>
             {userLinks.map((link) => {
               const Icon = link.icon;
+              const isProductsHub = link.name.includes('Products Portal');
+              const hostname = window.location.hostname.toLowerCase();
+
+              if (isProductsHub && hostname.includes('fasreach.com')) {
+                return (
+                  <a
+                    key={link.path}
+                    href="https://app.fasreach.com"
+                    onClick={onCloseMobile}
+                    className="flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold text-[#D4AF6A] bg-[#D4AF6A]/10 border border-[#D4AF6A]/20 hover:bg-[#D4AF6A]/20 transition-all mb-1"
+                  >
+                    <Icon className="w-4 h-4 text-[#D4AF6A]" />
+                    <span>{link.name}</span>
+                  </a>
+                );
+              }
+
               return (
                 <NavLink
                   key={link.path}

@@ -34,6 +34,8 @@ export default function Login() {
         navigate('/send-sms');
       } else if (hostname.startsWith('voice.')) {
         navigate('/voice-sms');
+      } else if (hostname.includes('fasreach.com')) {
+        window.location.href = 'https://app.fasreach.com';
       } else {
         navigate('/products');
       }
