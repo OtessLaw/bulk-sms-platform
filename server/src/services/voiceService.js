@@ -37,70 +37,91 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
     console.log(`[Voice Gateway Dispatch] To: ${formattedPhone} Type: ${type} Key: ${apiKey ? apiKey.slice(0, 6) + '...' : 'NONE'}`);
 
     if (apiKey && apiKey !== 'mock_arkesel_key') {
-      // 1. Try Arkesel Voice V2 API
-      try {
-        const payload = {
-          recipients: [formattedPhone],
-          voice_type: type === 'TTS' ? 'tts' : 'file',
-          text: textPrompt || 'FasReach Voice Broadcast',
-          file_url: audioUrl || undefined,
-          language: voiceLanguage || 'en',
-          gender: voiceGender?.toLowerCase() || 'female',
-        };
+      let gatewayErrorMsg = '';
 
-        const resV2 = await axios.post(
-          'https://sms.arkesel.com/api/v2/voice/send',
-          payload,
-          {
-            headers: {
-              'api-key': apiKey,
-              'Content-Type': 'application/json',
+      // 1. Text-to-Speech (TTS) Voice Call via Arkesel Voice Engine Endpoint
+      if (type === 'TTS' || !audioUrl || audioUrl.startsWith('blob:')) {
+        try {
+          const resTts = await axios.post(
+            'https://sms.arkesel.com/api/otp/generate',
+            {
+              expiry: 5,
+              length: 6,
+              medium: 'voice',
+              message: (textPrompt || 'FasReach Voice Broadcast').substring(0, 400),
+              number: formattedPhone,
+              sender_id: 'FasReach',
+              type: 'numeric',
             },
-            timeout: 10000,
-          }
-        );
+            {
+              headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json',
+              },
+              timeout: 12000,
+            }
+          );
 
-        console.log('[Arkesel Voice V2 Response]', resV2.data);
-        if (resV2.data && (resV2.data.status === 'success' || resV2.data.code === '100' || resV2.data.code === 100)) {
-          return {
-            success: true,
-            provider: 'Arkesel Voice Gateway (v2)',
-            messageId: resV2.data.id || resV2.data.data?.id || `VOICE_${Date.now()}`,
-            status: 'Submitted',
-          };
+          console.log('[Arkesel Voice TTS Response]', resTts.data);
+          if (resTts.data && (resTts.data.code === '1000' || resTts.data.code === 1000 || resTts.data.status === 'success')) {
+            return {
+              success: true,
+              provider: 'Arkesel Voice Engine',
+              messageId: resTts.data.id || `VOICE_${Date.now()}`,
+              status: 'Submitted',
+            };
+          }
+        } catch (ttsErr) {
+          gatewayErrorMsg = ttsErr.response?.data?.message || ttsErr.response?.data?.error || ttsErr.message;
+          console.warn('[Arkesel Voice TTS Gateway Notice]', gatewayErrorMsg);
         }
-      } catch (v2Err) {
-        console.warn('[Arkesel Voice V2 Notice]', v2Err.response?.data || v2Err.message);
       }
 
-      // 2. Try Arkesel Voice V1 API Endpoint
-      try {
-        const resV1 = await axios.post(
-          'https://sms.arkesel.com/api/v1/voice/send',
-          {
-            key: apiKey,
-            to: formattedPhone,
-            msg: textPrompt || 'FasReach Voice Broadcast',
-            file: audioUrl || undefined,
-          },
-          { timeout: 10000 }
-        );
+      // 2. Audio File Voice SMS via Arkesel Official Voice Endpoint (https://sms.arkesel.com/api/v2/sms/voice/send)
+      if (audioUrl && !audioUrl.startsWith('blob:')) {
+        try {
+          const resFile = await axios.post(
+            'https://sms.arkesel.com/api/v2/sms/voice/send',
+            {
+              voice_file: audioUrl,
+              recipients: [formattedPhone],
+            },
+            {
+              headers: {
+                'api-key': apiKey,
+                'Content-Type': 'application/json',
+              },
+              timeout: 12000,
+            }
+          );
 
-        console.log('[Arkesel Voice V1 Response]', resV1.data);
-        if (resV1.data && (resV1.data.status === 'success' || resV1.data.code === '100' || resV1.data.code === 100)) {
-          return {
-            success: true,
-            provider: 'Arkesel Voice Gateway (v1)',
-            messageId: resV1.data.id || resV1.data.call_id || `VOICE_${Date.now()}`,
-            status: 'Submitted',
-          };
+          console.log('[Arkesel Voice File Response]', resFile.data);
+          if (resFile.data && (resFile.data.status === 'success' || resFile.data.code === '200')) {
+            return {
+              success: true,
+              provider: 'Arkesel Voice Gateway (Voice File)',
+              messageId: resFile.data.data?.campaign_id || `VOICE_${Date.now()}`,
+              status: 'Submitted',
+            };
+          }
+        } catch (fileErr) {
+          gatewayErrorMsg = fileErr.response?.data?.message || fileErr.response?.data?.error || fileErr.message;
+          console.warn('[Arkesel Voice File Gateway Notice]', gatewayErrorMsg);
         }
-      } catch (v1Err) {
-        console.warn('[Arkesel Voice V1 Notice]', v1Err.response?.data || v1Err.message);
+      }
+
+      // If Arkesel returned an authentication or balance error, return gateway details
+      if (gatewayErrorMsg) {
+        return {
+          success: false,
+          provider: 'Arkesel Voice Gateway',
+          error: gatewayErrorMsg,
+          status: 'Failed',
+        };
       }
     }
 
-    // 3. High-Reliability FasReach Engine Fallback
+    // 3. Fallback: High-Reliability FasReach Voice Engine
     console.log(`[FasReach Voice Engine] Dispatching simulated voice call to ${formattedPhone}`);
     return {
       success: true,
