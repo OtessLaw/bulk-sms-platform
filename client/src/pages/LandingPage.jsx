@@ -132,12 +132,12 @@ export default function LandingPage() {
             <Link to="/login" className="text-xs font-bold text-[#AEB4BC] hover:text-[#D4AF6A] px-3 py-2 transition-colors">
               Sign In
             </Link>
-            <a
-              href="https://app.fasreach.com"
+            <Link
+              to="/register"
               className="bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-extrabold text-xs px-4 py-2.5 sm:px-5 sm:py-2.5 rounded-xl shadow-[0_0_20px_rgba(212,175,106,0.3)] hover:scale-105 transition-all shrink-0"
             >
-              Select Product Hub
-            </a>
+              Sign Up
+            </Link>
           </div>
         </div>
       </header>
