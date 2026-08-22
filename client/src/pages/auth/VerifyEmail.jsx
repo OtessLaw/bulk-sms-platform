@@ -70,7 +70,7 @@ export default function VerifyEmail() {
             if (userData && ['Super Admin', 'Admin'].includes(userData.role)) {
               navigate('/admin');
             } else {
-              navigate('/dashboard');
+              navigate('/products');
             }
           }, 1800);
         } else {

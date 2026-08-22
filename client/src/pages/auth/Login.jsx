@@ -29,7 +29,7 @@ export default function Login() {
       if (['Super Admin', 'Admin'].includes(userRole)) {
         navigate('/admin');
       } else {
-        navigate('/dashboard');
+        navigate('/products');
       }
     } catch (err) {
       if (err.message === 'Network Error' || !err.response) {
