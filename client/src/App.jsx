@@ -87,16 +87,21 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 };
 
 function SubdomainRootHandler() {
-  const { user } = useAuth();
   const hostname = window.location.hostname.toLowerCase();
 
   if (hostname.startsWith('sms.')) {
-    if (user) return <Navigate to="/send-sms" replace />;
-    return <Navigate to="/login" replace />;
+    return (
+      <ProtectedRoute>
+        <SendSMS />
+      </ProtectedRoute>
+    );
   }
   if (hostname.startsWith('voice.')) {
-    if (user) return <Navigate to="/voice-sms" replace />;
-    return <Navigate to="/login" replace />;
+    return (
+      <ProtectedRoute>
+        <VoiceSMS />
+      </ProtectedRoute>
+    );
   }
   if (hostname.startsWith('app.') || hostname.startsWith('portal.')) {
     return <ProductHub />;

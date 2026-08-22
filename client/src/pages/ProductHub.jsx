@@ -22,12 +22,25 @@ export default function ProductHub() {
   const { user, wallet, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleBoxClick = (destination) => {
-    if (user) {
-      navigate(destination);
-    } else {
+  const handleBoxClick = (productKey, fallbackPath) => {
+    if (!user) {
       navigate('/register');
+      return;
     }
+
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.includes('fasreach.com')) {
+      if (productKey === 'sms') {
+        window.location.href = 'https://sms.fasreach.com';
+        return;
+      }
+      if (productKey === 'voice') {
+        window.location.href = 'https://voice.fasreach.com';
+        return;
+      }
+    }
+
+    navigate(fallbackPath);
   };
 
   return (
@@ -110,7 +123,7 @@ export default function ProductHub() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* BOX 1: BULK SMS PLATFORM */}
           <div
-            onClick={() => handleBoxClick('/send-sms')}
+            onClick={() => handleBoxClick('sms', '/send-sms')}
             className="bg-[#161B22] border-2 border-[rgba(212,175,106,0.3)] hover:border-[#D4AF6A] rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl transition-all group flex flex-col justify-between relative overflow-hidden cursor-pointer hover:-translate-y-1"
           >
             <div className="space-y-4">
@@ -152,7 +165,7 @@ export default function ProductHub() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleBoxClick('/send-sms');
+                handleBoxClick('sms', '/send-sms');
               }}
               className="w-full bg-gradient-to-r from-[#D4AF6A] to-[#B88E3E] hover:from-[#E7D3A4] hover:to-[#D4AF6A] text-black font-extrabold text-xs py-3.5 rounded-2xl flex items-center justify-center space-x-2 shadow-lg transition-all active:scale-95 cursor-pointer"
             >
@@ -163,7 +176,7 @@ export default function ProductHub() {
 
           {/* BOX 2: VOICE NOTE & VOICE SMS */}
           <div
-            onClick={() => handleBoxClick('/voice-sms')}
+            onClick={() => handleBoxClick('voice', '/voice-sms')}
             className="bg-[#161B22] border-2 border-emerald-500/30 hover:border-emerald-400 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl transition-all group flex flex-col justify-between relative overflow-hidden cursor-pointer hover:-translate-y-1"
           >
             {/* Featured Badge */}
@@ -212,7 +225,7 @@ export default function ProductHub() {
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                handleBoxClick('/voice-sms');
+                handleBoxClick('voice', '/voice-sms');
               }}
               className="w-full bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-emerald-400 text-black font-extrabold text-xs py-3.5 rounded-2xl flex items-center justify-center space-x-2 shadow-lg transition-all active:scale-95 cursor-pointer"
             >
@@ -225,7 +238,7 @@ export default function ProductHub() {
         {/* Secondary Services Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-4">
           <div
-            onClick={() => handleBoxClick('/sender-ids')}
+            onClick={() => handleBoxClick('sender-ids', '/sender-ids')}
             className="bg-[#161B22] border border-white/10 hover:border-[rgba(212,175,106,0.3)] rounded-2xl p-6 flex items-center justify-between space-x-4 transition-all cursor-pointer"
           >
             <div className="flex items-center space-x-4">
@@ -243,7 +256,7 @@ export default function ProductHub() {
           </div>
 
           <div
-            onClick={() => handleBoxClick('/developer-api')}
+            onClick={() => handleBoxClick('developer-api', '/developer-api')}
             className="bg-[#161B22] border border-white/10 hover:border-[rgba(212,175,106,0.3)] rounded-2xl p-6 flex items-center justify-between space-x-4 transition-all cursor-pointer"
           >
             <div className="flex items-center space-x-4">
