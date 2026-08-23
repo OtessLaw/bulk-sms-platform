@@ -203,6 +203,13 @@ exports.toggleMaintenance = async (req, res, next) => {
   }
 };
 
+// Helper to mask keys for security
+const maskKey = (key) => {
+  if (!key) return '';
+  if (key.length <= 8) return '********';
+  return `${key.substring(0, 4)}${'*'.repeat(16)}${key.substring(key.length - 4)}`;
+};
+
 // @desc    Get API Gateway Credentials
 // @route   GET /api/admin/gateway-keys
 exports.getGatewayKeys = async (req, res, next) => {
@@ -219,11 +226,11 @@ exports.getGatewayKeys = async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: {
-        ARKESEL_API_KEY: keyMap.ARKESEL_API_KEY || process.env.ARKESEL_API_KEY || '',
-        PAYSTACK_SECRET_KEY: keyMap.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY || '',
-        PAYSTACK_PUBLIC_KEY: keyMap.PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || '',
-        HUBTEL_CLIENT_ID: keyMap.HUBTEL_CLIENT_ID || process.env.HUBTEL_CLIENT_ID || '',
-        HUBTEL_CLIENT_SECRET: keyMap.HUBTEL_CLIENT_SECRET || process.env.HUBTEL_CLIENT_SECRET || '',
+        ARKESEL_API_KEY: maskKey(keyMap.ARKESEL_API_KEY || process.env.ARKESEL_API_KEY || ''),
+        PAYSTACK_SECRET_KEY: maskKey(keyMap.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_SECRET_KEY || ''),
+        PAYSTACK_PUBLIC_KEY: maskKey(keyMap.PAYSTACK_PUBLIC_KEY || process.env.PAYSTACK_PUBLIC_KEY || ''),
+        HUBTEL_CLIENT_ID: maskKey(keyMap.HUBTEL_CLIENT_ID || process.env.HUBTEL_CLIENT_ID || ''),
+        HUBTEL_CLIENT_SECRET: maskKey(keyMap.HUBTEL_CLIENT_SECRET || process.env.HUBTEL_CLIENT_SECRET || ''),
       },
     });
   } catch (error) {
@@ -237,13 +244,22 @@ exports.saveGatewayKeys = async (req, res, next) => {
   try {
     const { ARKESEL_API_KEY, PAYSTACK_SECRET_KEY, PAYSTACK_PUBLIC_KEY, HUBTEL_CLIENT_ID, HUBTEL_CLIENT_SECRET } = req.body;
 
-    const updates = [
-      { key: 'ARKESEL_API_KEY', value: ARKESEL_API_KEY ? String(ARKESEL_API_KEY).trim() : '' },
-      { key: 'PAYSTACK_SECRET_KEY', value: PAYSTACK_SECRET_KEY ? String(PAYSTACK_SECRET_KEY).trim() : '' },
-      { key: 'PAYSTACK_PUBLIC_KEY', value: PAYSTACK_PUBLIC_KEY ? String(PAYSTACK_PUBLIC_KEY).trim() : '' },
-      { key: 'HUBTEL_CLIENT_ID', value: HUBTEL_CLIENT_ID ? String(HUBTEL_CLIENT_ID).trim() : '' },
-      { key: 'HUBTEL_CLIENT_SECRET', value: HUBTEL_CLIENT_SECRET ? String(HUBTEL_CLIENT_SECRET).trim() : '' },
-    ];
+    const updates = [];
+    if (ARKESEL_API_KEY && !ARKESEL_API_KEY.includes('***')) {
+      updates.push({ key: 'ARKESEL_API_KEY', value: String(ARKESEL_API_KEY).trim() });
+    }
+    if (PAYSTACK_SECRET_KEY && !PAYSTACK_SECRET_KEY.includes('***')) {
+      updates.push({ key: 'PAYSTACK_SECRET_KEY', value: String(PAYSTACK_SECRET_KEY).trim() });
+    }
+    if (PAYSTACK_PUBLIC_KEY && !PAYSTACK_PUBLIC_KEY.includes('***')) {
+      updates.push({ key: 'PAYSTACK_PUBLIC_KEY', value: String(PAYSTACK_PUBLIC_KEY).trim() });
+    }
+    if (HUBTEL_CLIENT_ID && !HUBTEL_CLIENT_ID.includes('***')) {
+      updates.push({ key: 'HUBTEL_CLIENT_ID', value: String(HUBTEL_CLIENT_ID).trim() });
+    }
+    if (HUBTEL_CLIENT_SECRET && !HUBTEL_CLIENT_SECRET.includes('***')) {
+      updates.push({ key: 'HUBTEL_CLIENT_SECRET', value: String(HUBTEL_CLIENT_SECRET).trim() });
+    }
 
     for (const item of updates) {
       await SystemSetting.findOneAndUpdate(
