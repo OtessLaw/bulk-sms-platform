@@ -273,10 +273,7 @@ export default function VoiceSMS() {
             <Radio className="w-3.5 h-3.5 animate-pulse" />
             <span>Outbound Voice Broadcast Gateway</span>
           </div>
-          <h1 className="text-2xl font-black text-white tracking-wide">Voice SMS & Audio Dispatch</h1>
-          <p className="text-xs text-[#AEB4BC]">
-            Broadcast automated phone calls with AI Text-to-Speech or custom voice recordings across Ghana networks.
-          </p>
+          <h1 className="text-2xl font-black text-white tracking-wide">Voice SMS</h1>
         </div>
 
         {/* Quick Stats Badges */}

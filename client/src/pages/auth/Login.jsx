@@ -64,10 +64,9 @@ export default function Login() {
 
       {/* Card Content */}
       <div className="w-full max-w-md bg-[#2A3038]/90 backdrop-blur-xl border border-[rgba(212,175,106,0.25)] rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 relative z-10 mt-12 sm:mt-0 mb-6">
-        <div className="text-center space-y-1.5">
+        <div className="text-center space-y-1">
           <img src="/logo.jpg" alt="FasReach Logo" className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl mx-auto object-cover border-2 border-[#D4AF6A]/50 shadow-2xl" />
-          <h1 className="text-2xl font-extrabold text-white tracking-wider">FasReach</h1>
-          <p className="text-xs text-[#AEB4BC]">Enterprise Bulk SMS & Messaging Platform</p>
+          <h2 className="text-2xl font-black text-white tracking-tight">Sign In</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3.5">

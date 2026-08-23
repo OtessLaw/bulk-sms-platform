@@ -157,10 +157,6 @@ export default function LandingPage() {
                 Reach Thousands in Seconds with <span className="bg-gradient-to-r from-[#D4AF6A] via-[#E7D3A4] to-[#B88E3E] bg-clip-text text-transparent">Instant Bulk SMS</span>
               </h1>
 
-              <p className="text-sm sm:text-base text-[#AEB4BC] max-w-2xl mx-auto lg:mx-0 leading-relaxed font-medium">
-                Broadcast branded SMS alerts, marketing offers, and OTPs to MTN, Telecel, and AT numbers across Ghana at just <strong className="text-[#D4AF6A]">GHS 0.04 per SMS</strong>.
-              </p>
-
               {/* Quick Trust Badges */}
               <div className="grid grid-cols-3 gap-3 max-w-lg mx-auto lg:mx-0 pt-2">
                 <div className="bg-[#1E232B]/80 border border-[rgba(212,175,106,0.2)] p-3 rounded-2xl text-center">
@@ -276,7 +272,6 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
               Everything You Need to <span className="text-[#D4AF6A]">Connect & Engage</span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#AEB4BC]">Built for Ghanaian businesses, schools, churches, and developers.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -285,7 +280,6 @@ export default function LandingPage() {
                 <Send className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-white">Bulk SMS Campaigns</h3>
-              <p className="text-xs text-[#AEB4BC] leading-relaxed">Broadcast promotional offers, announcements, and news to thousands of contacts with 1 click.</p>
             </div>
 
             <div className="bg-[#2A3038]/60 hover:bg-[#2A3038] border border-[rgba(212,175,106,0.2)] hover:border-[#D4AF6A] rounded-3xl p-6 space-y-3 transition-all group">
@@ -293,7 +287,6 @@ export default function LandingPage() {
                 <Users className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-white">Excel & CSV Upload</h3>
-              <p className="text-xs text-[#AEB4BC] leading-relaxed">Import contact lists seamlessly from Excel or CSV files with custom audience segmentation.</p>
             </div>
 
             <div className="bg-[#2A3038]/60 hover:bg-[#2A3038] border border-[rgba(212,175,106,0.2)] hover:border-[#D4AF6A] rounded-3xl p-6 space-y-3 transition-all group">
@@ -301,7 +294,6 @@ export default function LandingPage() {
                 <Clock className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-white">Scheduled Dispatches</h3>
-              <p className="text-xs text-[#AEB4BC] leading-relaxed">Schedule birthday messages, reminders, and future campaigns for automatic background delivery.</p>
             </div>
 
             <div className="bg-[#2A3038]/60 hover:bg-[#2A3038] border border-[rgba(212,175,106,0.2)] hover:border-[#D4AF6A] rounded-3xl p-6 space-y-3 transition-all group">
@@ -309,7 +301,6 @@ export default function LandingPage() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-white">Custom Branded Sender IDs</h3>
-              <p className="text-xs text-[#AEB4BC] leading-relaxed">Register custom company headers (e.g. YOURBRAND) for instant brand recognition on every phone.</p>
             </div>
 
             <div className="bg-[#2A3038]/60 hover:bg-[#2A3038] border border-[rgba(212,175,106,0.2)] hover:border-[#D4AF6A] rounded-3xl p-6 space-y-3 transition-all group">
@@ -317,7 +308,6 @@ export default function LandingPage() {
                 <Code2 className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-white">Developer REST API</h3>
-              <p className="text-xs text-[#AEB4BC] leading-relaxed">Send SMS programmatically from your app or website using secure SHA-256 API keys.</p>
             </div>
 
             <div className="bg-[#2A3038]/60 hover:bg-[#2A3038] border border-[rgba(212,175,106,0.2)] hover:border-[#D4AF6A] rounded-3xl p-6 space-y-3 transition-all group">
@@ -325,7 +315,6 @@ export default function LandingPage() {
                 <Zap className="w-6 h-6" />
               </div>
               <h3 className="text-base font-bold text-white">Real-Time Delivery Receipts</h3>
-              <p className="text-xs text-[#AEB4BC] leading-relaxed">Monitor live delivery statuses, failed numbers, and network carrier receipts in real time.</p>
             </div>
           </div>
         </div>
@@ -339,7 +328,6 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
               Calculate Your <span className="text-[#D4AF6A]">SMS Cost</span>
             </h2>
-            <p className="text-xs sm:text-sm text-[#AEB4BC]">Pay only for what you send at 0.04 GHS per SMS. Wallet funds never expire.</p>
           </div>
 
           <div className="bg-[#1E232B]/90 border-2 border-[rgba(212,175,106,0.3)] rounded-3xl p-6 sm:p-10 shadow-2xl space-y-8 backdrop-blur-xl">
@@ -447,36 +435,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* 5. FAQ & Contact Section */}
-      <section id="faq" className="py-20 bg-[#12151B] relative z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
+      <section id="contact" className="py-16 bg-[#12151B] relative z-10">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center space-y-3">
-            <span className="text-xs font-bold text-[#D4AF6A] uppercase tracking-wider">Frequently Asked Questions</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-white">
-              Got Questions? <span className="text-[#D4AF6A]">We've Got Answers</span>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-white">
+              Get in <span className="text-[#D4AF6A]">Touch</span>
             </h2>
           </div>
 
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <div key={idx} className="bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-2xl overflow-hidden shadow-lg transition-all">
-                <button
-                  onClick={() => toggleFaq(idx)}
-                  className="w-full p-5 text-left text-sm font-bold text-white flex items-center justify-between gap-4 cursor-pointer"
-                >
-                  <span>{faq.q}</span>
-                  <ChevronRight className={`w-5 h-5 text-[#D4AF6A] transition-transform duration-300 ${openFaq === idx ? 'rotate-90' : ''}`} />
-                </button>
-                {openFaq === idx && (
-                  <div className="px-5 pb-5 text-xs text-[#AEB4BC] border-t border-[rgba(212,175,106,0.1)] pt-3 leading-relaxed">
-                    {faq.a}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Dynamic Contact Action Buttons */}
           <div className="pt-8 flex flex-wrap items-center justify-center gap-4">
             {contactInfo.whatsapp && (
               <a
