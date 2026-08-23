@@ -394,7 +394,7 @@ export default function VoiceSMS() {
                     rows={4}
                     value={textPrompt}
                     onChange={(e) => setTextPrompt(e.target.value)}
-                    placeholder="Type the message you want FasReach to speak on the phone call..."
+                    placeholder="Type the message IN THE LANGUAGE you want spoken (e.g., type French words for the French voice)..."
                     className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.3)] focus:border-[#D4AF6A] rounded-2xl p-3.5 text-xs text-white placeholder-[#AEB4BC]/60 focus:outline-none transition-all shadow-inner"
                   />
                 </div>

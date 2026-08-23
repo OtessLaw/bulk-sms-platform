@@ -70,7 +70,7 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioF
       
       let tl = 'en';
       if (voiceLanguage === 'fr-FR') tl = 'fr';
-      else if (voiceLanguage === 'tw-GH') tl = 'tw';
+      else if (voiceLanguage === 'tw-GH') tl = 'en-NG'; // Google TTS doesn't support 'tw' natively, use African English accent
       else if (voiceLanguage === 'en-US') tl = 'en-US';
       else if (voiceLanguage === 'en-GH') tl = 'en-NG'; // Fallback to Nigerian English for African accent
       
