@@ -33,6 +33,7 @@ export default function VoiceSMS() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
   const [audioUrl, setAudioUrl] = useState('');
+  const [audioBase64, setAudioBase64] = useState('');
   const [recordingTime, setRecordingTime] = useState(0);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
@@ -104,6 +105,10 @@ export default function VoiceSMS() {
         const url = URL.createObjectURL(blob);
         setAudioBlob(blob);
         setAudioUrl(url);
+        // Convert to base64 so backend can forward exact audio to Arkesel
+        const reader = new FileReader();
+        reader.onloadend = () => setAudioBase64(reader.result);
+        reader.readAsDataURL(blob);
       };
 
       mediaRecorderRef.current.start();
@@ -133,6 +138,10 @@ export default function VoiceSMS() {
     if (file) {
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
+      // Convert to base64 so backend can forward exact audio to Arkesel
+      const reader = new FileReader();
+      reader.onloadend = () => setAudioBase64(reader.result);
+      reader.readAsDataURL(file);
       toast.success(`Loaded audio file: ${file.name}`);
     }
   };
@@ -156,6 +165,7 @@ export default function VoiceSMS() {
         type: activeTab,
         textPrompt,
         audioUrl,
+        audioBase64: audioBase64 || undefined,
         voiceGender,
         voiceLanguage,
         durationSeconds: estimatedSeconds,
@@ -166,6 +176,8 @@ export default function VoiceSMS() {
         setRecipientPhone('');
         setTextPrompt('');
         setAudioUrl('');
+        setAudioBase64('');
+        setAudioBlob(null);
         fetchHistory();
       }
     } catch (err) {

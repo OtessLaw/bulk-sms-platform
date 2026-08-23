@@ -30,7 +30,7 @@ const getArkeselApiKey = async () => {
 /**
  * Dispatch Voice SMS Call across Ghanaian mobile networks (MTN, Telecel, AT)
  */
-exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, voiceLanguage, voiceGender }) => {
+exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioBase64, type, voiceLanguage, voiceGender }) => {
   try {
     const apiKey = await getArkeselApiKey();
     // Format recipient phone starting with '0' (e.g. 0241112233)
@@ -44,15 +44,29 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
       try {
         let audioBuffer = null;
 
-        // Fetch audio file buffer from URL or generate TTS MP3 buffer
-        if (audioUrl && !audioUrl.startsWith('blob:')) {
+        // 1. If Base64 Audio data passed from recorded microphone or audio file upload
+        if (audioBase64 && audioBase64.includes('base64,')) {
+          const base64Data = audioBase64.split('base64,')[1];
+          audioBuffer = Buffer.from(base64Data, 'base64');
+          console.log(`[Voice Audio Buffer] Extracted ${audioBuffer.length} bytes from user's custom recording`);
+        }
+        // 2. If public audio file URL passed
+        else if (audioUrl && !audioUrl.startsWith('blob:')) {
           const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 10000 });
           audioBuffer = Buffer.from(audioRes.data);
-        } else {
-          const cleanPrompt = (textPrompt || 'Hello, this is a voice broadcast from FasReach').substring(0, 250);
+          console.log(`[Voice Audio Buffer] Downloaded ${audioBuffer.length} bytes from URL: ${audioUrl}`);
+        }
+        // 3. Otherwise generate MP3 audio buffer of the EXACT user's custom Text-to-Speech (TTS) prompt
+        else {
+          const userPrompt = (textPrompt && textPrompt.trim()) ? textPrompt.trim() : 'Hello, this is a voice message for you';
+          // Sanitize prompt for Google TTS API
+          const cleanPrompt = userPrompt.substring(0, 300);
+          console.log(`[Voice TTS Generation] Rendering exact user text prompt: "${cleanPrompt}"`);
+
           const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(cleanPrompt)}&tl=en`;
           const ttsRes = await axios.get(ttsUrl, { responseType: 'arraybuffer', timeout: 10000 });
           audioBuffer = Buffer.from(ttsRes.data);
+          console.log(`[Voice TTS Buffer] Generated ${audioBuffer.length} bytes for user prompt`);
         }
 
         // Construct multipart/form-data payload required by Arkesel Voice API
