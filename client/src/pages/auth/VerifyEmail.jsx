@@ -67,8 +67,11 @@ export default function VerifyEmail() {
           }
 
           setTimeout(() => {
+            const hostname = window.location.hostname.toLowerCase();
             if (userData && ['Super Admin', 'Admin'].includes(userData.role)) {
               navigate('/admin');
+            } else if (hostname.includes('fasreach.com')) {
+              window.location.href = `https://app.fasreach.com/dashboard?sso_token=${token}`;
             } else {
               navigate('/dashboard');
             }

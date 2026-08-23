@@ -30,12 +30,8 @@ export default function Login() {
 
       if (['Super Admin', 'Admin'].includes(userRole)) {
         navigate('/admin');
-      } else if (hostname.startsWith('sms.')) {
-        navigate('/send-sms');
-      } else if (hostname.startsWith('voice.')) {
-        navigate('/voice-sms');
       } else if (hostname.includes('fasreach.com')) {
-        window.location.href = 'https://app.fasreach.com';
+        window.location.href = `https://app.fasreach.com/dashboard?sso_token=${res.data.token}`;
       } else {
         navigate('/dashboard');
       }
