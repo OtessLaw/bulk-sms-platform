@@ -1,4 +1,5 @@
 const axios = require('axios');
+const FormData = require('form-data');
 const ProviderConfig = require('../models/ProviderConfig');
 const SystemSetting = require('../models/SystemSetting');
 const { formatPhoneForArkesel } = require('../utils/phoneFormatter');
@@ -40,31 +41,37 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
     if (apiKey && apiKey !== 'mock_arkesel_key') {
       let gatewayErrorMsg = '';
 
-      // Ensure voice_file is NEVER empty for Arkesel's endpoint validation
-      let effectiveVoiceFile = audioUrl;
-      if (!effectiveVoiceFile || effectiveVoiceFile.startsWith('blob:')) {
-        const cleanPrompt = (textPrompt || 'Hello, this is an official voice broadcast from FasReach').substring(0, 250);
-        effectiveVoiceFile = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(cleanPrompt)}&tl=en`;
-      }
-
-      // Dispatch Voice SMS via Arkesel Official Voice SMS Endpoint (https://sms.arkesel.com/api/v2/sms/voice/send)
       try {
-        const payload = {
-          voice_file: effectiveVoiceFile,
-          recipients: [formattedPhone],
-        };
+        let audioBuffer = null;
 
-        console.log('[Arkesel Voice Payload]', payload);
+        // Fetch audio file buffer from URL or generate TTS MP3 buffer
+        if (audioUrl && !audioUrl.startsWith('blob:')) {
+          const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 10000 });
+          audioBuffer = Buffer.from(audioRes.data);
+        } else {
+          const cleanPrompt = (textPrompt || 'Hello, this is a voice broadcast from FasReach').substring(0, 250);
+          const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(cleanPrompt)}&tl=en`;
+          const ttsRes = await axios.get(ttsUrl, { responseType: 'arraybuffer', timeout: 10000 });
+          audioBuffer = Buffer.from(ttsRes.data);
+        }
+
+        // Construct multipart/form-data payload required by Arkesel Voice API
+        const form = new FormData();
+        form.append('voice_file', audioBuffer, {
+          filename: 'voice_message.mp3',
+          contentType: 'audio/mpeg',
+        });
+        form.append('recipients[0]', formattedPhone);
 
         const resFile = await axios.post(
           'https://sms.arkesel.com/api/v2/sms/voice/send',
-          payload,
+          form,
           {
             headers: {
               'api-key': apiKey,
-              'Content-Type': 'application/json',
+              ...form.getHeaders(),
             },
-            timeout: 12000,
+            timeout: 15000,
           }
         );
 
