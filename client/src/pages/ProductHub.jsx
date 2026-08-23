@@ -110,16 +110,9 @@ export default function ProductHub() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 relative z-10">
         {/* Banner Section asking what the user wants to do */}
         <div className="text-center max-w-2xl mx-auto space-y-3">
-          <span className="inline-flex items-center space-x-2 bg-[#1E232B] border border-[rgba(212,175,106,0.3)] px-3.5 py-1 rounded-full text-xs font-bold text-[#D4AF6A]">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>FasReach Service Portal</span>
-          </span>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
             What would you like to <span className="text-[#D4AF6A]">do today?</span>
           </h1>
-          <p className="text-xs sm:text-sm text-[#AEB4BC] leading-relaxed">
-            Tap on any service box below to go straight to your message workspace.
-          </p>
         </div>
 
         {/* 2 Main Featured Products Grid (Bulk SMS Box & Voice Note Box Side-by-Side) */}
@@ -143,25 +136,6 @@ export default function ProductHub() {
                 <h2 className="text-2xl font-black text-white group-hover:text-[#D4AF6A] transition-colors">
                   Bulk SMS Messaging
                 </h2>
-                <p className="text-xs text-[#AEB4BC] leading-relaxed">
-                  Send single or bulk SMS broadcasts instantly to thousands of contacts across MTN Ghana, Telecel (Vodafone), and AT (AirtelTigo).
-                </p>
-              </div>
-
-              {/* Feature Checklist */}
-              <div className="space-y-2 pt-2 border-t border-white/5 text-xs text-[#AEB4BC]">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#D4AF6A] shrink-0" />
-                  <span>Instant single & bulk Excel/CSV contact list dispatch</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#D4AF6A] shrink-0" />
-                  <span>Custom branded Sender IDs (e.g. YOURBRAND)</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#D4AF6A] shrink-0" />
-                  <span>Flat GHS 0.04 per SMS with zero expiration</span>
-                </div>
               </div>
             </div>
 
@@ -203,25 +177,6 @@ export default function ProductHub() {
                 <h2 className="text-2xl font-black text-white group-hover:text-emerald-400 transition-colors">
                   Voice Note & Voice SMS
                 </h2>
-                <p className="text-xs text-[#AEB4BC] leading-relaxed">
-                  Deliver automated voice phone calls using live browser mic voice recordings, AI Text-to-Speech (Ghanaian English & Twi), or audio files.
-                </p>
-              </div>
-
-              {/* Feature Checklist */}
-              <div className="space-y-2 pt-2 border-t border-white/5 text-xs text-[#AEB4BC]">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Live browser microphone voice recording & file upload</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>AI Text-to-Speech (Ghanaian English, Twi & Standard)</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Real-time call answered & duration analytics</span>
-                </div>
               </div>
             </div>
 
