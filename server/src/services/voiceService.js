@@ -45,68 +45,48 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioF
     return { success: true, provider: 'FasReach Voice Engine', messageId: `VOICE_${Date.now()}`, status: 'Submitted' };
   }
 
-  // ── PATH A: TTS — use Arkesel's own voice engine with the user's exact message ──
-  if (type === 'TTS' || (!audioFile && (!audioUrl || audioUrl.startsWith('blob:')))) {
-    const message = textPrompt && textPrompt.trim() ? textPrompt.trim() : null;
-    if (!message) {
-      return { success: false, provider: 'Arkesel Voice Gateway', error: 'Please enter a text message to send as a voice call.', status: 'Failed' };
-    }
+  let audioBuffer = null;
 
-    // Arkesel OTP Voice engine speaks the exact message text over the call
-    const ttsMessage = message.includes('%otp_code%') ? message : `${message} %otp_code%`;
-    console.log('[Voice TTS] Sending exact user message to Arkesel OTP Voice Engine:', ttsMessage);
-
-    try {
-      const resTts = await axios.post(
-        'https://sms.arkesel.com/api/otp/generate',
-        {
-          expiry: 5,
-          length: 6,
-          medium: 'voice',
-          message: ttsMessage,
-          number: formattedPhone,
-          sender_id: 'FasReach',
-          type: 'numeric',
-        },
-        {
-          headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
-          timeout: 12000,
-        }
-      );
-
-      console.log('[Arkesel OTP Voice Response]', resTts.data);
-
-      if (resTts.data && (resTts.data.code === '1000' || resTts.data.code === 1000)) {
-        return { success: true, provider: 'Arkesel Voice Engine (TTS)', messageId: `VOICE_${Date.now()}`, status: 'Submitted' };
-      }
-
-      const errMsg = resTts.data?.message || `Arkesel OTP Voice error code: ${resTts.data?.code}`;
-      return { success: false, provider: 'Arkesel Voice Gateway', error: errMsg, status: 'Failed' };
-
-    } catch (err) {
-      const errMsg = err.response?.data?.message || err.response?.data?.error || err.message;
-      console.warn('[Arkesel OTP Voice Error]', errMsg);
-      return { success: false, provider: 'Arkesel Voice Gateway', error: errMsg, status: 'Failed' };
-    }
-  }
-
-  // ── PATH B: Audio file (recording or uploaded file) → send binary to Arkesel ──
   try {
-    let audioBuffer = null;
-
+    // 1. Prioritize raw audio file if uploaded from mic or file input
     if (audioFile && audioFile.buffer) {
       audioBuffer = audioFile.buffer;
       console.log(`[Voice Audio] Received ${audioBuffer.length} bytes from user's audio recording/upload via multer`);
-    } else if (audioUrl && !audioUrl.startsWith('blob:')) {
+    } 
+    // 2. Fallback to Audio URL if provided
+    else if (audioUrl && !audioUrl.startsWith('blob:')) {
       const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 10000 });
       audioBuffer = Buffer.from(audioRes.data);
       console.log(`[Voice Audio] Downloaded ${audioBuffer.length} bytes from URL`);
+    } 
+    // 3. Fallback to Text-to-Speech Generation using Google Translate TTS
+    else if (type === 'TTS' || textPrompt) {
+      const message = textPrompt && textPrompt.trim() ? textPrompt.trim() : null;
+      if (!message) {
+        return { success: false, provider: 'Arkesel Voice Gateway', error: 'Please enter a text message to send as a voice call.', status: 'Failed' };
+      }
+      
+      console.log(`[Voice TTS Generation] Rendering exact user text prompt: "${message.substring(0, 50)}..."`);
+      
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(message.substring(0, 300))}&tl=en`;
+      
+      const ttsRes = await axios.get(ttsUrl, { 
+        responseType: 'arraybuffer', 
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36'
+        }
+      });
+      
+      audioBuffer = Buffer.from(ttsRes.data);
+      console.log(`[Voice TTS Buffer] Generated ${audioBuffer.length} bytes for exact user prompt`);
     }
 
     if (!audioBuffer || audioBuffer.length < 100) {
-      return { success: false, provider: 'Arkesel Voice Gateway', error: 'No valid audio file received. Please record or upload an audio file.', status: 'Failed' };
+      return { success: false, provider: 'Arkesel Voice Gateway', error: 'Failed to process audio or text message. Please try again.', status: 'Failed' };
     }
 
+    // Submit audio buffer to Arkesel
     const form = new FormData();
     form.append('voice_file', audioBuffer, { filename: 'voice_message.mp3', contentType: 'audio/mpeg' });
     form.append('recipients[0]', formattedPhone);

@@ -172,11 +172,7 @@ export default function VoiceSMS() {
         formData.append('audioFile', audioBlob, 'upload.mp3');
       }
 
-      const res = await API.post('/voice/send', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      });
+      const res = await API.post('/voice/send', formData);
 
       if (res.data?.success) {
         toast.success(res.data.message || 'Voice SMS dispatches sent successfully!');
