@@ -3,6 +3,7 @@ const FormData = require('form-data');
 const ProviderConfig = require('../models/ProviderConfig');
 const SystemSetting = require('../models/SystemSetting');
 const { formatPhoneForArkesel } = require('../utils/phoneFormatter');
+const { translate } = require('@vitalets/google-translate-api');
 
 /**
  * Fetch active Arkesel API Key from DB (SystemSetting or ProviderConfig) or process.env
@@ -61,18 +62,41 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioF
     } 
     // 3. Fallback to Text-to-Speech Generation using Google Translate TTS
     else if (type === 'TTS' || textPrompt) {
-      const message = textPrompt && textPrompt.trim() ? textPrompt.trim() : null;
+      let message = textPrompt && textPrompt.trim() ? textPrompt.trim() : null;
       if (!message) {
         return { success: false, provider: 'Arkesel Voice Gateway', error: 'Please enter a text message to send as a voice call.', status: 'Failed' };
       }
       
-      console.log(`[Voice TTS Generation] Rendering exact user text prompt: "${message.substring(0, 50)}..."`);
-      
       let tl = 'en';
-      if (voiceLanguage === 'fr-FR') tl = 'fr';
-      else if (voiceLanguage === 'tw-GH') tl = 'en-NG'; // Google TTS doesn't support 'tw' natively, use African English accent
-      else if (voiceLanguage === 'en-US') tl = 'en-US';
-      else if (voiceLanguage === 'en-GH') tl = 'en-NG'; // Fallback to Nigerian English for African accent
+      let translateTo = null;
+      
+      if (voiceLanguage === 'fr-FR') {
+        tl = 'fr';
+        translateTo = 'fr';
+      } else if (voiceLanguage === 'tw-GH') {
+        tl = 'en-NG'; // Google TTS doesn't support 'tw' natively, use African English accent
+        translateTo = 'tw'; // Translate the text itself to Twi
+      } else if (voiceLanguage === 'en-US') {
+        tl = 'en-US';
+      } else if (voiceLanguage === 'en-GH') {
+        tl = 'en-NG'; // Fallback to Nigerian English for African accent
+      }
+      
+      // Auto-translate if the user selected a foreign language
+      if (translateTo) {
+        try {
+          console.log(`[Voice Auto-Translate] Translating message to ${translateTo}...`);
+          const transRes = await translate(message, { to: translateTo });
+          if (transRes && transRes.text) {
+            message = transRes.text;
+            console.log(`[Voice Auto-Translate] Translated Text: "${message}"`);
+          }
+        } catch (err) {
+          console.warn('[Voice Auto-Translate] Translation failed, proceeding with original text:', err.message);
+        }
+      }
+
+      console.log(`[Voice TTS Generation] Rendering text: "${message.substring(0, 50)}..." with accent ${tl}`);
       
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(message.substring(0, 300))}&tl=${tl}`;
       
