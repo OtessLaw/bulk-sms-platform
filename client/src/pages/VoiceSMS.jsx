@@ -20,6 +20,51 @@ import {
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+// Helper to convert AudioBuffer to WAV Blob (PCM 16-bit)
+const audioBufferToWav = (buffer) => {
+  const numOfChan = buffer.numberOfChannels;
+  const length = buffer.length * numOfChan * 2 + 44;
+  const bufferArr = new ArrayBuffer(length);
+  const view = new DataView(bufferArr);
+  const channels = [];
+  const sampleRate = buffer.sampleRate;
+  let offset = 0;
+  let pos = 0;
+
+  function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+  function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+  setUint32(0x46464952); // "RIFF"
+  setUint32(length - 8); // file length - 8
+  setUint32(0x45564157); // "WAVE"
+  setUint32(0x20746d66); // "fmt " chunk
+  setUint32(16); // length = 16
+  setUint16(1); // PCM (uncompressed)
+  setUint16(numOfChan);
+  setUint32(sampleRate);
+  setUint32(sampleRate * 2 * numOfChan); // avg. bytes/sec
+  setUint16(numOfChan * 2); // block-align
+  setUint16(16); // 16-bit
+  setUint32(0x61746164); // "data" - chunk
+  setUint32(length - pos - 4); // chunk length
+
+  for (let i = 0; i < buffer.numberOfChannels; i++) {
+    channels.push(buffer.getChannelData(i));
+  }
+
+  while (pos < length) {
+    for (let i = 0; i < numOfChan; i++) {
+      let sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit signed int
+      view.setInt16(pos, sample, true); // write 16-bit sample
+      pos += 2;
+    }
+    offset++;
+  }
+
+  return new Blob([bufferArr], { type: 'audio/wav' });
+};
+
 export default function VoiceSMS() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('TTS'); // 'TTS' | 'Recording' | 'Upload'
@@ -115,17 +160,27 @@ export default function VoiceSMS() {
         }
       };
 
-      mediaRecorderRef.current.onstop = () => {
-        // Use the mimeType from the recorder, but if it's webm we will send it as ogg to bypass Laravel's strict mimes validation
-        // since webm is matroska and ogg is supported. We'll set the blob type to audio/ogg.
-        const blob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current.ext === 'webm' ? 'audio/ogg' : mediaRecorderRef.current.mimeType });
-        blob.ext = mediaRecorderRef.current.ext === 'webm' ? 'ogg' : mediaRecorderRef.current.ext;
+      mediaRecorderRef.current.onstop = async () => {
+        const rawBlob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current.mimeType });
         
-        const url = URL.createObjectURL(blob);
-        setAudioBlob(blob);
-        setAudioUrl(url);
-        // Convert to base64 so backend can forward exact audio to Arkesel
-        // No longer using base64, audioBlob is appended directly to FormData
+        try {
+          // Convert WebM/Ogg blob from MediaRecorder to true PCM WAV blob
+          const arrayBuffer = await rawBlob.arrayBuffer();
+          const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+          const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+          const wavBlob = audioBufferToWav(audioBuffer);
+          wavBlob.ext = 'wav';
+          
+          const url = URL.createObjectURL(wavBlob);
+          setAudioBlob(wavBlob);
+          setAudioUrl(url);
+        } catch (e) {
+          console.error('Audio WAV conversion failed, falling back to raw recording', e);
+          rawBlob.ext = mediaRecorderRef.current.ext === 'webm' ? 'ogg' : mediaRecorderRef.current.ext;
+          const url = URL.createObjectURL(rawBlob);
+          setAudioBlob(rawBlob);
+          setAudioUrl(url);
+        }
       };
 
       mediaRecorderRef.current.start();
