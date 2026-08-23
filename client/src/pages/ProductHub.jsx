@@ -204,8 +204,7 @@ export default function ProductHub() {
                 <ShieldCheck className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Custom Branded Sender IDs</h3>
-                <p className="text-xs text-[#AEB4BC]">Register official company or church headers.</p>
+                <h3 className="text-base font-bold text-white group-hover:text-[#D4AF6A] transition-colors">Sender ID Registry</h3>
               </div>
             </div>
             <span className="bg-[#1E232B] text-[#D4AF6A] border border-[rgba(212,175,106,0.3)] px-4 py-2 rounded-xl text-xs font-bold shrink-0">
@@ -215,15 +214,14 @@ export default function ProductHub() {
 
           <div
             onClick={() => handleBoxClick('developer-api', '/developer-api')}
-            className="bg-[#161B22] border border-white/10 hover:border-[rgba(212,175,106,0.3)] rounded-2xl p-6 flex items-center justify-between space-x-4 transition-all cursor-pointer"
+            className="bg-[#161B22] border border-white/10 hover:border-[rgba(212,175,106,0.3)] rounded-2xl p-6 flex items-center justify-between space-x-4 transition-all cursor-pointer group"
           >
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 rounded-xl bg-[#1E232B] border border-white/10 flex items-center justify-center text-[#D4AF6A] shrink-0">
                 <Code2 className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">Developer REST API</h3>
-                <p className="text-xs text-[#AEB4BC]">Integrate SMS & Voice API into your app.</p>
+                <h3 className="text-base font-bold text-white group-hover:text-[#D4AF6A] transition-colors">Developer API Docs</h3>
               </div>
             </div>
             <span className="bg-[#1E232B] text-[#D4AF6A] border border-[rgba(212,175,106,0.3)] px-4 py-2 rounded-xl text-xs font-bold shrink-0">

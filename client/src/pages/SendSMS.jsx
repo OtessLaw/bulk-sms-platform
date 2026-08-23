@@ -258,7 +258,6 @@ export default function SendSMS() {
         <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
           <Send className="w-6 h-6 text-[#D4AF6A] shrink-0" /> Send Bulk & Single SMS
         </h1>
-        <p className="text-xs text-[#AEB4BC]">Broadcast messages to your Contact Directory, import Excel/CSV files directly, or paste phone numbers</p>
       </div>
 
       {/* Dispatch Mode Toggle Tabs */}
@@ -391,7 +390,6 @@ export default function SendSMS() {
                     placeholder="Extracted or pasted phone numbers will appear here, e.g.:&#10;0241112233, 0509998877, 0277778899"
                     className="w-full bg-[#1E232B] border border-[rgba(212,175,106,0.2)] rounded-xl px-3 py-2.5 text-xs text-white font-mono focus:outline-none focus:border-[#D4AF6A]"
                   />
-                  <p className="text-[11px] text-[#AEB4BC] mt-1">Numbers from Contact Groups or Excel files automatically populate here.</p>
                 </div>
               </div>
             )}
