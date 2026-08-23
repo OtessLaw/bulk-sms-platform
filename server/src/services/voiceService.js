@@ -49,7 +49,7 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, type, 
             'https://sms.arkesel.com/api/otp/generate',
             {
               expiry: 5,
-              length: 4,
+              length: 6,
               medium: 'voice',
               message: ttsMessage,
               number: formattedPhone,
