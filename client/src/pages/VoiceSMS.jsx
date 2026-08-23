@@ -106,9 +106,7 @@ export default function VoiceSMS() {
         setAudioBlob(blob);
         setAudioUrl(url);
         // Convert to base64 so backend can forward exact audio to Arkesel
-        const reader = new FileReader();
-        reader.onloadend = () => setAudioBase64(reader.result);
-        reader.readAsDataURL(blob);
+        // No longer using base64, audioBlob is appended directly to FormData
       };
 
       mediaRecorderRef.current.start();
@@ -138,10 +136,8 @@ export default function VoiceSMS() {
     if (file) {
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
-      // Convert to base64 so backend can forward exact audio to Arkesel
-      const reader = new FileReader();
-      reader.onloadend = () => setAudioBase64(reader.result);
-      reader.readAsDataURL(file);
+      // Keep a reference to the actual file in audioBlob so we can append it to FormData
+      setAudioBlob(file);
       toast.success(`Loaded audio file: ${file.name}`);
     }
   };
@@ -160,15 +156,26 @@ export default function VoiceSMS() {
 
     setSending(true);
     try {
-      const res = await API.post('/voice/send', {
-        recipientPhone,
-        type: activeTab,
-        textPrompt,
-        audioUrl,
-        audioBase64: audioBase64 || undefined,
-        voiceGender,
-        voiceLanguage,
-        durationSeconds: estimatedSeconds,
+      const formData = new FormData();
+      formData.append('recipientPhone', recipientPhone);
+      formData.append('type', activeTab);
+      formData.append('voiceGender', voiceGender);
+      formData.append('voiceLanguage', voiceLanguage);
+      formData.append('durationSeconds', estimatedSeconds);
+      
+      if (textPrompt) formData.append('textPrompt', textPrompt);
+      if (audioUrl) formData.append('audioUrl', audioUrl);
+      
+      if (activeTab === 'Recording' && audioBlob) {
+        formData.append('audioFile', audioBlob, 'recording.wav');
+      } else if (activeTab === 'Upload' && audioBlob) {
+        formData.append('audioFile', audioBlob, 'upload.mp3');
+      }
+
+      const res = await API.post('/voice/send', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
       if (res.data?.success) {

@@ -8,7 +8,8 @@ const VOICE_CALL_RATE_PER_30S = 0.08; // GHS 0.08 per 30-second voice call block
 // @route   POST /api/voice/send
 exports.sendVoiceCall = async (req, res, next) => {
   try {
-    const { recipientPhone, recipients, type, textPrompt, audioUrl, audioBase64, voiceGender, voiceLanguage, durationSeconds } = req.body;
+    const { recipientPhone, recipients, type, textPrompt, audioUrl, voiceGender, voiceLanguage, durationSeconds } = req.body;
+    const audioFile = req.file;
     const userId = req.user._id;
 
     // Normalize recipient list
@@ -68,7 +69,7 @@ exports.sendVoiceCall = async (req, res, next) => {
           recipientPhone: phone,
           textPrompt,
           audioUrl,
-          audioBase64,
+          audioFile,
           type: type || 'TTS',
           voiceLanguage: voiceLanguage || 'en-GH',
           voiceGender: voiceGender || 'Female',

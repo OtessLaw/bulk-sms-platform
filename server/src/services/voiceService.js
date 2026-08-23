@@ -26,7 +26,7 @@ const getArkeselApiKey = async () => {
 /**
  * Dispatch Voice SMS Call across Ghanaian mobile networks (MTN, Telecel, AT)
  */
-exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioBase64, type }) => {
+exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioFile, type }) => {
   const apiKey = await getArkeselApiKey();
   const formattedPhone = formatPhoneForArkesel(recipientPhone);
 
@@ -36,7 +36,7 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioB
   console.log('Type:', type);
   console.log('TextPrompt:', textPrompt);
   console.log('AudioUrl:', audioUrl);
-  console.log('AudioBase64 present:', !!(audioBase64 && audioBase64.length > 100));
+  console.log('AudioFile present:', !!audioFile);
   console.log('API Key prefix:', apiKey ? apiKey.slice(0, 8) : 'NONE');
   // ────────────────────────────────────────────────────────────────────────────
 
@@ -46,7 +46,7 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioB
   }
 
   // ── PATH A: TTS — use Arkesel's own voice engine with the user's exact message ──
-  if (type === 'TTS' || (!audioBase64 && (!audioUrl || audioUrl.startsWith('blob:')))) {
+  if (type === 'TTS' || (!audioFile && (!audioUrl || audioUrl.startsWith('blob:')))) {
     const message = textPrompt && textPrompt.trim() ? textPrompt.trim() : null;
     if (!message) {
       return { success: false, provider: 'Arkesel Voice Gateway', error: 'Please enter a text message to send as a voice call.', status: 'Failed' };
@@ -94,10 +94,9 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioB
   try {
     let audioBuffer = null;
 
-    if (audioBase64 && audioBase64.includes('base64,')) {
-      const base64Data = audioBase64.split('base64,')[1];
-      audioBuffer = Buffer.from(base64Data, 'base64');
-      console.log(`[Voice Audio] Decoded ${audioBuffer.length} bytes from user's audio recording/upload`);
+    if (audioFile && audioFile.buffer) {
+      audioBuffer = audioFile.buffer;
+      console.log(`[Voice Audio] Received ${audioBuffer.length} bytes from user's audio recording/upload via multer`);
     } else if (audioUrl && !audioUrl.startsWith('blob:')) {
       const audioRes = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 10000 });
       audioBuffer = Buffer.from(audioRes.data);
