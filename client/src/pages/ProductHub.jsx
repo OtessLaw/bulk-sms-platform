@@ -109,9 +109,15 @@ export default function ProductHub() {
       {/* Main Product Selection Hub */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10 relative z-10">
         {/* Banner Section asking what the user wants to do */}
-        <div className="text-center max-w-2xl mx-auto space-y-3">
+        <div className="text-center max-w-2xl mx-auto space-y-4 mb-4">
+          <div className="inline-flex items-center justify-center bg-white/5 border border-white/10 rounded-full px-4 py-1.5 backdrop-blur-md shadow-sm">
+            <span className="text-lg sm:text-xl animate-bounce origin-bottom">👋</span>
+            <span className="ml-2 text-sm font-bold text-[#AEB4BC]">
+              Hello, {user?.name?.split(' ')[0] || 'there'}!
+            </span>
+          </div>
           <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-            What would you like to <span className="text-[#D4AF6A]">do today?</span>
+            What would you like to <span className="text-[#D4AF6A]">do today?</span> ✨
           </h1>
         </div>
 
