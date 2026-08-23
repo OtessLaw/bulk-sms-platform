@@ -59,7 +59,6 @@ export default function Sidebar({ mobileOpen, onCloseMobile }) {
     { name: 'Admin Overview', path: '/admin', icon: LayoutDashboard },
     { name: 'User Management', path: '/admin/users', icon: Users },
     { name: 'Sender ID Queue', path: '/admin/sender-ids', icon: ShieldCheck },
-    { name: 'Gateway Failover', path: '/admin/gateway-switch', icon: Code2 },
     { name: 'AI Support RAG Engine', path: '/admin/ai-management', icon: Bot },
     { name: 'Staff Roles (RBAC)', path: '/admin/staff', icon: UserCheck },
     { name: 'System Settings', path: '/admin/settings', icon: Settings },

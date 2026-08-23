@@ -34,7 +34,6 @@ import HelpCenter from './pages/HelpCenter';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminSenderIDs from './pages/admin/AdminSenderIDs';
-import AdminGatewaySwitch from './pages/admin/AdminGatewaySwitch';
 import AdminStaff from './pages/admin/AdminStaff';
 import AdminSystemSettings from './pages/admin/AdminSystemSettings';
 import AdminAuditLogs from './pages/admin/AdminAuditLogs';
@@ -287,14 +286,6 @@ export default function App() {
             element={
               <ProtectedRoute requireAdmin={true}>
                 <AdminSenderIDs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/gateway-switch"
-            element={
-              <ProtectedRoute requireAdmin={true}>
-                <AdminGatewaySwitch />
               </ProtectedRoute>
             }
           />
