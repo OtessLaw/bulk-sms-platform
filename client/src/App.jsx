@@ -6,7 +6,6 @@ import { Toaster } from 'react-hot-toast';
 // Layout & Public Landing
 import DashboardLayout from './components/layout/DashboardLayout';
 import LandingPage from './pages/LandingPage';
-import ProductHub from './pages/ProductHub';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -104,19 +103,10 @@ function SubdomainRootHandler() {
     );
   }
   if (hostname.startsWith('app.') || hostname.startsWith('portal.')) {
-    return <ProductHub />;
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <LandingPage />;
-}
-
-function ProductRedirect() {
-  const hostname = window.location.hostname.toLowerCase();
-  if (hostname.includes('fasreach.com') && !hostname.startsWith('app.')) {
-    window.location.href = 'https://app.fasreach.com';
-    return null;
-  }
-  return <ProductHub />;
 }
 
 // Main App Router
@@ -160,8 +150,6 @@ export default function App() {
         <Routes>
           {/* Public Landing Page & Subdomain Router */}
           <Route path="/" element={<SubdomainRootHandler />} />
-          <Route path="/products" element={<ProductRedirect />} />
-          <Route path="/portal" element={<ProductRedirect />} />
 
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />

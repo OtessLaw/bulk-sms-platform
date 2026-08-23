@@ -37,7 +37,7 @@ export default function Login() {
       } else if (hostname.includes('fasreach.com')) {
         window.location.href = 'https://app.fasreach.com';
       } else {
-        navigate('/products');
+        navigate('/dashboard');
       }
     } catch (err) {
       if (err.message === 'Network Error' || !err.response) {
