@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
     }
   });
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
   const [impersonatorAdmin, setImpersonatorAdmin] = useState(null);
 
