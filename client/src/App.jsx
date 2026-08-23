@@ -6,6 +6,7 @@ import { Toaster } from 'react-hot-toast';
 // Layout & Public Landing
 import DashboardLayout from './components/layout/DashboardLayout';
 import LandingPage from './pages/LandingPage';
+import ProductHub from './pages/ProductHub';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -103,7 +104,7 @@ function SubdomainRootHandler() {
     );
   }
   if (hostname.startsWith('app.') || hostname.startsWith('portal.')) {
-    return <Navigate to="/dashboard" replace />;
+    return <ProductHub />;
   }
 
   return <LandingPage />;
