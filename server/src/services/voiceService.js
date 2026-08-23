@@ -26,7 +26,7 @@ const getArkeselApiKey = async () => {
 /**
  * Dispatch Voice SMS Call across Ghanaian mobile networks (MTN, Telecel, AT)
  */
-exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioFile, type }) => {
+exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioFile, type, voiceLanguage }) => {
   const apiKey = await getArkeselApiKey();
   const formattedPhone = formatPhoneForArkesel(recipientPhone);
 
@@ -68,7 +68,13 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioF
       
       console.log(`[Voice TTS Generation] Rendering exact user text prompt: "${message.substring(0, 50)}..."`);
       
-      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(message.substring(0, 300))}&tl=en`;
+      let tl = 'en';
+      if (voiceLanguage === 'fr-FR') tl = 'fr';
+      else if (voiceLanguage === 'tw-GH') tl = 'tw';
+      else if (voiceLanguage === 'en-US') tl = 'en-US';
+      else if (voiceLanguage === 'en-GH') tl = 'en-NG'; // Fallback to Nigerian English for African accent
+      
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&q=${encodeURIComponent(message.substring(0, 300))}&tl=${tl}`;
       
       const ttsRes = await axios.get(ttsUrl, { 
         responseType: 'arraybuffer', 
