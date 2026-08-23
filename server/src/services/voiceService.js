@@ -88,7 +88,10 @@ exports.sendVoiceSmsCall = async ({ recipientPhone, textPrompt, audioUrl, audioF
 
     // Submit audio buffer to Arkesel
     const form = new FormData();
-    form.append('voice_file', audioBuffer, { filename: 'voice_message.mp3', contentType: 'audio/mpeg' });
+    const filename = audioFile ? audioFile.originalname : 'voice_message.mp3';
+    const contentType = audioFile ? audioFile.mimetype : 'audio/mpeg';
+    
+    form.append('voice_file', audioBuffer, { filename, contentType });
     form.append('recipients[0]', formattedPhone);
 
     const resFile = await axios.post(

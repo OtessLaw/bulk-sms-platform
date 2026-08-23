@@ -91,8 +91,23 @@ export default function VoiceSMS() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorderRef.current = new MediaRecorder(stream);
+      
+      let mimeType = '';
+      let ext = 'webm';
+      if (MediaRecorder.isTypeSupported('audio/webm')) {
+        mimeType = 'audio/webm';
+        ext = 'webm';
+      } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+        mimeType = 'audio/mp4';
+        ext = 'm4a';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+        mimeType = 'audio/ogg';
+        ext = 'ogg';
+      }
+
+      mediaRecorderRef.current = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       audioChunksRef.current = [];
+      mediaRecorderRef.current.ext = ext;
 
       mediaRecorderRef.current.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -101,7 +116,11 @@ export default function VoiceSMS() {
       };
 
       mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        // Use the mimeType from the recorder, but if it's webm we will send it as ogg to bypass Laravel's strict mimes validation
+        // since webm is matroska and ogg is supported. We'll set the blob type to audio/ogg.
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorderRef.current.ext === 'webm' ? 'audio/ogg' : mediaRecorderRef.current.mimeType });
+        blob.ext = mediaRecorderRef.current.ext === 'webm' ? 'ogg' : mediaRecorderRef.current.ext;
+        
         const url = URL.createObjectURL(blob);
         setAudioBlob(blob);
         setAudioUrl(url);
@@ -167,9 +186,9 @@ export default function VoiceSMS() {
       if (audioUrl) formData.append('audioUrl', audioUrl);
       
       if (activeTab === 'Recording' && audioBlob) {
-        formData.append('audioFile', audioBlob, 'recording.wav');
+        formData.append('audioFile', audioBlob, `recording.${audioBlob.ext || 'ogg'}`);
       } else if (activeTab === 'Upload' && audioBlob) {
-        formData.append('audioFile', audioBlob, 'upload.mp3');
+        formData.append('audioFile', audioBlob, audioBlob.name || 'upload.mp3');
       }
 
       const res = await API.post('/voice/send', formData);
