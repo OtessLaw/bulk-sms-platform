@@ -8,6 +8,7 @@ export default function DeveloperAPI() {
   const [copiedId, setCopiedId] = useState(null);
   const [activeTab, setActiveTab] = useState('curl');
   const [keyName, setKeyName] = useState('');
+  const [newRawKey, setNewRawKey] = useState(null);
 
   useEffect(() => {
     fetchKeys();
@@ -30,6 +31,7 @@ export default function DeveloperAPI() {
       const res = await API.post('/settings/api-keys', { name: nameToUse });
       if (res.data.success) {
         toast.success('API Key generated!');
+        setNewRawKey(res.data.data.rawKey);
         setKeyName('');
         fetchKeys();
       }
@@ -58,7 +60,7 @@ export default function DeveloperAPI() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const sampleKey = keys.length > 0 ? keys[0].key : 'bms_live_YOUR_API_KEY_HERE';
+  const sampleKey = newRawKey || (keys.length > 0 ? (keys[0].keyPrefix || 'bms_live_YOUR_API_KEY_HERE') : 'bms_live_YOUR_API_KEY_HERE');
   const apiBase = window.location.origin.includes('localhost')
     ? 'http://localhost:5000/api'
     : 'https://fasreach.com/api';
@@ -183,6 +185,19 @@ print(response.json())`
           <span className="text-[11px] text-[#8E95A2]">API Gateway v1 Active</span>
         </div>
 
+        {newRawKey && (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/50 rounded-2xl space-y-3 mb-6">
+            <h3 className="text-emerald-400 font-bold text-sm">New API Key Generated!</h3>
+            <p className="text-xs text-[#AEB4BC]">Please copy this key immediately. For security reasons, it will never be shown again.</p>
+            <div className="flex items-center space-x-2">
+              <input type="text" readOnly value={newRawKey} className="flex-1 bg-[#1A1F26] text-[#D4AF6A] font-mono text-xs px-3 py-2 rounded-xl border border-[rgba(212,175,106,0.3)]" />
+              <button onClick={() => copyToClipboard(newRawKey, 'new')} className="bg-emerald-500 hover:bg-emerald-600 text-black font-bold px-4 py-2 rounded-xl transition">
+                {copiedId === 'new' ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {keys.length === 0 ? (
           <div className="text-center py-8 text-[#AEB4BC] text-xs space-y-2 border border-dashed border-[rgba(212,175,106,0.2)] rounded-2xl">
             <Key className="w-8 h-8 text-[#D4AF6A]/50 mx-auto" />
@@ -203,7 +218,7 @@ print(response.json())`
                   </span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <p className="font-mono text-[#D4AF6A] text-xs font-medium select-all">{k.key}</p>
+                  <p className="font-mono text-[#D4AF6A] text-xs font-medium select-all">{k.keyPrefix}</p>
                 </div>
                 {k.lastUsedAt && (
                   <p className="text-[10px] text-[#7A818E]">Last used: {new Date(k.lastUsedAt).toLocaleString()}</p>
@@ -212,7 +227,7 @@ print(response.json())`
 
               <div className="flex items-center space-x-2 shrink-0">
                 <button
-                  onClick={() => copyToClipboard(k.key, k._id)}
+                  onClick={() => copyToClipboard(k.keyPrefix, k._id)}
                   className="bg-[#2A3038] hover:bg-[#343B45] text-white text-xs font-semibold px-3 py-1.5 rounded-xl border border-white/10 flex items-center space-x-1.5 transition"
                 >
                   {copiedId === k._id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-[#D4AF6A]" />}
