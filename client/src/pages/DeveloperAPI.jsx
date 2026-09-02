@@ -36,7 +36,8 @@ export default function DeveloperAPI() {
         fetchKeys();
       }
     } catch (err) {
-      toast.error('Failed to generate key');
+      console.error(err);
+      toast.error('Failed to generate key: ' + (err.response?.data?.message || err.message));
     }
   };
 

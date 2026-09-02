@@ -1,5 +1,6 @@
 const ApiKey = require('../models/ApiKey');
 const crypto = require('crypto');
+const mongoose = require('mongoose');
 
 exports.getApiKeys = async (req, res, next) => {
   try {
@@ -25,6 +26,13 @@ exports.generateApiKey = async (req, res, next) => {
     const rawKey = `fr_live_${randomHex}`;
     const keyHash = crypto.createHash('sha256').update(rawKey).digest('hex');
     const keyPrefix = `${rawKey.substring(0, 14)}...`;
+
+    // Drop legacy index if it exists to prevent Duplicate field value entered (code 11000)
+    try {
+      await mongoose.connection.db.collection('apikeys').dropIndex('key_1');
+    } catch (e) {
+      // Ignore if index doesn't exist
+    }
 
     const apiKeyDoc = await ApiKey.create({
       userId: req.user._id,
