@@ -5,6 +5,7 @@ const { protect } = require('../middleware/authMiddleware');
 
 // Public Webhook Endpoint for Arkesel Delivery Receipts
 router.post('/webhook/arkesel', arkeselWebhook);
+router.get('/webhook/arkesel', arkeselWebhook);
 
 // Protected Reports Routes
 router.use(protect);

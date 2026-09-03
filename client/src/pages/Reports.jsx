@@ -7,17 +7,18 @@ export default function Reports() {
   const [messages, setMessages] = useState([]);
   const [stats, setStats] = useState({ totalSent: 0, deliveredCount: 0, pendingCount: 0, failedCount: 0, deliveryRate: '100.0' });
   const [syncing, setSyncing] = useState(false);
+  const [limit, setLimit] = useState(100);
 
   useEffect(() => {
     fetchReports();
     const interval = setInterval(fetchReports, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [limit]);
 
   const fetchReports = async () => {
     setSyncing(true);
     try {
-      const res = await API.get('/reports');
+      const res = await API.get(`/reports?limit=${limit}`);
       if (res.data.success) {
         setMessages(res.data.data.messages || []);
         setStats(res.data.data.stats || {});
@@ -134,6 +135,17 @@ export default function Reports() {
             </tbody>
           </table>
         </div>
+        
+        {messages.length > 0 && messages.length >= limit && (
+          <div className="flex justify-center pt-4 border-t border-[rgba(212,175,106,0.1)]">
+            <button
+              onClick={() => setLimit(prev => prev + 100)}
+              className="text-xs font-bold text-[#D4AF6A] bg-[#D4AF6A]/10 hover:bg-[#D4AF6A]/20 px-6 py-2 rounded-xl transition-colors"
+            >
+              Load Older Records
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

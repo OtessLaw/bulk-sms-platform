@@ -37,6 +37,10 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
         sender: cleanSenderId,
         recipients: [formattedPhone],
         message: content,
+        sandbox: false,
+        callback_url: process.env.NODE_ENV === 'production' 
+          ? `https://fasreach-backend.onrender.com/api/reports/webhook/arkesel`
+          : `https://fasreach.com/api/reports/webhook/arkesel`,
       },
       {
         headers: {
@@ -47,8 +51,22 @@ exports.sendMultiSms = async ({ senderId, recipientPhone, content }) => {
     );
 
     console.log('[Primary Gateway v2 Response]', res.data);
-    const msgId = res.data?.data?.id || res.data?.id || `GW_${Date.now()}`;
-    const rawStatus = res.data?.data?.status || res.data?.status || 'Submitted';
+    let msgId = `GW_${Date.now()}`;
+    if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      msgId = res.data.data[0].id || res.data.data[0].message_id;
+    } else if (res.data?.data?.id) {
+      msgId = res.data.data.id;
+    } else if (res.data?.id) {
+      msgId = res.data.id;
+    }
+    let rawStatus = 'Submitted';
+    if (res.data?.data && Array.isArray(res.data.data) && res.data.data.length > 0) {
+      rawStatus = res.data.data[0].status;
+    } else if (res.data?.data?.status) {
+      rawStatus = res.data.data.status;
+    } else if (res.data?.status) {
+      rawStatus = res.data.status;
+    }
 
     let initialStatus = 'Submitted';
     if (String(rawStatus).toLowerCase().includes('pending')) initialStatus = 'Pending';

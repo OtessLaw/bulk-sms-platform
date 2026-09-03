@@ -27,7 +27,8 @@ exports.getReports = async (req, res, next) => {
     }
 
     // 2. Fetch Latest Messages & Delivery Stats
-    const messages = await Message.find(filter).sort({ createdAt: -1 }).limit(100);
+    const limit = parseInt(req.query.limit) || 100;
+    const messages = await Message.find(filter).sort({ createdAt: -1 }).limit(limit);
     const totalSent = await Message.countDocuments(filter);
     const deliveredCount = await Message.countDocuments({ ...filter, status: 'Delivered' });
     const pendingCount = await Message.countDocuments({ ...filter, status: { $in: ['Pending', 'Submitted'] } });
@@ -55,8 +56,9 @@ exports.getReports = async (req, res, next) => {
 // @route   POST /api/sms/webhook/arkesel
 exports.arkeselWebhook = async (req, res, next) => {
   try {
-    const { sms_id, message_id, status, recipient } = req.body;
-    const targetId = sms_id || message_id;
+    const payload = Object.keys(req.body).length > 0 ? req.body : req.query;
+    const { sms_id, message_id, id, campaign_id, status, recipient } = payload;
+    const targetId = sms_id || message_id || id || campaign_id;
 
     if (targetId) {
       const msg = await Message.findOne({ gatewayResponseId: targetId });
